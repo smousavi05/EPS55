@@ -2,6 +2,6 @@
 
 ### Interactive Figure Preview
 
-[![Interactive Figure Preview]](https://smousavi05.github.io/Damaging-Earthquakes-Visualization/earthquake_timeline_visualization.html)
+[![Interactive Figure Preview](static.png)](https://smousavi05.github.io/Damaging-Earthquakes-Visualization/earthquake_timeline_visualization.html)
 
 Click the image above to see the live interactive version.

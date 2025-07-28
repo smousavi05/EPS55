@@ -11,3 +11,6 @@
 [![Interactive Figure Preview](statitic-mag-relation.png)](https://smousavi05.github.io/Damaging-Earthquakes-Visualization/earthquake-magnitude-scale_2.html)
 
 [![Interactive Figure Preview](magnitude-saturation.png)](https://smousavi05.github.io/Damaging-Earthquakes-Visualization/magnitude-saturation-chart.html)
+
+[![Interactive Figure Preview](cumulative-moment.png)](https://smousavi05.github.io/Damaging-Earthquakes-Visualization/magnitude-saturation-chart.html)
+

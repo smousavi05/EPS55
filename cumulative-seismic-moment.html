@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cumulative Seismic Moment Worldwide</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .chart-container {
+            position: relative;
+            height: 700px;
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .control-btn {
+            padding: 10px 20px;
+            background: #ffffff;
+            border: 2px solid #e0e0e0;
+            color: #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14;
+            font-weight: 500;
+        }
+        .control-btn:hover {
+            background: #f0f0f0;
+            border-color: #3498db;
+            transform: translateY(-2px);
+        }
+        .control-btn.active {
+            background: #3498db;
+            border-color: #3498db;
+            color: white;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .info-card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border-color: #3498db;
+        }
+        .info-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+        .highlight {
+            color: #3498db;
+            font-weight: bold;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #3498db;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        .earthquake-label {
+            position: absolute;
+            background: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            z-index: 10;
+            pointer-events: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .earthquake-label::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cumulative Seismic Moment Worldwide</h1>
+        <p class="subtitle">Tracking global seismic energy release from 1900 to present</p>
+        
+        <div class="controls">
+            <button class="control-btn active" id="linearBtn" onclick="toggleScale('linear')">Linear Scale</button>
+            <button class="control-btn" id="logBtn" onclick="toggleScale('logarithmic')">Logarithmic Scale</button>
+            <button class="control-btn" id="animateBtn" onclick="toggleAnimation()">Animate Timeline</button>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="momentChart"></canvas>
+            <div id="labelContainer"></div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-card">
+                <h3>Understanding Seismic Moment</h3>
+                <p>Seismic moment (M₀) is a measure of the total energy released by an earthquake. It's calculated as:</p>
+                <p style="text-align: center; font-family: monospace; margin: 15px 0; background: #f8f9fa; padding: 10px; border-radius: 5px;">M₀ = μ × A × D</p>
+                <p>Where μ is the shear modulus, A is the fault area, and D is the average displacement.</p>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalMoment">0</div>
+                        <div class="stat-label">Total Moment (N·m)</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="largestContributor">--</div>
+                        <div class="stat-label">Largest Contributor</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <h3>Major Seismic Events</h3>
+                <p>The largest earthquakes dominate the cumulative seismic moment:</p>
+                <ul style="margin: 15px 0; padding-left: 20px; line-height: 1.8;">
+                    <li><span class="highlight">1960 Chile (Mw 9.5)</span> - Largest recorded earthquake</li>
+                    <li><span class="highlight">2004 Sumatra (Mw 9.1)</span> - Indian Ocean tsunami</li>
+                    <li><span class="highlight">2011 Tōhoku (Mw 9.1)</span> - Japan earthquake and tsunami</li>
+                    <li><span class="highlight">1964 Alaska (Mw 9.2)</span> - Great Alaska earthquake</li>
+                </ul>
+                <p>These mega-earthquakes can release more energy than thousands of smaller earthquakes combined.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Major earthquakes with their moments
+        const majorEarthquakes = [
+            { year: 1906, name: 'San Francisco', mw: 7.9, moment: 7.9e20 },
+            { year: 1923, name: 'Great Kantō', mw: 7.9, moment: 7.9e20 },
+            { year: 1952, name: 'Kamchatka', mw: 9.0, moment: 3.2e22 },
+            { year: 1957, name: 'Andreanof Islands', mw: 8.6, moment: 7.1e21 },
+            { year: 1960, name: 'Chile', mw: 9.5, moment: 2.0e23 },
+            { year: 1964, name: 'Alaska', mw: 9.2, moment: 7.9e22 },
+            { year: 1965, name: 'Rat Islands', mw: 8.7, moment: 1.0e22 },
+            { year: 2004, name: 'Sumatra-Andaman', mw: 9.1, moment: 4.0e22 },
+            { year: 2005, name: 'Nias-Simeulue', mw: 8.6, moment: 7.1e21 },
+            { year: 2007, name: 'Southern Sumatra', mw: 8.5, moment: 5.0e21 },
+            { year: 2010, name: 'Chile', mw: 8.8, moment: 1.8e22 },
+            { year: 2011, name: 'Tōhoku', mw: 9.1, moment: 4.9e22 },
+            { year: 2012, name: 'Indian Ocean', mw: 8.6, moment: 7.1e21 },
+        ];
+
+        // Generate yearly data
+        const years = [];
+        const cumulativeMoment = [];
+        const yearlyMoment = [];
+        let cumSum = 0;
+
+        for (let year = 1900; year <= 2024; year++) {
+            years.push(year);
+            
+            // Background seismicity
+            let yearlySum = Math.random() * 5e20 + 1e20;
+            
+            // Add major earthquakes
+            const majorQuake = majorEarthquakes.find(eq => eq.year === year);
+            if (majorQuake) {
+                yearlySum += majorQuake.moment;
+            }
+            
+            yearlyMoment.push(yearlySum);
+            cumSum += yearlySum;
+            cumulativeMoment.push(cumSum);
+        }
+
+        // Create annotations for major earthquakes
+        const annotations = {};
+        majorEarthquakes.forEach((eq, index) => {
+            // Add vertical lines for all major earthquakes
+            annotations[`line${index}`] = {
+                type: 'line',
+                xMin: eq.year,
+                xMax: eq.year,
+                borderColor: eq.mw >= 8.5 ? 'rgba(231, 76, 60, 0.5)' : 'rgba(231, 76, 60, 0.2)',
+                borderWidth: eq.mw >= 8.5 ? 2 : 1,
+                borderDash: [5, 5]
+            };
+        });
+
+        // Chart configuration
+        let chart;
+        let currentScale = 'linear';
+        let animationInterval = null;
+
+        const chartConfig = {
+            type: 'line',
+            data: {
+                labels: years,
+                datasets: [{
+                    label: 'Cumulative Seismic Moment',
+                    data: cumulativeMoment,
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#3498db',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    annotation: {
+                        annotations: annotations
+                    },
+                    title: {
+                        display: false
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                const year = tooltipItems[0].label;
+                                const majorQuake = majorEarthquakes.find(eq => eq.year === parseInt(year));
+                                if (majorQuake) {
+                                    return `${year} - ${majorQuake.name} (Mw ${majorQuake.mw})`;
+                                }
+                                return year;
+                            },
+                            label: function(context) {
+                                const value = context.parsed.y;
+                                return `Cumulative Moment: ${value.toExponential(2)} N·m`;
+                            },
+                            afterLabel: function(context) {
+                                const index = context.dataIndex;
+                                const yearly = yearlyMoment[index];
+                                return `Yearly Release: ${yearly.toExponential(2)} N·m`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Year',
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            borderColor: '#333'
+                        },
+                        ticks: {
+                            color: '#666',
+                            maxRotation: 0,
+                            callback: function(value, index) {
+                                const year = this.getLabelForValue(value);
+                                return year % 10 === 0 ? year : '';
+                            }
+                        }
+                    },
+                    y: {
+                        display: true,
+                        type: 'linear',
+                        title: {
+                            display: true,
+                            text: 'Cumulative Seismic Moment (N·m)',
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            borderColor: '#333'
+                        },
+                        ticks: {
+                            color: '#666',
+                            callback: function(value) {
+                                return value.toExponential(1);
+                            }
+                        }
+                    }
+                }
+            },
+            plugins: [ChartDataLabels = window['chartjs-plugin-annotation']]
+        };
+
+        // Initialize chart
+        const ctx = document.getElementById('momentChart').getContext('2d');
+        chart = new Chart(ctx, chartConfig);
+
+        // Function to update label positions
+        function updateLabels() {
+            const labelContainer = document.getElementById('labelContainer');
+            labelContainer.innerHTML = '';
+            
+            majorEarthquakes.forEach((eq) => {
+                if (eq.mw >= 8.5) {
+                    const yearIndex = years.indexOf(eq.year);
+                    const meta = chart.getDatasetMeta(0);
+                    const element = meta.data[yearIndex];
+                    
+                    if (element) {
+                        const label = document.createElement('div');
+                        label.className = 'earthquake-label';
+                        label.innerHTML = `${eq.name}<br>Mw ${eq.mw}`;
+                        label.style.left = `${element.x}px`;
+                        label.style.top = `${element.y - 40}px`;
+                        label.style.transform = 'translateX(-50%)';
+                        
+                        // Adjust position for overlapping labels
+                        if (eq.year === 1964) {
+                            label.style.top = `${element.y - 70}px`;
+                        } else if (eq.year === 2011) {
+                            label.style.top = `${element.y - 100}px`;
+                        }
+                        
+                        labelContainer.appendChild(label);
+                    }
+                }
+            });
+        }
+
+        // Update labels after chart renders
+        chart.options.animation.onComplete = updateLabels;
+        chart.options.onResize = updateLabels;
+
+        // Update statistics
+        document.getElementById('totalMoment').textContent = cumSum.toExponential(2);
+        const largestQuake = majorEarthquakes.reduce((max, eq) => eq.moment > max.moment ? eq : max);
+        document.getElementById('largestContributor').textContent = `${largestQuake.year} ${largestQuake.name}`;
+
+        // Toggle scale function
+        window.toggleScale = function(scale) {
+            currentScale = scale;
+            chart.options.scales.y.type = scale;
+            
+            // Update button states
+            document.getElementById('linearBtn').classList.toggle('active', scale === 'linear');
+            document.getElementById('logBtn').classList.toggle('active', scale === 'logarithmic');
+            
+            chart.update();
+            setTimeout(updateLabels, 100);
+        }
+
+        // Animation function
+        window.toggleAnimation = function() {
+            const btn = document.getElementById('animateBtn');
+            
+            if (animationInterval) {
+                clearInterval(animationInterval);
+                animationInterval = null;
+                btn.textContent = 'Animate Timeline';
+                btn.classList.remove('active');
+                
+                // Reset to full data
+                chart.data.datasets[0].data = cumulativeMoment;
+                chart.update();
+                setTimeout(updateLabels, 100);
+            } else {
+                btn.textContent = 'Stop Animation';
+                btn.classList.add('active');
+                
+                let currentIndex = 0;
+                const animatedData = [];
+                
+                animationInterval = setInterval(() => {
+                    if (currentIndex < cumulativeMoment.length) {
+                        animatedData.push(cumulativeMoment[currentIndex]);
+                        chart.data.datasets[0].data = [...animatedData];
+                        chart.update('none');
+                        updateLabels();
+                        currentIndex++;
+                    } else {
+                        clearInterval(animationInterval);
+                        animationInterval = null;
+                        btn.textContent = 'Animate Timeline';
+                        btn.classList.remove('active');
+                    }
+                }, 30);
+            }
+        }
+
+        // Initial label positioning
+        setTimeout(updateLabels, 100);
+    </script>
+</body>
+</html>

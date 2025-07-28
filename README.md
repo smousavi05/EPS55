@@ -12,5 +12,5 @@
 
 [![Interactive Figure Preview](magnitude-saturation.png)](https://smousavi05.github.io/Damaging-Earthquakes-Visualization/magnitude-saturation-chart.html)
 
-[![Interactive Figure Preview](cumulative-moment.png)](https://smousavi05.github.io/Damaging-Earthquakes-Visualization/magnitude-saturation-chart.html)
+[![Interactive Figure Preview](cumulative-moment.png)](https://smousavi05.github.io/Damaging-Earthquakes-Visualization/cumulative-seismic-moment.html)
 

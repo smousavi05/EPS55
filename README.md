@@ -2,6 +2,8 @@
 
 ### Click on each image to see the live interactive version:
 
+[![Interactive Figure Preview](interactive_visualizations/viz__l01_earth_human_timeline.png)](https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l01_earth_human_timeline.html)
+
 [![Interactive Figure Preview](static-death.png)](https://smousavi05.github.io/Damaging-Earthquakes-Visualization/earthquake_timeline_visualization-death.html)
 
 [![Interactive Figure Preview](static.png)](https://smousavi05.github.io/Damaging-Earthquakes-Visualization/earthquake_timeline_visualization.html)

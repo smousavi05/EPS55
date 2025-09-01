@@ -313,7 +313,7 @@
                         <p><strong>Mohr Circle Center:</strong> <span id="centerStress">40.0 MPa</span></p>
                         <p><strong>Mohr Circle Radius:</strong> <span id="radiusStress">20.0 MPa</span></p>
                         <p><strong>Max Shear Stress:</strong> <span id="maxShear">20.0 MPa</span></p>
-                        <p><strong>Critical Shear (at contact):</strong> <span id="criticalShear">N/A</span></p>
+                        <p><strong>Critical Shear (at tangency):</strong> <span id="criticalShear">N/A</span></p>
                     </div>
                 </div>
             </div>
@@ -351,21 +351,6 @@
                     <h4>📏 Failure Envelope</h4>
                     <p>The failure envelope is a straight line in τ-σₙ space with slope tan(φ) and y-intercept c. It separates safe stress states (below the line) from failure conditions (above the line).</p>
                 </div>
-
-                <div class="theory-card">
-                    <h4>🏗️ Applications</h4>
-                    <p>This criterion is fundamental in geotechnical engineering, rock mechanics, and soil mechanics. It's used to analyze slope stability, foundation bearing capacity, and fault mechanics in earthquakes.</p>
-                </div>
-
-                <div class="theory-card">
-                    <h4>⚖️ Cohesion vs Friction</h4>
-                    <p>Cohesion (c) represents the material's inherent bonding strength, while the friction term (σₙ × tan φ) represents the resistance that increases with normal stress - like how it's harder to slide objects under pressure.</p>
-                </div>
-
-                <div class="theory-card">
-                    <h4>🎯 Critical Conditions</h4>
-                    <p>Failure is imminent when the Mohr circle just touches the failure envelope. The angle of the failure plane to the major principal stress is 45° + φ/2.</p>
-                </div>
             </div>
         </div>
     </div>
@@ -373,91 +358,74 @@
     <script>
         const canvas = document.getElementById('mohrCanvas');
         const ctx = canvas.getContext('2d');
-
-        // Get all the controls
         const sigma1Slider = document.getElementById('sigma1');
         const sigma3Slider = document.getElementById('sigma3');
         const cohesionSlider = document.getElementById('cohesion');
         const frictionSlider = document.getElementById('friction');
-
-        // Value display elements
         const sigma1Value = document.getElementById('sigma1Value');
         const sigma3Value = document.getElementById('sigma3Value');
         const cohesionValue = document.getElementById('cohesionValue');
         const frictionValue = document.getElementById('frictionValue');
-
-        // Analysis display elements
         const centerStress = document.getElementById('centerStress');
         const radiusStress = document.getElementById('radiusStress');
         const maxShear = document.getElementById('maxShear');
         const criticalShear = document.getElementById('criticalShear');
         const statusIndicator = document.getElementById('statusIndicator');
+
         function updateVisualization() {
             const sigma1 = parseFloat(sigma1Slider.value);
             const sigma3 = parseFloat(sigma3Slider.value);
             const c = parseFloat(cohesionSlider.value);
             const phi = parseFloat(frictionSlider.value);
 
-            // Ensure sigma1 >= sigma3
             if (sigma1 < sigma3) {
                 sigma1Slider.value = sigma3;
                 return;
             }
 
-            // Update value displays
             sigma1Value.textContent = sigma1 + ' MPa';
             sigma3Value.textContent = sigma3 + ' MPa';
             cohesionValue.textContent = c.toFixed(1) + ' MPa';
             frictionValue.textContent = phi + '°';
 
-            // Calculate Mohr circle parameters
             const center = (sigma1 + sigma3) / 2;
             const radius = (sigma1 - sigma3) / 2;
-            const maxShearStress = radius;
-
-            // Update analysis display
+            
             centerStress.textContent = center.toFixed(1) + ' MPa';
             radiusStress.textContent = radius.toFixed(1) + ' MPa';
-            maxShear.textContent = maxShearStress.toFixed(1) + ' MPa';
+            maxShear.textContent = radius.toFixed(1) + ' MPa';
 
-            // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Set up coordinate system
             const margin = 40;
             const plotWidth = canvas.width - 2 * margin;
             const plotHeight = canvas.height - 2 * margin;
             
-            // Calculate scales
+            const phiRad = phi * Math.PI / 180;
             const maxStress = Math.max(100, sigma1 * 1.2);
-            const phiRad = phi * Math.PI / 180; // Moved here for earlier access
-            const maxShearAxis = Math.max(50, maxShearStress * 1.5, c + maxStress * Math.tan(phiRad));
-            
+            const maxShearAxis = Math.max(50, radius * 1.5, c + maxStress * Math.tan(phiRad));
             const scaleX = plotWidth / maxStress;
             const scaleY = plotHeight / (2 * maxShearAxis);
 
-            // Transform functions
-            function toCanvasX(sigma) {
-                return margin + sigma * scaleX;
+            function toCanvasX(sigma) { return margin + sigma * scaleX; }
+            function toCanvasY(tau) { return margin + plotHeight / 2 - tau * scaleY; }
+
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= maxStress; i += 20) {
+                const x = toCanvasX(i);
+                ctx.beginPath(); ctx.moveTo(x, margin); ctx.lineTo(x, margin + plotHeight); ctx.stroke();
+            }
+            for (let i = -maxShearAxis; i <= maxShearAxis; i += 10) {
+                const y = toCanvasY(i);
+                ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(margin + plotWidth, y); ctx.stroke();
             }
 
-            function toCanvasY(tau) {
-                return margin + plotHeight / 2 - tau * scaleY;
-            }
-
-            // Draw axes
             ctx.strokeStyle = '#333';
             ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(margin, margin + plotHeight / 2);
-            ctx.lineTo(margin + plotWidth, margin + plotHeight / 2);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(margin, margin);
-            ctx.lineTo(margin, margin + plotHeight);
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(margin, margin + plotHeight / 2); ctx.lineTo(margin + plotWidth, margin + plotHeight / 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(margin, margin); ctx.lineTo(margin, margin + plotHeight); ctx.stroke();
 
-            // Axis labels
             ctx.fillStyle = '#333';
             ctx.font = '16px Arial';
             ctx.textAlign = 'center';
@@ -468,25 +436,6 @@
             ctx.fillText('Shear Stress τ (MPa)', 0, 0);
             ctx.restore();
 
-            // Draw grid
-            ctx.strokeStyle = '#eee';
-            ctx.lineWidth = 1;
-            for (let i = 0; i <= maxStress; i += 20) {
-                const x = toCanvasX(i);
-                ctx.beginPath();
-                ctx.moveTo(x, margin);
-                ctx.lineTo(x, margin + plotHeight);
-                ctx.stroke();
-            }
-            for (let i = -maxShearAxis; i <= maxShearAxis; i += 10) {
-                const y = toCanvasY(i);
-                ctx.beginPath();
-                ctx.moveTo(margin, y);
-                ctx.lineTo(margin + plotWidth, y);
-                ctx.stroke();
-            }
-
-            // Draw failure envelope
             ctx.strokeStyle = '#e74c3c';
             ctx.lineWidth = 3;
             ctx.beginPath();
@@ -497,11 +446,7 @@
             ctx.moveTo(toCanvasX(0), toCanvasY(-c));
             ctx.lineTo(toCanvasX(maxStress), toCanvasY(-c - maxStress * Math.tan(phiRad)));
             ctx.stroke();
-            ctx.fillStyle = '#e74c3c';
-            ctx.font = 'bold 14px Arial';
-            ctx.fillText('Failure Envelope', toCanvasX(maxStress * 0.6), toCanvasY(c + maxStress * 0.6 * Math.tan(phiRad)) - 10);
-            
-            // Draw Mohr circle
+
             const centerX = toCanvasX(center);
             const centerY = toCanvasY(0);
             const radiusPixels = radius * scaleX;
@@ -513,64 +458,57 @@
             ctx.fillStyle = 'rgba(52, 152, 219, 0.1)';
             ctx.fill();
 
-            // Mark principal stresses
             ctx.fillStyle = '#3498db';
-            ctx.beginPath();
-            ctx.arc(toCanvasX(sigma1), centerY, 6, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(toCanvasX(sigma3), centerY, 6, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.fillStyle = '#3498db';
+            ctx.beginPath(); ctx.arc(toCanvasX(sigma1), centerY, 6, 0, 2 * Math.PI); ctx.fill();
+            ctx.beginPath(); ctx.arc(toCanvasX(sigma3), centerY, 6, 0, 2 * Math.PI); ctx.fill();
             ctx.font = 'bold 12px Arial';
             ctx.fillText('σ₁', toCanvasX(sigma1), centerY - 12);
             ctx.fillText('σ₃', toCanvasX(sigma3), centerY - 12);
 
-            // Check for failure
-            const tanPhi = Math.tan(phiRad);
-            // FIX 1: Corrected the failure condition logic.
-            // The previous logic was an oversimplification. This formula correctly calculates
-            // the required shear strength for failure (the point on the envelope closest to the circle's center)
-            // and compares it to the radius. Failure occurs when radius >= required strength.
+            // *** START OF CORRECTED LOGIC ***
+            
+            // This is the shear strength on the failure envelope required for failure.
+            // It's derived from the geometry of a circle tangent to the failure line.
             const requiredStrength = center * Math.sin(phiRad) + c * Math.cos(phiRad);
-            const isFailing = radius >= requiredStrength;
-
-            const tauAtCenter = c + center * tanPhi; // Kept for display purposes
+            
+            // Failure occurs when the circle's radius is >= this required strength.
+            // A small tolerance (1e-6) is added to handle floating point inaccuracies.
+            const isFailing = radius + 1e-6 >= requiredStrength;
 
             if (isFailing) {
                 statusIndicator.className = 'status-indicator failure';
                 statusIndicator.textContent = '❌ MATERIAL FAILURE PREDICTED';
                 criticalShear.textContent = requiredStrength.toFixed(1) + ' MPa (EXCEEDED)';
-                
-                // FIX 2: Calculate the actual point of failure (tangency).
-                // The failure point is not at the top of the circle unless φ=0.
-                // These are the correct coordinates (σ_fail, τ_fail) for the tangent point.
+
+                // Calculate the actual (σ, τ) coordinates of the tangent point.
                 const failureSigma = center - radius * Math.sin(phiRad);
                 const failureTau = radius * Math.cos(phiRad);
-
-                // FIX 3: Draw the failure marker at the calculated tangent point.
+                
+                // Convert these coordinates to canvas pixels.
                 const failureCanvasX = toCanvasX(failureSigma);
                 const failureCanvasY = toCanvasY(failureTau);
-
-                ctx.fillStyle = '#e74c3c';
+                
+                // Draw the red failure point at the correct location.
+                ctx.fillStyle = '#c0392b';
                 ctx.beginPath();
-                ctx.arc(failureCanvasX, failureCanvasY, 8, 0, 2 * Math.PI); // Use calculated coordinates
+                ctx.arc(failureCanvasX, failureCanvasY, 8, 0, 2 * Math.PI);
                 ctx.fill();
-                ctx.fillText('Failure Point', failureCanvasX - 30, failureCanvasY - 12); // Use calculated coordinates
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
                 
             } else {
                 statusIndicator.className = 'status-indicator safe';
                 statusIndicator.textContent = '✅ MATERIAL IS SAFE';
-                criticalShear.textContent = requiredStrength.toFixed(1) + ' MPa (Safe margin: ' + (requiredStrength - radius).toFixed(1) + ')';
+                const safeMargin = requiredStrength > radius ? (requiredStrength - radius).toFixed(1) : '0.0';
+                criticalShear.textContent = requiredStrength.toFixed(1) + ' MPa (Safe margin: ' + safeMargin + ')';
             }
+            // *** END OF CORRECTED LOGIC ***
 
-            // Add scale numbers
             ctx.fillStyle = '#666';
             ctx.font = '10px Arial';
-            for (let i = 0; i <= maxStress; i += 20) {
-                if (i > 0) {
-                    ctx.fillText(i.toString(), toCanvasX(i) - 8, margin + plotHeight / 2 + 15);
-                }
+            for (let i = 20; i <= maxStress; i += 20) {
+                ctx.fillText(i.toString(), toCanvasX(i) - 8, margin + plotHeight / 2 + 15);
             }
             for (let i = 10; i <= maxShearAxis; i += 10) {
                 ctx.fillText(i.toString(), margin - 25, toCanvasY(i) + 3);
@@ -578,20 +516,17 @@
             }
         }
 
-        // Event listeners
         sigma1Slider.addEventListener('input', updateVisualization);
         sigma3Slider.addEventListener('input', updateVisualization);
         cohesionSlider.addEventListener('input', updateVisualization);
         frictionSlider.addEventListener('input', updateVisualization);
 
-        // Constraint: ensure sigma1 >= sigma3
         sigma3Slider.addEventListener('input', function() {
             if (parseFloat(sigma3Slider.value) > parseFloat(sigma1Slider.value)) {
                 sigma1Slider.value = sigma3Slider.value;
             }
             updateVisualization();
         });
-
         sigma1Slider.addEventListener('input', function() {
             if (parseFloat(sigma1Slider.value) < parseFloat(sigma3Slider.value)) {
                 sigma3Slider.value = sigma1Slider.value;
@@ -599,7 +534,6 @@
             updateVisualization();
         });
 
-        // Initialize
         updateVisualization();
     </script>
 </body>

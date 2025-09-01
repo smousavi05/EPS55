@@ -14,3 +14,6 @@
 
 ---------------------------------------------------------
 
+<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l02_coulomb_criterion.html">
+  <img src="interactive_visualizations/viz__l02_coulomb_criterion.png" alt="Interactive Figure Preview" width="500">
+</a>

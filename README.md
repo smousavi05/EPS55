@@ -5,11 +5,12 @@
 ### Click on each image to see the live interactive version:
 
 <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l01_earth_human_timeline.html">
-  <img src="interactive_visualizations/viz__l01_earth_human_timeline.png" alt="Interactive Figure Preview" width="500">
+  <img src="interactive_visualizations/viz__l01_earth_human_timeline.png" alt="Interactive Figure Preview" width="300">
+</a>
+
+<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l01_earthquake-death.html">
+  <img src="interactive_visualizations/viz__l01_earthquake-death.png" alt="Interactive Figure Preview" width="300">
 </a>
 
 ---------------------------------------------------------
 
-<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l01_earthquake-death.html">
-  <img src="interactive_visualizations/viz__l01_earthquake-death.png" alt="Interactive Figure Preview" width="500">
-</a>

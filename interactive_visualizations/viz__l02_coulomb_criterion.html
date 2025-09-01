@@ -392,7 +392,6 @@
         const maxShear = document.getElementById('maxShear');
         const criticalShear = document.getElementById('criticalShear');
         const statusIndicator = document.getElementById('statusIndicator');
-
         function updateVisualization() {
             const sigma1 = parseFloat(sigma1Slider.value);
             const sigma3 = parseFloat(sigma3Slider.value);
@@ -431,7 +430,8 @@
             
             // Calculate scales
             const maxStress = Math.max(100, sigma1 * 1.2);
-            const maxShearAxis = Math.max(50, maxShearStress * 1.5, c + maxStress * Math.tan(phi * Math.PI / 180));
+            const phiRad = phi * Math.PI / 180; // Moved here for earlier access
+            const maxShearAxis = Math.max(50, maxShearStress * 1.5, c + maxStress * Math.tan(phiRad));
             
             const scaleX = plotWidth / maxStress;
             const scaleY = plotHeight / (2 * maxShearAxis);
@@ -448,14 +448,10 @@
             // Draw axes
             ctx.strokeStyle = '#333';
             ctx.lineWidth = 2;
-            
-            // X-axis (normal stress)
             ctx.beginPath();
             ctx.moveTo(margin, margin + plotHeight / 2);
             ctx.lineTo(margin + plotWidth, margin + plotHeight / 2);
             ctx.stroke();
-
-            // Y-axis (shear stress)
             ctx.beginPath();
             ctx.moveTo(margin, margin);
             ctx.lineTo(margin, margin + plotHeight);
@@ -466,7 +462,6 @@
             ctx.font = '16px Arial';
             ctx.textAlign = 'center';
             ctx.fillText('Normal Stress σₙ (MPa)', margin + plotWidth / 2, margin + plotHeight + 35);
-            
             ctx.save();
             ctx.translate(15, margin + plotHeight / 2);
             ctx.rotate(-Math.PI / 2);
@@ -492,40 +487,29 @@
             }
 
             // Draw failure envelope
-            const phiRad = phi * Math.PI / 180;
             ctx.strokeStyle = '#e74c3c';
             ctx.lineWidth = 3;
-            
-            // Upper envelope
             ctx.beginPath();
             ctx.moveTo(toCanvasX(0), toCanvasY(c));
             ctx.lineTo(toCanvasX(maxStress), toCanvasY(c + maxStress * Math.tan(phiRad)));
             ctx.stroke();
-
-            // Lower envelope (for negative shear)
             ctx.beginPath();
             ctx.moveTo(toCanvasX(0), toCanvasY(-c));
             ctx.lineTo(toCanvasX(maxStress), toCanvasY(-c - maxStress * Math.tan(phiRad)));
             ctx.stroke();
-
-            // Label failure envelope
             ctx.fillStyle = '#e74c3c';
             ctx.font = 'bold 14px Arial';
             ctx.fillText('Failure Envelope', toCanvasX(maxStress * 0.6), toCanvasY(c + maxStress * 0.6 * Math.tan(phiRad)) - 10);
-            ctx.fillText('τ = c + σₙ tan φ', toCanvasX(maxStress * 0.6), toCanvasY(c + maxStress * 0.6 * Math.tan(phiRad)) + 10);
-
+            
             // Draw Mohr circle
             const centerX = toCanvasX(center);
             const centerY = toCanvasY(0);
             const radiusPixels = radius * scaleX;
-
             ctx.strokeStyle = '#3498db';
             ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.arc(centerX, centerY, radiusPixels, 0, 2 * Math.PI);
             ctx.stroke();
-
-            // Fill Mohr circle with semi-transparency
             ctx.fillStyle = 'rgba(52, 152, 219, 0.1)';
             ctx.fill();
 
@@ -534,53 +518,50 @@
             ctx.beginPath();
             ctx.arc(toCanvasX(sigma1), centerY, 6, 0, 2 * Math.PI);
             ctx.fill();
-            
             ctx.beginPath();
             ctx.arc(toCanvasX(sigma3), centerY, 6, 0, 2 * Math.PI);
             ctx.fill();
-
-            // Labels for principal stresses
             ctx.fillStyle = '#3498db';
             ctx.font = 'bold 12px Arial';
             ctx.fillText('σ₁', toCanvasX(sigma1), centerY - 12);
             ctx.fillText('σ₃', toCanvasX(sigma3), centerY - 12);
 
-            // Check for failure - need to check if circle intersects envelope
-            // For a circle to intersect the failure line, we need to find the point on the circle
-            // closest to the failure envelope and see if it crosses
-            
-            // The failure envelope is τ = c + σₙ * tan(φ)
-            // For the Mohr circle, the highest point is at (center, radius)
-            // We need to check if any point on the circle exceeds the failure envelope
-            
-            // The critical condition is when the circle is tangent to the envelope
-            // This happens when the perpendicular distance from circle center to the line equals the radius
-            
-            // Failure line equation: τ - c - σₙ * tan(φ) = 0
-            // Distance from point (center, 0) to line: |0 - c - center * tan(φ)| / sqrt(1 + tan²(φ))
+            // Check for failure
             const tanPhi = Math.tan(phiRad);
-            const lineDistance = Math.abs(-c - center * tanPhi) / Math.sqrt(1 + tanPhi * tanPhi);
-            
-            // Also check the simple case: does the top of the circle exceed the envelope at that σₙ?
-            const tauAtCenter = c + center * tanPhi;
-            const isFailing = (radius > lineDistance) || (maxShearStress > tauAtCenter);
+            // FIX 1: Corrected the failure condition logic.
+            // The previous logic was an oversimplification. This formula correctly calculates
+            // the required shear strength for failure (the point on the envelope closest to the circle's center)
+            // and compares it to the radius. Failure occurs when radius >= required strength.
+            const requiredStrength = center * Math.sin(phiRad) + c * Math.cos(phiRad);
+            const isFailing = radius >= requiredStrength;
+
+            const tauAtCenter = c + center * tanPhi; // Kept for display purposes
 
             if (isFailing) {
                 statusIndicator.className = 'status-indicator failure';
                 statusIndicator.textContent = '❌ MATERIAL FAILURE PREDICTED';
-                criticalShear.textContent = tauAtCenter.toFixed(1) + ' MPa (EXCEEDED)';
+                criticalShear.textContent = requiredStrength.toFixed(1) + ' MPa (EXCEEDED)';
                 
-                // Highlight intersection points where circle meets envelope
+                // FIX 2: Calculate the actual point of failure (tangency).
+                // The failure point is not at the top of the circle unless φ=0.
+                // These are the correct coordinates (σ_fail, τ_fail) for the tangent point.
+                const failureSigma = center - radius * Math.sin(phiRad);
+                const failureTau = radius * Math.cos(phiRad);
+
+                // FIX 3: Draw the failure marker at the calculated tangent point.
+                const failureCanvasX = toCanvasX(failureSigma);
+                const failureCanvasY = toCanvasY(failureTau);
+
                 ctx.fillStyle = '#e74c3c';
                 ctx.beginPath();
-                ctx.arc(centerX, toCanvasY(maxShearStress), 8, 0, 2 * Math.PI);
+                ctx.arc(failureCanvasX, failureCanvasY, 8, 0, 2 * Math.PI); // Use calculated coordinates
                 ctx.fill();
-                ctx.fillText('Failure Point', centerX - 30, toCanvasY(maxShearStress) - 12);
+                ctx.fillText('Failure Point', failureCanvasX - 30, failureCanvasY - 12); // Use calculated coordinates
                 
             } else {
                 statusIndicator.className = 'status-indicator safe';
                 statusIndicator.textContent = '✅ MATERIAL IS SAFE';
-                criticalShear.textContent = tauAtCenter.toFixed(1) + ' MPa (Safe margin: ' + (tauAtCenter - maxShearStress).toFixed(1) + ')';
+                criticalShear.textContent = requiredStrength.toFixed(1) + ' MPa (Safe margin: ' + (requiredStrength - radius).toFixed(1) + ')';
             }
 
             // Add scale numbers

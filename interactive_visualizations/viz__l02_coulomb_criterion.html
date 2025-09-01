@@ -5,281 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coulomb's Criterion: The Failure Rule</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 20px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .header h1 {
-            font-size: 3em;
-            color: #2c3e50;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .header p {
-            font-size: 1.3em;
-            color: #5a6c7d;
-            margin-bottom: 20px;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-
-        .visualization-panel {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .controls-panel {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        #mohrCanvas {
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            background: white;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .control-group {
-            margin-bottom: 25px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 12px;
-            border-left: 4px solid #3498db;
-        }
-
-        .control-group h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-
-        .slider-container {
-            margin-bottom: 15px;
-        }
-
-        .slider-container label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #34495e;
-        }
-
-        .slider {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: #ddd;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        .slider::-webkit-slider-thumb {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #3498db;
-            cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .slider::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #3498db;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .value-display {
-            display: inline-block;
-            background: #3498db;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-
-        .equation-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin: 20px 0;
-            text-align: center;
-            font-size: 1.3em;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .status-indicator {
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 1.1em;
-            margin-top: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .safe {
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
-            color: white;
-        }
-
-        .failure {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-        }
-
-        .theory-section {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            margin-bottom: 30px;
-        }
-
-        .theory-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-top: 25px;
-        }
-
-        .theory-card {
-            background: #f8f9fa;
-            padding: 25px;
-            border-radius: 12px;
-            border-left: 4px solid #e74c3c;
-        }
-
-        .theory-card h4 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-
-        .theory-card p {
-            line-height: 1.6;
-            color: #5a6c7d;
-        }
-
-        .formula-breakdown {
-            background: #ecf0f1;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 15px 0;
-        }
-
-        .formula-breakdown code {
-            background: #34495e;
-            color: #ecf0f1;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-
-        .interactive-hint {
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            margin-top: 20px;
-            font-weight: bold;
-        }
-
-        @media (max-width: 768px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .header h1 {
-                font-size: 2em;
-            }
-            
-            .header p {
-                font-size: 1.1em;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #333; min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 20px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); }
+        h1 { font-size: 3em; color: #2c3e50; }
+        .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+        .visualization-panel, .controls-panel { background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); }
+        #mohrCanvas { border: 2px solid #ddd; border-radius: 10px; background: white; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); }
+        .control-group { margin-bottom: 25px; padding: 20px; background: #f8f9fa; border-radius: 12px; border-left: 4px solid #3498db; }
+        .slider-container label { display: block; margin-bottom: 8px; font-weight: 600; color: #34495e; }
+        .slider { width: 100%; }
+        .value-display { display: inline-block; background: #3498db; color: white; padding: 4px 12px; border-radius: 15px; font-weight: bold; margin-left: 10px; }
+        .status-indicator { padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; font-size: 1.1em; margin-top: 20px; transition: all 0.3s ease; }
+        .safe { background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; }
+        .failure { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>⚡ Coulomb's Criterion</h1>
-            <p>Interactive Visualization of the Material Failure Rule</p>
-            <p style="font-size: 1em; color: #7f8c8d;">Discover how stress conditions determine when materials fail along fault planes</p>
-        </div>
-
+        <div class="header"><h1>⚡ Coulomb's Criterion</h1></div>
         <div class="main-content">
             <div class="visualization-panel">
-                <h3 style="color: #2c3e50; margin-bottom: 20px;">🎯 Mohr Circle & Failure Envelope</h3>
                 <canvas id="mohrCanvas" width="500" height="400"></canvas>
-                
-                <div class="equation-box">
-                    τ = c + σₙ × tan(φ)
-                </div>
-
-                <div id="statusIndicator" class="status-indicator safe">
-                    ✅ MATERIAL IS SAFE
-                </div>
-
-                <div class="interactive-hint">
-                    💡 Adjust the sliders to see how stress conditions affect material failure!
-                </div>
+                <div id="statusIndicator" class="status-indicator safe">✅ MATERIAL IS SAFE</div>
             </div>
-
             <div class="controls-panel">
-                <h3 style="color: #2c3e50; margin-bottom: 20px;">🎛️ Stress Parameters</h3>
-                
-                <div class="control-group">
+                 <div class="control-group">
                     <h3>Principal Stresses</h3>
                     <div class="slider-container">
                         <label for="sigma1">Maximum Principal Stress (σ₁) [MPa]</label>
@@ -292,7 +45,6 @@
                         <span id="sigma3Value" class="value-display">20 MPa</span>
                     </div>
                 </div>
-
                 <div class="control-group">
                     <h3>Material Properties</h3>
                     <div class="slider-container">
@@ -306,56 +58,13 @@
                         <span id="frictionValue" class="value-display">30°</span>
                     </div>
                 </div>
-
-                <div class="control-group">
-                    <h3>Current Analysis</h3>
-                    <div style="background: white; padding: 15px; border-radius: 8px;">
-                        <p><strong>Mohr Circle Center:</strong> <span id="centerStress">40.0 MPa</span></p>
-                        <p><strong>Mohr Circle Radius:</strong> <span id="radiusStress">20.0 MPa</span></p>
-                        <p><strong>Max Shear Stress:</strong> <span id="maxShear">20.0 MPa</span></p>
-                        <p><strong>Critical Shear (at tangency):</strong> <span id="criticalShear">N/A</span></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="theory-section">
-            <h2 style="color: #2c3e50; text-align: center; margin-bottom: 25px;">📚 Understanding Coulomb's Criterion</h2>
-            
-            <div class="formula-breakdown">
-                <h3 style="color: #2c3e50; margin-bottom: 15px;">The Coulomb Failure Criterion</h3>
-                <p style="font-size: 1.2em; text-align: center; margin-bottom: 15px;">
-                    <strong>τ = c + σₙ × tan(φ)</strong>
-                </p>
-                <p>Where:</p>
-                <ul style="margin-left: 20px; margin-top: 10px;">
-                    <li><code>τ</code> = Shear stress on the failure plane</li>
-                    <li><code>c</code> = Cohesion (material's inherent strength)</li>
-                    <li><code>σₙ</code> = Normal stress on the failure plane</li>
-                    <li><code>φ</code> = Internal friction angle</li>
-                </ul>
-            </div>
-
-            <div class="theory-grid">
-                <div class="theory-card">
-                    <h4>🔬 Physical Meaning</h4>
-                    <p>Coulomb's criterion describes the conditions under which a material will fail in shear. It states that failure occurs when the shear stress on a plane exceeds the material's resistance, which consists of cohesive strength plus frictional resistance proportional to the normal stress.</p>
-                </div>
-
-                <div class="theory-card">
-                    <h4>⭕ Mohr Circle</h4>
-                    <p>The Mohr circle graphically represents the stress state at a point. The circle's center is at (σ₁+σ₃)/2 and radius is (σ₁-σ₃)/2. When the circle touches or intersects the failure envelope, the material fails.</p>
-                </div>
-
-                <div class="theory-card">
-                    <h4>📏 Failure Envelope</h4>
-                    <p>The failure envelope is a straight line in τ-σₙ space with slope tan(φ) and y-intercept c. It separates safe stress states (below the line) from failure conditions (above the line).</p>
-                </div>
             </div>
         </div>
     </div>
-
     <script>
+        // *** DIAGNOSTIC TEST ***
+        alert("Newest version of the code is running!");
+
         const canvas = document.getElementById('mohrCanvas');
         const ctx = canvas.getContext('2d');
         const sigma1Slider = document.getElementById('sigma1');
@@ -366,10 +75,6 @@
         const sigma3Value = document.getElementById('sigma3Value');
         const cohesionValue = document.getElementById('cohesionValue');
         const frictionValue = document.getElementById('frictionValue');
-        const centerStress = document.getElementById('centerStress');
-        const radiusStress = document.getElementById('radiusStress');
-        const maxShear = document.getElementById('maxShear');
-        const criticalShear = document.getElementById('criticalShear');
         const statusIndicator = document.getElementById('statusIndicator');
 
         function updateVisualization() {
@@ -378,23 +83,16 @@
             const c = parseFloat(cohesionSlider.value);
             const phi = parseFloat(frictionSlider.value);
 
-            if (sigma1 < sigma3) {
-                sigma1Slider.value = sigma3;
-                return;
-            }
+            if (sigma1 < sigma3) { sigma1Slider.value = sigma3; return; }
 
-            sigma1Value.textContent = sigma1 + ' MPa';
-            sigma3Value.textContent = sigma3 + ' MPa';
-            cohesionValue.textContent = c.toFixed(1) + ' MPa';
-            frictionValue.textContent = phi + '°';
+            sigma1Value.textContent = `${sigma1} MPa`;
+            sigma3Value.textContent = `${sigma3} MPa`;
+            cohesionValue.textContent = `${c.toFixed(1)} MPa`;
+            frictionValue.textContent = `${phi}°`;
 
             const center = (sigma1 + sigma3) / 2;
             const radius = (sigma1 - sigma3) / 2;
             
-            centerStress.textContent = center.toFixed(1) + ' MPa';
-            radiusStress.textContent = radius.toFixed(1) + ' MPa';
-            maxShear.textContent = radius.toFixed(1) + ' MPa';
-
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const margin = 40;
@@ -410,130 +108,39 @@
             function toCanvasX(sigma) { return margin + sigma * scaleX; }
             function toCanvasY(tau) { return margin + plotHeight / 2 - tau * scaleY; }
 
-            ctx.strokeStyle = '#eee';
-            ctx.lineWidth = 1;
-            for (let i = 0; i <= maxStress; i += 20) {
-                const x = toCanvasX(i);
-                ctx.beginPath(); ctx.moveTo(x, margin); ctx.lineTo(x, margin + plotHeight); ctx.stroke();
-            }
-            for (let i = -maxShearAxis; i <= maxShearAxis; i += 10) {
-                const y = toCanvasY(i);
-                ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(margin + plotWidth, y); ctx.stroke();
-            }
+            ctx.strokeStyle = '#eee'; ctx.lineWidth = 1;
+            for (let i = 0; i <= maxStress; i += 20) { const x = toCanvasX(i); ctx.beginPath(); ctx.moveTo(x, margin); ctx.lineTo(x, margin + plotHeight); ctx.stroke(); }
+            for (let i = -maxShearAxis; i <= maxShearAxis; i += 10) { if (i !== 0) { const y = toCanvasY(i); ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(margin + plotWidth, y); ctx.stroke(); } }
 
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(margin, margin + plotHeight / 2); ctx.lineTo(margin + plotWidth, margin + plotHeight / 2); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(margin, margin); ctx.lineTo(margin, margin + plotHeight); ctx.stroke();
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(margin, toCanvasY(0)); ctx.lineTo(margin + plotWidth, toCanvasY(0)); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(toCanvasX(0), margin); ctx.lineTo(toCanvasX(0), margin + plotHeight); ctx.stroke();
 
-            ctx.fillStyle = '#333';
-            ctx.font = '16px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Normal Stress σₙ (MPa)', margin + plotWidth / 2, margin + plotHeight + 35);
-            ctx.save();
-            ctx.translate(15, margin + plotHeight / 2);
-            ctx.rotate(-Math.PI / 2);
-            ctx.fillText('Shear Stress τ (MPa)', 0, 0);
-            ctx.restore();
+            ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(toCanvasX(0), toCanvasY(c)); ctx.lineTo(toCanvasX(maxStress), toCanvasY(c + maxStress * Math.tan(phiRad))); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(toCanvasX(0), toCanvasY(-c)); ctx.lineTo(toCanvasX(maxStress), toCanvasY(-c - maxStress * Math.tan(phiRad))); ctx.stroke();
 
-            ctx.strokeStyle = '#e74c3c';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(toCanvasX(0), toCanvasY(c));
-            ctx.lineTo(toCanvasX(maxStress), toCanvasY(c + maxStress * Math.tan(phiRad)));
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(toCanvasX(0), toCanvasY(-c));
-            ctx.lineTo(toCanvasX(maxStress), toCanvasY(-c - maxStress * Math.tan(phiRad)));
-            ctx.stroke();
+            const centerX = toCanvasX(center); const centerY = toCanvasY(0); const radiusPixels = radius * scaleX;
+            ctx.strokeStyle = '#3498db'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(centerX, centerY, radiusPixels, 0, 2 * Math.PI); ctx.stroke();
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.1)'; ctx.fill();
 
-            const centerX = toCanvasX(center);
-            const centerY = toCanvasY(0);
-            const radiusPixels = radius * scaleX;
-            ctx.strokeStyle = '#3498db';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radiusPixels, 0, 2 * Math.PI);
-            ctx.stroke();
-            ctx.fillStyle = 'rgba(52, 152, 219, 0.1)';
-            ctx.fill();
-
-            ctx.fillStyle = '#3498db';
-            ctx.beginPath(); ctx.arc(toCanvasX(sigma1), centerY, 6, 0, 2 * Math.PI); ctx.fill();
-            ctx.beginPath(); ctx.arc(toCanvasX(sigma3), centerY, 6, 0, 2 * Math.PI); ctx.fill();
-            ctx.font = 'bold 12px Arial';
-            ctx.fillText('σ₁', toCanvasX(sigma1), centerY - 12);
-            ctx.fillText('σ₃', toCanvasX(sigma3), centerY - 12);
-
-            // *** START OF CORRECTED LOGIC ***
-            
-            // This is the shear strength on the failure envelope required for failure.
-            // It's derived from the geometry of a circle tangent to the failure line.
             const requiredStrength = center * Math.sin(phiRad) + c * Math.cos(phiRad);
-            
-            // Failure occurs when the circle's radius is >= this required strength.
-            // A small tolerance (1e-6) is added to handle floating point inaccuracies.
             const isFailing = radius + 1e-6 >= requiredStrength;
 
             if (isFailing) {
-                statusIndicator.className = 'status-indicator failure';
-                statusIndicator.textContent = '❌ MATERIAL FAILURE PREDICTED';
-                criticalShear.textContent = requiredStrength.toFixed(1) + ' MPa (EXCEEDED)';
-
-                // Calculate the actual (σ, τ) coordinates of the tangent point.
+                statusIndicator.className = 'status-indicator failure'; statusIndicator.textContent = '❌ MATERIAL FAILURE PREDICTED';
                 const failureSigma = center - radius * Math.sin(phiRad);
                 const failureTau = radius * Math.cos(phiRad);
-                
-                // Convert these coordinates to canvas pixels.
                 const failureCanvasX = toCanvasX(failureSigma);
                 const failureCanvasY = toCanvasY(failureTau);
-                
-                // Draw the red failure point at the correct location.
-                ctx.fillStyle = '#c0392b';
-                ctx.beginPath();
-                ctx.arc(failureCanvasX, failureCanvasY, 8, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                
+                ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.arc(failureCanvasX, failureCanvasY, 8, 0, 2 * Math.PI); ctx.fill();
+                ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
             } else {
-                statusIndicator.className = 'status-indicator safe';
-                statusIndicator.textContent = '✅ MATERIAL IS SAFE';
-                const safeMargin = requiredStrength > radius ? (requiredStrength - radius).toFixed(1) : '0.0';
-                criticalShear.textContent = requiredStrength.toFixed(1) + ' MPa (Safe margin: ' + safeMargin + ')';
-            }
-            // *** END OF CORRECTED LOGIC ***
-
-            ctx.fillStyle = '#666';
-            ctx.font = '10px Arial';
-            for (let i = 20; i <= maxStress; i += 20) {
-                ctx.fillText(i.toString(), toCanvasX(i) - 8, margin + plotHeight / 2 + 15);
-            }
-            for (let i = 10; i <= maxShearAxis; i += 10) {
-                ctx.fillText(i.toString(), margin - 25, toCanvasY(i) + 3);
-                ctx.fillText((-i).toString(), margin - 25, toCanvasY(-i) + 3);
+                statusIndicator.className = 'status-indicator safe'; statusIndicator.textContent = '✅ MATERIAL IS SAFE';
             }
         }
-
-        sigma1Slider.addEventListener('input', updateVisualization);
-        sigma3Slider.addEventListener('input', updateVisualization);
-        cohesionSlider.addEventListener('input', updateVisualization);
-        frictionSlider.addEventListener('input', updateVisualization);
-
-        sigma3Slider.addEventListener('input', function() {
-            if (parseFloat(sigma3Slider.value) > parseFloat(sigma1Slider.value)) {
-                sigma1Slider.value = sigma3Slider.value;
-            }
-            updateVisualization();
-        });
-        sigma1Slider.addEventListener('input', function() {
-            if (parseFloat(sigma1Slider.value) < parseFloat(sigma3Slider.value)) {
-                sigma3Slider.value = sigma1Slider.value;
-            }
-            updateVisualization();
-        });
-
+        [sigma1Slider, sigma3Slider, cohesionSlider, frictionSlider].forEach(slider => slider.addEventListener('input', updateVisualization));
         updateVisualization();
     </script>
 </body>

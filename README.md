@@ -34,4 +34,6 @@ Compare different scenarios - weak vs. strong materials under various stress con
 
 Understand the physics - why normal stress increases shear resistance
 
+
+##TODO: The red failur point and the changing color of the failur box appear latter that it should (i.e. when the Mohr circle touches the failur curve!). This is a bug and needs to be fixed.
 ---------------------------------------------------------

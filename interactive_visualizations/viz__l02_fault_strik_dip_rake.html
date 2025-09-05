@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strike, Dip, and Rake Visualization</title>
+    <style>
+        body { margin: 0; background-color: #f0f0f0; font-family: sans-serif; }
+        canvas { display: block; }
+        #ui {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.85);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            width: 250px;
+        }
+        .slider-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .label {
+            color: #fff;
+            background-color: #000;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        #course-title {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 8px 12px;
+            background-color: rgba(255, 255, 255, 0.85);
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="course-title">Harvard EPS-55</div>
+    <div id="ui">
+        <div class="slider-group">
+            <label>Strike: <span id="strikeValue">45</span>°</label>
+            <input type="range" id="strikeSlider" min="0" max="360" value="45">
+        </div>
+        <div class="slider-group">
+            <label>Dip: <span id="dipValue">60</span>°</label>
+            <input type="range" id="dipSlider" min="0" max="90" value="60">
+        </div>
+        <div class="slider-group">
+            <label>Rake: <span id="rakeValue">90</span>°</label>
+            <input type="range" id="rakeSlider" min="-90" max="90" value="90">
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // === SCENE, CAMERA, RENDERER SETUP ===
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xddeeff);
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(20, 15, 20);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+
+        // === CONTROLS ===
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // === LIGHTING ===
+        scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+        const light = new THREE.DirectionalLight(0xffffff, 1.5);
+        light.position.set(-10, 20, 10);
+        scene.add(light);
+
+        // === MAIN VISUALIZATION OBJECTS ===
+        const faultSystem = new THREE.Group(); // This group is rotated for STRIKE
+        const faultPlaneGroup = new THREE.Group(); // This group is rotated for DIP
+        faultSystem.add(faultPlaneGroup);
+        scene.add(faultSystem);
+
+        // 1. Fault Plane
+        const planeGeom = new THREE.PlaneGeometry(20, 20);
+        const planeMat = new THREE.MeshStandardMaterial({
+            color: 0xcccccc,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.8
+        });
+        const faultPlane = new THREE.Mesh(planeGeom, planeMat);
+        faultPlaneGroup.add(faultPlane);
+
+        // 2. Horizontal Reference Plane
+        const horizPlaneGeom = new THREE.PlaneGeometry(30, 30);
+        const horizPlaneMat = new THREE.MeshStandardMaterial({
+            color: 0x87ceeb,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.3
+        });
+        const horizPlane = new THREE.Mesh(horizPlaneGeom, horizPlaneMat);
+        horizPlane.rotation.x = -Math.PI / 2;
+        scene.add(horizPlane);
+
+        // 3. North Arrow
+        const northArrow = new THREE.Group();
+        const northLine = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 5), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+        const northHead = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+        northHead.position.y = 2.5;
+        northArrow.add(northLine, northHead);
+        northArrow.rotation.x = Math.PI / 2;
+        northArrow.position.set(0, 0, -15);
+        scene.add(northArrow);
+        const northDiv = document.createElement('div');
+        northDiv.className = 'label';
+        northDiv.textContent = 'N';
+        const northLabel = new CSS2DObject(northDiv);
+        northLabel.position.set(0, 4, -15);
+        scene.add(northLabel);
+
+        // 4. Strike Line
+        const strikeLineMat = new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 3 });
+        const strikePoints = [new THREE.Vector3(-10, 0, 0), new THREE.Vector3(10, 0, 0)];
+        const strikeGeom = new THREE.BufferGeometry().setFromPoints(strikePoints);
+        const strikeLine = new THREE.Line(strikeGeom, strikeLineMat);
+        faultPlaneGroup.add(strikeLine);
+
+        // 5. Rake/Slip Arrow (originates from center, rotates on the plane)
+        const rakeArrow = new THREE.ArrowHelper(
+            new THREE.Vector3(1, 0, 0), // Initial direction along strike
+            new THREE.Vector3(0, 0, 0), // Origin
+            8,                          // Length
+            0xffa500,                   // Orange
+            1, 0.5
+        );
+        faultPlaneGroup.add(rakeArrow);
+
+        // === LABELS for the fault plane ===
+        const strikeDiv = document.createElement('div');
+        strikeDiv.className = 'label';
+        strikeDiv.textContent = 'Strike';
+        const strikeLabel = new CSS2DObject(strikeDiv);
+        strikeLabel.position.set(5, 0.5, 0); // Position along the strike line
+        strikeLine.add(strikeLabel);
+
+        const dipDiv = document.createElement('div');
+        dipDiv.className = 'label';
+        dipDiv.textContent = 'Dip';
+        const dipLabel = new CSS2DObject(dipDiv);
+        dipLabel.position.set(-0.5, -4, 0); // Position along the dip direction
+        faultPlaneGroup.add(dipLabel);
+
+        const rakeDiv = document.createElement('div');
+        rakeDiv.className = 'label';
+        rakeDiv.textContent = 'Rake';
+        const rakeLabel = new CSS2DObject(rakeDiv);
+        rakeArrow.add(rakeLabel);
+        rakeLabel.position.set(5, 0.5, 0);
+
+        // === UI & UPDATE LOGIC ===
+        const strikeSlider = document.getElementById('strikeSlider');
+        const dipSlider = document.getElementById('dipSlider');
+        const rakeSlider = document.getElementById('rakeSlider');
+        const strikeValue = document.getElementById('strikeValue');
+        const dipValue = document.getElementById('dipValue');
+        const rakeValue = document.getElementById('rakeValue');
+
+        function updateSystem() {
+            const strike = parseFloat(strikeSlider.value);
+            const dip = parseFloat(dipSlider.value);
+            const rake = parseFloat(rakeSlider.value);
+
+            strikeValue.textContent = strike;
+            dipValue.textContent = dip;
+            rakeValue.textContent = rake;
+
+            // 1. Apply STRIKE: Rotate the entire system around the vertical (Y) axis.
+            // We rotate by -strike because of right-hand rule conventions.
+            faultSystem.rotation.y = -strike * THREE.MathUtils.DEG2RAD;
+
+            // 2. Apply DIP: Rotate the plane group around its local X-axis (which is the strike line).
+            faultPlaneGroup.rotation.x = dip * THREE.MathUtils.DEG2RAD;
+            
+            // 3. Apply RAKE: Set the direction of the slip arrow.
+            // Rake is an angle on the fault plane, measured from the strike line.
+            const rakeRad = rake * THREE.MathUtils.DEG2RAD;
+            const newDir = new THREE.Vector3(Math.cos(rakeRad), -Math.sin(rakeRad), 0).normalize();
+            rakeArrow.setDirection(newDir);
+        }
+
+        strikeSlider.addEventListener('input', updateSystem);
+        dipSlider.addEventListener('input', updateSystem);
+        rakeSlider.addEventListener('input', updateSystem);
+        
+        // Initial call to set the scene
+        updateSystem();
+
+        // === RENDER LOOP ===
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

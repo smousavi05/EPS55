@@ -35,8 +35,6 @@ This visualization helps to understand the fundamental principle that governs ma
 
 Increase principal stresses - try adjusting the sliders so the blue Mohr circle clearly crosses the red failure envelope. Watch the Mohr circle grow until it touches the failure line. You’ll see:
 
-Critical shear stress shows "EXCEEDED" when failure occurs
-
 Change material properties - see how stronger materials (higher c, φ) resist failure
 
 Compare different scenarios - weak vs. strong materials under various stress conditions

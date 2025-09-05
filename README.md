@@ -35,12 +35,7 @@ This visualization helps to understand the fundamental principle that governs ma
 
 Increase principal stresses - try adjusting the sliders so the blue Mohr circle clearly crosses the red failure envelope. Watch the Mohr circle grow until it touches the failure line. You’ll see:
 
-❌ Status changes to "MATERIAL FAILURE PREDICTED" with red pulsing animation
-
-The failure point is highlighted on the visualization
-
 Critical shear stress shows "EXCEEDED" when failure occurs
-
 
 Change material properties - see how stronger materials (higher c, φ) resist failure
 
@@ -48,6 +43,4 @@ Compare different scenarios - weak vs. strong materials under various stress con
 
 Understand the physics - why normal stress increases shear resistance
 
-
-TODO: The red failur point and the changing color of the failur box appear latter that it should (i.e. when the Mohr circle touches the failur curve!). This is a bug and needs to be fixed.
 ---------------------------------------------------------

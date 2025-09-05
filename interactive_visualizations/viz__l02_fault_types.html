@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 3D Fault Visualization</title>
+    <style>
+        body { margin: 0; background-color: #ffffff; font-family: sans-serif; }
+        canvas { display: block; }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.85);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            width: 200px;
+        }
+        h3, h4 { margin-top: 0; margin-bottom: 8px; text-align: center; }
+        h4 { margin-top: 12px; border-top: 1px solid #ccc; padding-top: 8px;}
+        button {
+            display: block;
+            width: 100%;
+            margin: 8px 0;
+            padding: 10px 15px;
+            cursor: pointer;
+            border: 1px solid #aaa;
+            border-radius: 4px;
+            background-color: #f0f0f0;
+        }
+        button:hover { background-color: #e0e0e0; }
+        .label {
+            color: #111;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+            pointer-events: auto;
+        }
+        #course-title {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            background-color: rgba(255, 255, 255, 0.85);
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h3>Fault Types</h3>
+        <button id="normalBtn">Normal Fault</button>
+        <button id="reverseBtn">Reverse Fault</button>
+        
+        <h4>Strike-Slip</h4>
+        <button id="rightLateralBtn">Right-Lateral</button>
+        <button id="leftLateralBtn">Left-Lateral</button>
+        
+        <h4>Complex</h4>
+        <button id="obliqueBtn">Oblique Fault</button>
+        <button id="resetBtn">Reset View</button>
+    </div>
+
+    <div id="course-title">Harvard EPS-55</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/",
+                "@tweenjs/tween.js": "https://unpkg.com/@tweenjs/tween.js@23.1.1/dist/tween.esm.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        import TWEEN from '@tweenjs/tween.js';
+
+        // === SCENE, CAMERA, RENDERER SETUP ===
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f2f5);
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(20, 15, 30);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+
+        // === CONTROLS ===
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // === LIGHTING ===
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        directionalLight.position.set(-20, 30, 20);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+        
+        // === CREATE THE GEOLOGIC BLOCKS ===
+        const faultDip = 60; 
+        const faultAngleRad = faultDip * Math.PI / 180;
+        const blockWidth = 16;
+        const blockDepth = 16;
+        const numLayers = 4;
+        const layerHeight = 3;
+        const blockHeight = numLayers * layerHeight;
+
+        const footwall = new THREE.Group();
+        const hangingWall = new THREE.Group();
+        scene.add(footwall, hangingWall);
+
+        const layerColors = [0xff6347, 0xffdab9, 0xf0e68c, 0x90ee90];
+
+        for (let i = 0; i < numLayers; i++) {
+            const material = new THREE.MeshStandardMaterial({ color: layerColors[i % layerColors.length] });
+            const geometry = new THREE.BoxGeometry(blockWidth, layerHeight, blockDepth);
+
+            const y_center = (i * layerHeight) - (blockHeight / 2) + (layerHeight / 2);
+            const x_offset = y_center / Math.tan(faultAngleRad);
+            
+            const fwLayer = new THREE.Mesh(geometry, material);
+            fwLayer.castShadow = true;
+            fwLayer.receiveShadow = true;
+            fwLayer.position.y = y_center;
+            fwLayer.position.x = x_offset + (blockWidth / 2);
+            footwall.add(fwLayer);
+            
+            const hwLayer = new THREE.Mesh(geometry.clone(), material.clone());
+            hwLayer.castShadow = true;
+            hwLayer.receiveShadow = true;
+            hwLayer.position.y = y_center;
+            hwLayer.position.x = x_offset - (blockWidth / 2);
+            hangingWall.add(hwLayer);
+        }
+
+        // === ADD DECORATIVE ELEMENTS ===
+        const top_y_center = ((numLayers - 1) * layerHeight) - (blockHeight / 2) + (layerHeight / 2);
+        const top_x_offset = top_y_center / Math.tan(faultAngleRad);
+
+        const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
+        const roadGeom = new THREE.BoxGeometry(blockWidth / 2, 0.15, 4);
+        
+        const fwRoad = new THREE.Mesh(roadGeom, roadMaterial);
+        fwRoad.position.set(top_x_offset + blockWidth * 0.25, blockHeight / 2 + 0.075, 0);
+        footwall.add(fwRoad);
+        
+        const hwRoad = new THREE.Mesh(roadGeom.clone(), roadMaterial.clone());
+        hwRoad.position.set(top_x_offset - blockWidth * 0.25, blockHeight / 2 + 0.075, 0);
+        hangingWall.add(hwRoad);
+        
+        // **** NEW: FUNCTION TO CREATE OBSERVER PERSON ****
+        function createObserver() {
+            const observer = new THREE.Group();
+            const personMat = new THREE.MeshStandardMaterial({ color: 0x1f77b4 }); // A distinct blue color
+            
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5), personMat);
+            head.position.y = 1.75;
+
+            const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.5), personMat);
+            torso.position.y = 0.75;
+            
+            observer.add(head, torso);
+            observer.castShadow = true;
+            return observer;
+        }
+
+        const observer = createObserver();
+        // Position observer on the footwall, near the fault, facing the hanging wall
+        observer.position.set(top_x_offset + 3, blockHeight / 2 + 1, -4);
+        observer.rotation.y = -Math.PI / 2; // Face towards negative X
+        footwall.add(observer);
+
+
+        // === ADD LABELS ===
+        const hangingWallDiv = document.createElement('div');
+        hangingWallDiv.className = 'label';
+        hangingWallDiv.textContent = 'Hanging Wall';
+        const hangingWallLabel = new CSS2DObject(hangingWallDiv);
+        hangingWallLabel.position.set(top_x_offset - blockWidth / 2, blockHeight / 2 + 2, 0);
+        hangingWall.add(hangingWallLabel);
+
+        const footwallDiv = document.createElement('div');
+        footwallDiv.className = 'label';
+        footwallDiv.textContent = 'Footwall';
+        const footwallLabel = new CSS2DObject(footwallDiv);
+        footwallLabel.position.set(top_x_offset + blockWidth / 2, blockHeight / 2 + 2, 0);
+        footwall.add(footwallLabel);
+
+        const initialHangingWallPosition = new THREE.Vector3(0, 0, 0);
+
+        // === ANIMATION LOGIC ===
+        function animateFault(movement) {
+            TWEEN.removeAll();
+            new TWEEN.Tween(hangingWall.position)
+                .to({
+                    x: initialHangingWallPosition.x + movement.x,
+                    y: initialHangingWallPosition.y + movement.y,
+                    z: initialHangingWallPosition.z + movement.z
+                }, 1500)
+                .easing(TWEEN.Easing.Quadratic.InOut)
+                .start();
+        }
+
+        // === UI EVENT LISTENERS ===
+        const dipSlipDist = 3;
+        const strikeSlipDist = 5;
+        const moveX = dipSlipDist * Math.cos(faultAngleRad);
+        const moveY = dipSlipDist * Math.sin(faultAngleRad);
+        
+        document.getElementById('normalBtn').addEventListener('click', () => {
+            animateFault({ x: -moveX, y: -moveY, z: 0 });
+        });
+
+        document.getElementById('reverseBtn').addEventListener('click', () => {
+            animateFault({ x: moveX, y: moveY, z: 0 });
+        });
+
+        // **** CORRECTED STRIKE-SLIP LOGIC ****
+        document.getElementById('rightLateralBtn').addEventListener('click', () => {
+            // From observer's perspective, the other block moves RIGHT
+            animateFault({ x: 0, y: 0, z: -strikeSlipDist });
+        });
+        
+        document.getElementById('leftLateralBtn').addEventListener('click', () => {
+             // From observer's perspective, the other block moves LEFT
+            animateFault({ x: 0, y: 0, z: strikeSlipDist });
+        });
+        
+        document.getElementById('obliqueBtn').addEventListener('click', () => {
+            animateFault({ x: -moveX, y: -moveY, z: strikeSlipDist });
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            animateFault({ x: 0, y: 0, z: 0 });
+        });
+
+        // === RENDER LOOP ===
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            TWEEN.update();
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        // === RESIZE HANDLER ===
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        window.addEventListener('resize', onWindowResize);
+
+        animate();
+    </script>
+</body>
+</html>

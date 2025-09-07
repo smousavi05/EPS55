@@ -12,7 +12,8 @@
   <img src="interactive_visualizations/viz__l01_earthquake-death.png" alt="Interactive Figure Preview" width="500">
 </a>
 
-L02 ---------------------------------------------------------
+---------------------------------------------------------
+## L02
 
 #### Fault types!
 

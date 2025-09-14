@@ -54,30 +54,42 @@ Understand the physics - why normal stress increases shear resistance
 ---------------------------------------------------------
 ## Lecture 6: Earthquake Cycle
 
-#### Coseismic Ground Displacement!
-
-<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_coseismic_calculator.html">
-  <img src="interactive_visualizations/viz__l06_coseismic_calculator.png" alt="Interactive Figure Preview" width="200">
-</a>
-
-#### Interseismic-Coseismic-Postseismic Phases!
-<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_earthquake_cycle.html">
-  <img src="interactive_visualizations/viz__l06_earthquake_cycle.png" alt="Interactive Figure Preview" width="200">
-</a>
-
-#### Interactive Spring-Block Earthquake Model!
-<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_spring_block_model.html">
-  <img src="interactive_visualizations/viz__l06_spring_block_model.png" alt="Interactive Figure Preview" width="200">
-</a>
-
-#### Interactive Recurrence Models with Rate-and-State Friction!
-<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_timepredictable_slippredictable.html">
-  <img src="interactive_visualizations/viz__l06_timepredictable_slippredictable.png" alt="Interactive Figure Preview" width="200">
-</a>
-
-#### Rate-and-State Friction Explorer!
-<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_rate_and_state.html">
-  <img src="interactive_visualizations/viz__l06_rate_and_state.png" alt="Interactive Figure Preview" width="200">
-</a>
+<table>
+  <tr align="center">
+    <th>Coseismic Ground Displacement!</th>
+    <th>Interseismic-Coseismic-Postseismic Phases!</th>
+    <th>Interactive Spring-Block Earthquake Model!</th>
+    <th>Interactive Recurrence Models with Rate-and-State Friction!</th>
+    <th>Rate-and-State Friction Explorer!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_coseismic_calculator.html">
+        <img src="interactive_visualizations/viz__l06_coseismic_calculator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_earthquake_cycle.html">
+        <img src="interactive_visualizations/viz__l06_earthquake_cycle.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_spring_block_model.html">
+        <img src="interactive_visualizations/viz__l06_spring_block_model.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_timepredictable_slippredictable.html">
+        <img src="interactive_visualizations/viz__l06_timepredictable_slippredictable.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_rate_and_state.html">
+        <img src="interactive_visualizations/viz__l06_rate_and_state.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
 
 ---------------------------------------------------------

@@ -211,7 +211,7 @@ Understand the physics - why normal stress increases shear resistance
 <table>
   <tr align="center">
     <th>Das Basics!</th>
-    <th>Seismic Waves Simulator!</th>
+    <th>DAS Technology: Fiber Optic Seismic Detection!</th>
     <th>GPS and InSAR!</th>
   </tr>
   

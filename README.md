@@ -147,4 +147,29 @@ Understand the physics - why normal stress increases shear resistance
   </tr>
 </table>
 
+<table>
+  <tr align="center">
+    <th>The Haskell Source Model!</th>
+    <th>Interactive Source Time Function (STF) Explorer!</th>
+    <th>Earthquake Source Time Function Calculator!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l07_haskell_source_model.html">
+        <img src="interactive_visualizations/viz__l07_haskell_source_model.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l07_source_time_function_1.html">
+        <img src="interactive_visualizations/viz__l07_source_time_function_1.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l07_source_time_function_2.html">
+        <img src="interactive_visualizations/viz__l07_source_time_function_2.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
 ---------------------------------------------------------

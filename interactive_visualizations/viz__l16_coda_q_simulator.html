@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Coda-Q Simulator</title>
+    <style>
+        :root {
+            --bg-color: #f0f4f8; 
+            --panel-bg: #ffffff; 
+            --text-color: #1e2a3a;
+            --primary: #0077b6; 
+            --accent: #e63946; 
+            --envelope-color: #2a9d8f;
+            --gradient-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--gradient-bg);
+            color: var(--text-color); 
+            margin: 0; 
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        
+        .main-container {
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 20px; 
+            max-width: 1400px; 
+            margin: auto;
+        }
+        
+        .left-panel {
+            flex: 1; 
+            min-width: 350px; 
+            background: var(--panel-bg); 
+            padding: 25px;
+            border-radius: 15px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            align-self: flex-start;
+        }
+        
+        .right-panel {
+            flex: 2; 
+            min-width: 700px;
+        }
+        
+        .viz-container {
+            background: var(--panel-bg); 
+            padding: 25px; 
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+        
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: auto; 
+            background-color: #f8f9fa; 
+            border-radius: 8px;
+            border: 2px solid rgba(0,119,182,0.2);
+        }
+        
+        #seismogram-canvas { 
+            cursor: crosshair; 
+            transition: transform 0.2s ease;
+        }
+        
+        #seismogram-canvas:hover {
+            transform: scale(1.01);
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(0,119,182,0.05);
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .control-group legend {
+            font-size: 1.3em; 
+            font-weight: bold; 
+            color: var(--primary);
+            margin-bottom: 15px; 
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary);
+            width: 100%;
+            display: block;
+        }
+        
+        .slider-container {
+            margin: 15px 0;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .slider-value {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        
+        .results-box {
+            background: linear-gradient(135deg, #e9ecef 0%, #f8f9fa 100%);
+            padding: 25px; 
+            border-radius: 12px; 
+            text-align: center;
+            border: 2px solid var(--accent);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .results-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--primary));
+        }
+        
+        #coda-q-value { 
+            font-size: 3em; 
+            font-weight: bold; 
+            color: var(--accent);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin: 10px 0;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .explanation { 
+            font-size: 0.95em; 
+            color: #6c757d; 
+            margin-top: 15px; 
+            line-height: 1.5;
+            background: rgba(255,255,255,0.7);
+            padding: 12px;
+            border-radius: 8px;
+        }
+        
+        .parameter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .parameter-item {
+            background: rgba(255,255,255,0.5);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(0,119,182,0.2);
+        }
+        
+        .parameter-label {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        
+        .parameter-value {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 1.1em;
+        }
+        
+        .path-explanation {
+            background: rgba(252,163,17,0.1);
+            border: 1px solid rgba(252,163,17,0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-style: italic;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.7);
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.2);
+        }
+        
+        .interactive-hint {
+            background: rgba(0,119,182,0.1);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            text-align: center;
+            font-size: 0.9em;
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
+        .formula-box {
+            background: rgba(42,157,143,0.1);
+            border: 1px solid var(--envelope-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+        }
+        
+        .formula {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: var(--envelope-color);
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .parameter-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            #coda-q-value {
+                font-size: 2.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🌊 Interactive Coda-Q Simulator</h1>
+    <div class="subtitle">Understanding Seismic Wave Scattering & Attenuation</div>
+    
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="control-group">
+                <legend>🔧 Scattering Controls</legend>
+                
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Medium Heterogeneity:</span>
+                        <span class="slider-value" id="scattering-value">0.50</span>
+                    </div>
+                    <input type="range" id="scattering-slider" min="0" max="1" value="0.5" step="0.01">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Frequency (Hz):</span>
+                        <span class="slider-value" id="frequency-value">2.0</span>
+                    </div>
+                    <input type="range" id="frequency-slider" min="0.5" max="10" value="2" step="0.1">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Attenuation Level:</span>
+                        <span class="slider-value" id="attenuation-value">0.50</span>
+                    </div>
+                    <input type="range" id="attenuation-slider" min="0.1" max="1" value="0.5" step="0.01">
+                </div>
+                
+                <div class="explanation">
+                    <strong>Heterogeneity:</strong> Increase to simulate more complex medium with scatterers.<br>
+                    <strong>Frequency:</strong> Higher frequencies attenuate faster.<br>
+                    <strong>Attenuation:</strong> Controls overall energy loss rate.
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <legend>📊 Coda-Q Analysis</legend>
+                
+                <div class="results-box">
+                    <p style="margin: 0 0 10px 0; font-weight: bold;">Calculated Coda-Q</p>
+                    <div id="coda-q-value">150</div>
+                    
+                    <div class="parameter-grid">
+                        <div class="parameter-item">
+                            <div class="parameter-label">Decay Rate</div>
+                            <div class="parameter-value" id="decay-rate">0.025</div>
+                        </div>
+                        <div class="parameter-item">
+                            <div class="parameter-label">Coda Length</div>
+                            <div class="parameter-value" id="coda-length">8.5s</div>
+                        </div>
+                        <div class="parameter-item">
+                            <div class="parameter-label">RMS Amplitude</div>
+                            <div class="parameter-value" id="rms-amplitude">0.15</div>
+                        </div>
+                        <div class="parameter-item">
+                            <div class="parameter-label">Quality</div>
+                            <div class="parameter-value" id="quality-rating">Good</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="formula-box">
+                    <div class="formula">A(t) = A₀ × e^(-πft/Q)</div>
+                    <div style="font-size: 0.9em; margin-top: 8px;">
+                        Coda envelope decay formula
+                    </div>
+                </div>
+                
+                <div class="explanation">
+                    <strong>Coda-Q</strong> measures seismic attenuation. 
+                    <strong>Lower Q</strong> = high attenuation (fractured, volcanic regions). 
+                    <strong>Higher Q</strong> = low attenuation (stable continental crust).
+                    Typical values: Q = 50-200 (volcanic), Q = 200-1000 (stable crust).
+                </div>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <div class="viz-container">
+                <h2 style="margin: 0 0 15px 0; color: var(--primary);">📈 Seismogram & Coda Envelope</h2>
+                <canvas id="seismogram-canvas" width="1000" height="300"></canvas>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #333;"></div>
+                        <span>Seismic Waveform</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--envelope-color);"></div>
+                        <span>Coda Envelope</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--accent);"></div>
+                        <span>P-wave Arrival</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--primary);"></div>
+                        <span>S-wave Arrival</span>
+                    </div>
+                </div>
+                
+                <div class="interactive-hint">
+                    📍 Hover over the coda portion to see scattering paths | Time scale: 0-10 seconds
+                </div>
+            </div>
+            
+            <div class="viz-container">
+                <h2 style="margin: 0 0 15px 0; color: var(--primary);">🛤️ Conceptual Scattering Paths</h2>
+                
+                <div class="path-explanation">
+                    <strong>Interactive Scattering Visualization:</strong> 
+                    Hover your mouse over the coda in the seismogram above to see possible paths 
+                    that scattered seismic energy took to arrive at different times.
+                </div>
+                
+                <canvas id="path-canvas" width="600" height="300"></canvas>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #f94144;"></div>
+                        <span>Earthquake Source</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #fca311;"></div>
+                        <span>Scatterer</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--primary);"></div>
+                        <span>Seismic Station</span>
+                    </div>
+                    <div class="legend-item">
+                        <div style="width: 16px; height: 3px; background: #fca311; border-radius: 2px;"></div>
+                        <span>Scattered Wave Path</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === GLOBAL VARIABLES ===
+        const seismoCanvas = document.getElementById('seismogram-canvas');
+        const seismoCtx = seismoCanvas.getContext('2d');
+        const pathCanvas = document.getElementById('path-canvas');
+        const pathCtx = pathCanvas.getContext('2d');
+
+        let baseSignal = [];
+        let fullSignal = [];
+        let codaEnvelope = [];
+        const SIGNAL_LENGTH = 1000;
+        const P_ARRIVAL_TIME = 150;
+        const S_ARRIVAL_TIME = 250;
+        let currentCodaQ = 150;
+        let currentFrequency = 2.0;
+        let currentAttenuation = 0.5;
+
+        // === SIGNAL GENERATION ===
+        function createWavePacket(startTime, frequency, amplitude, duration, type = 'sine') {
+            const packet = new Array(SIGNAL_LENGTH).fill(0);
+            for (let i = 0; i < duration; i++) {
+                if (startTime + i < SIGNAL_LENGTH) {
+                    const t = i - duration / 2;
+                    const envelope = Math.exp(-((t / (duration / 4)) ** 2));
+                    
+                    let wave;
+                    if (type === 'ricker') {
+                        // Ricker wavelet for more realistic seismic waves
+                        const a = (Math.PI * frequency * t / 50) ** 2;
+                        wave = (1 - 2 * a) * Math.exp(-a);
+                    } else {
+                        wave = Math.sin(i * frequency * 2 * Math.PI / 100);
+                    }
+                    
+                    packet[startTime + i] = wave * amplitude * envelope;
+                }
+            }
+            return packet;
+        }
+
+        function createBaseSignal() {
+            baseSignal = new Array(SIGNAL_LENGTH).fill(0);
+            
+            // Add background noise
+            for (let i = 0; i < SIGNAL_LENGTH; i++) {
+                baseSignal[i] = (Math.random() - 0.5) * 0.02;
+            }
+            
+            // P-wave arrival
+            const pWave = createWavePacket(P_ARRIVAL_TIME, currentFrequency * 1.5, 0.4, 80, 'ricker');
+            
+            // S-wave arrival
+            const sWave = createWavePacket(S_ARRIVAL_TIME, currentFrequency, 0.8, 120, 'ricker');
+            
+            // Combine waves
+            for (let i = 0; i < SIGNAL_LENGTH; i++) {
+                baseSignal[i] += pWave[i] + sWave[i];
+            }
+        }
+
+        function generateCodaAndUpdate() {
+            const scatteringLevel = parseFloat(document.getElementById('scattering-slider').value);
+            const frequencyValue = parseFloat(document.getElementById('frequency-slider').value);
+            const attenuationValue = parseFloat(document.getElementById('attenuation-slider').value);
+            
+            currentFrequency = frequencyValue;
+            currentAttenuation = attenuationValue;
+            
+            // Recalculate Q based on parameters
+            currentCodaQ = Math.round(50 + (1 - attenuationValue) * 400 + scatteringLevel * 100);
+            
+            fullSignal = [...baseSignal];
+            const codaStartTime = S_ARRIVAL_TIME + 30;
+            
+            // Generate coda with frequency-dependent attenuation
+            for (let i = codaStartTime; i < SIGNAL_LENGTH; i++) {
+                const t = (i - codaStartTime) / 100; // Convert to seconds
+                
+                // Theoretical coda decay with frequency dependence
+                const frequencyFactor = Math.pow(currentFrequency / 2.0, 0.5);
+                const decay = Math.exp(-Math.PI * currentFrequency * t / currentCodaQ * frequencyFactor);
+                const amplitude = scatteringLevel * 0.6 * decay;
+                
+                // Add multiple frequency components for realistic coda
+                let codaSignal = 0;
+                for (let f = 0.5; f <= 8; f += 0.5) {
+                    const freqWeight = Math.exp(-Math.abs(f - currentFrequency) / 2);
+                    codaSignal += Math.sin(2 * Math.PI * f * t + Math.random() * 2 * Math.PI) * freqWeight;
+                }
+                
+                fullSignal[i] += codaSignal * amplitude * (Math.random() * 0.3 + 0.7);
+            }
+            
+            fitCodaEnvelope();
+            drawSeismogram();
+            updateAnalysisResults();
+        }
+
+        function fitCodaEnvelope() {
+            codaEnvelope = new Array(SIGNAL_LENGTH).fill(NaN);
+            const codaStartTime = S_ARRIVAL_TIME + 30;
+            const scatteringLevel = parseFloat(document.getElementById('scattering-slider').value);
+            
+            for (let i = codaStartTime; i < SIGNAL_LENGTH; i++) {
+                const t = (i - codaStartTime) / 100; // Convert to seconds
+                const frequencyFactor = Math.pow(currentFrequency / 2.0, 0.5);
+                const decay = Math.exp(-Math.PI * currentFrequency * t / currentCodaQ * frequencyFactor);
+                codaEnvelope[i] = scatteringLevel * 0.6 * decay;
+            }
+        }
+
+        // === VISUALIZATION ===
+        function drawSeismogram() {
+            const rect = seismoCanvas.getBoundingClientRect();
+            seismoCanvas.width = rect.width * window.devicePixelRatio;
+            seismoCanvas.height = rect.height * window.devicePixelRatio;
+            seismoCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            
+            const w = rect.width;
+            const h = rect.height;
+            const midY = h / 2;
+
+            seismoCtx.clearRect(0, 0, w, h);
+            
+            // Draw time grid
+            seismoCtx.strokeStyle = 'rgba(0,0,0,0.1)';
+            seismoCtx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const x = (i / 10) * w;
+                seismoCtx.beginPath();
+                seismoCtx.moveTo(x, 0);
+                seismoCtx.lineTo(x, h);
+                seismoCtx.stroke();
+                
+                // Time labels
+                seismoCtx.fillStyle = 'rgba(0,0,0,0.6)';
+                seismoCtx.font = '12px Arial';
+                seismoCtx.textAlign = 'center';
+                seismoCtx.fillText(`${i}s`, x, h - 5);
+            }
+
+            // Draw amplitude grid
+            for (let i = 0; i <= 4; i++) {
+                const y = (i / 4) * h;
+                seismoCtx.beginPath();
+                seismoCtx.moveTo(0, y);
+                seismoCtx.lineTo(w, y);
+                seismoCtx.stroke();
+            }
+
+            // Draw main waveform
+            seismoCtx.beginPath();
+            seismoCtx.moveTo(0, midY);
+            for (let i = 0; i < SIGNAL_LENGTH; i++) {
+                const x = (i / SIGNAL_LENGTH) * w;
+                const y = midY - fullSignal[i] * (midY * 0.7);
+                seismoCtx.lineTo(x, y);
+            }
+            seismoCtx.strokeStyle = '#333';
+            seismoCtx.lineWidth = 1.5;
+            seismoCtx.stroke();
+            
+            // Draw phase arrivals
+            const pX = (P_ARRIVAL_TIME / SIGNAL_LENGTH) * w;
+            const sX = (S_ARRIVAL_TIME / SIGNAL_LENGTH) * w;
+            
+            // P-wave marker
+            seismoCtx.strokeStyle = '#e63946';
+            seismoCtx.lineWidth = 2;
+            seismoCtx.setLineDash([5, 5]);
+            seismoCtx.beginPath();
+            seismoCtx.moveTo(pX, 0);
+            seismoCtx.lineTo(pX, h);
+            seismoCtx.stroke();
+            
+            // S-wave marker
+            seismoCtx.strokeStyle = '#0077b6';
+            seismoCtx.beginPath();
+            seismoCtx.moveTo(sX, 0);
+            seismoCtx.lineTo(sX, h);
+            seismoCtx.stroke();
+            seismoCtx.setLineDash([]);
+            
+            // Labels for phases
+            seismoCtx.fillStyle = '#e63946';
+            seismoCtx.font = 'bold 14px Arial';
+            seismoCtx.textAlign = 'center';
+            seismoCtx.fillText('P', pX, 20);
+            
+            seismoCtx.fillStyle = '#0077b6';
+            seismoCtx.fillText('S', sX, 20);
+            
+            // Draw coda envelope
+            if (codaEnvelope.some(val => !isNaN(val))) {
+                seismoCtx.beginPath();
+                let envelopeStarted = false;
+                
+                // Upper envelope
+                for (let i = 0; i < SIGNAL_LENGTH; i++) {
+                    if (!isNaN(codaEnvelope[i])) {
+                        const x = (i / SIGNAL_LENGTH) * w;
+                        const y = midY - codaEnvelope[i] * (midY * 0.7);
+                        if (!envelopeStarted) {
+                            seismoCtx.moveTo(x, y);
+                            envelopeStarted = true;
+                        } else {
+                            seismoCtx.lineTo(x, y);
+                        }
+                    }
+                }
+                
+                // Lower envelope
+                for (let i = SIGNAL_LENGTH - 1; i >= 0; i--) {
+                    if (!isNaN(codaEnvelope[i])) {
+                        const x = (i / SIGNAL_LENGTH) * w;
+                        const y = midY + codaEnvelope[i] * (midY * 0.7);
+                        seismoCtx.lineTo(x, y);
+                    }
+                }
+                
+                seismoCtx.closePath();
+                seismoCtx.fillStyle = 'rgba(42, 157, 143, 0.2)';
+                seismoCtx.fill();
+                
+                // Envelope outline
+                seismoCtx.strokeStyle = '#2a9d8f';
+                seismoCtx.lineWidth = 2;
+                seismoCtx.stroke();
+            }
+        }
+
+        function drawPathVisualization(hoverTime) {
+            const rect = pathCanvas.getBoundingClientRect();
+            pathCanvas.width = rect.width * window.devicePixelRatio;
+            pathCanvas.height = rect.height * window.devicePixelRatio;
+            pathCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            
+            const w = rect.width;
+            const h = rect.height;
+            
+            pathCtx.clearRect(0, 0, w, h);
+            
+            // Draw coordinate system
+            pathCtx.strokeStyle = 'rgba(0,0,0,0.1)';
+            pathCtx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const x = (i / 10) * w;
+                const y = (i / 10) * h;
+                pathCtx.beginPath();
+                pathCtx.moveTo(x, 0);
+                pathCtx.lineTo(x, h);
+                pathCtx.moveTo(0, y);
+                pathCtx.lineTo(w, y);
+                pathCtx.stroke();
+            }
+            
+            // Source and Station positions
+            const source = { x: w * 0.15, y: h * 0.85 };
+            const station = { x: w * 0.85, y: h * 0.85 };
+            
+            // Draw ground surface
+            pathCtx.beginPath();
+            pathCtx.moveTo(0, h * 0.85);
+            pathCtx.lineTo(w, h * 0.85);
+            pathCtx.strokeStyle = '#6c757d';
+            pathCtx.lineWidth = 2;
+            pathCtx.stroke();
+            
+            // Draw topography variation
+            pathCtx.beginPath();
+            pathCtx.moveTo(0, h * 0.85);
+            for (let x = 0; x <= w; x += 10) {
+                const y = h * 0.85 + Math.sin(x / 50) * 10;
+                pathCtx.lineTo(x, y);
+            }
+            pathCtx.strokeStyle = '#8d5524';
+            pathCtx.lineWidth = 1;
+            pathCtx.stroke();
+            
+            // Draw subsurface heterogeneities
+            const scatteringLevel = parseFloat(document.getElementById('scattering-slider').value);
+            const numScatterers = Math.floor(scatteringLevel * 20 + 5);
+            
+            pathCtx.fillStyle = 'rgba(252, 163, 17, 0.3)';
+            for (let i = 0; i < numScatterers; i++) {
+                const x = Math.random() * w;
+                const y = h * 0.2 + Math.random() * h * 0.6;
+                const size = 2 + Math.random() * 4;
+                pathCtx.beginPath();
+                pathCtx.arc(x, y, size, 0, 2 * Math.PI);
+                pathCtx.fill();
+            }
+            
+            // Draw source
+            pathCtx.fillStyle = '#f94144';
+            pathCtx.beginPath();
+            pathCtx.arc(source.x, source.y, 8, 0, 2 * Math.PI);
+            pathCtx.fill();
+            pathCtx.strokeStyle = 'white';
+            pathCtx.lineWidth = 2;
+            pathCtx.stroke();
+            
+            // Source label
+            pathCtx.fillStyle = '#333';
+            pathCtx.font = 'bold 12px Arial';
+            pathCtx.textAlign = 'center';
+            pathCtx.fillText('Source', source.x, source.y + 25);
+            
+            // Draw station
+            pathCtx.fillStyle = '#0077b6';
+            pathCtx.beginPath();
+            pathCtx.moveTo(station.x, station.y);
+            pathCtx.lineTo(station.x - 8, station.y - 15);
+            pathCtx.lineTo(station.x + 8, station.y - 15);
+            pathCtx.closePath();
+            pathCtx.fill();
+            pathCtx.strokeStyle = 'white';
+            pathCtx.lineWidth = 2;
+            pathCtx.stroke();
+            
+            // Station label
+            pathCtx.fillStyle = '#333';
+            pathCtx.fillText('Station', station.x, station.y + 25);
+            
+            // Calculate and draw scattering path if hovering over coda
+            const codaTime = hoverTime - S_ARRIVAL_TIME - 30;
+            if (codaTime > 0) {
+                // Calculate ellipse parameters for possible scatterer locations
+                const directDist = Math.sqrt(Math.pow(station.x - source.x, 2) + Math.pow(station.y - source.y, 2));
+                const vs = 3.5; // km/s
+                const totalPathLength = directDist + codaTime * 5; // Scale factor for visualization
+                
+                if (totalPathLength > directDist) {
+                    const a = totalPathLength / 2; // semi-major axis
+                    const c = directDist / 2;
+                    const b = Math.sqrt(Math.abs(a*a - c*c)); // semi-minor axis
+                    const centerX = (source.x + station.x) / 2;
+                    const centerY = (source.y + station.y) / 2;
+                    
+                    // Draw possible scatterer ellipse (faint)
+                    pathCtx.strokeStyle = 'rgba(252, 163, 17, 0.3)';
+                    pathCtx.lineWidth = 1;
+                    pathCtx.setLineDash([3, 3]);
+                    pathCtx.beginPath();
+                    pathCtx.ellipse(centerX, centerY, a, Math.min(b, h/4), 0, 0, 2 * Math.PI);
+                    pathCtx.stroke();
+                    pathCtx.setLineDash([]);
+                    
+                    // Select a random point on the ellipse for the scatterer
+                    const angle = Math.PI * (0.2 + Math.random() * 0.6);
+                    const scatterer = {
+                        x: centerX + a * Math.cos(angle),
+                        y: centerY - Math.min(b, h/4) * Math.sin(angle)
+                    };
+                    
+                    // Ensure scatterer is within canvas bounds
+                    scatterer.x = Math.max(20, Math.min(w-20, scatterer.x));
+                    scatterer.y = Math.max(20, Math.min(h*0.8, scatterer.y));
+                    
+                    // Draw scatterer
+                    pathCtx.fillStyle = '#fca311';
+                    pathCtx.beginPath();
+                    pathCtx.arc(scatterer.x, scatterer.y, 6, 0, 2 * Math.PI);
+                    pathCtx.fill();
+                    pathCtx.strokeStyle = 'white';
+                    pathCtx.lineWidth = 1;
+                    pathCtx.stroke();
+                    
+                    // Draw scattered path
+                    pathCtx.strokeStyle = '#fca311';
+                    pathCtx.lineWidth = 3;
+                    pathCtx.setLineDash([8, 4]);
+                    pathCtx.beginPath();
+                    pathCtx.moveTo(source.x, source.y);
+                    pathCtx.lineTo(scatterer.x, scatterer.y);
+                    pathCtx.lineTo(station.x, station.y);
+                    pathCtx.stroke();
+                    pathCtx.setLineDash([]);
+                    
+                    // Add path information
+                    const path1 = Math.sqrt(Math.pow(scatterer.x - source.x, 2) + Math.pow(scatterer.y - source.y, 2));
+                    const path2 = Math.sqrt(Math.pow(station.x - scatterer.x, 2) + Math.pow(station.y - scatterer.y, 2));
+                    const totalPath = path1 + path2;
+                    
+                    pathCtx.fillStyle = '#333';
+                    pathCtx.font = '11px Arial';
+                    pathCtx.textAlign = 'left';
+                    pathCtx.fillText(`Coda time: ${(codaTime/100).toFixed(2)}s`, 10, 20);
+                    pathCtx.fillText(`Path ratio: ${(totalPath/directDist).toFixed(2)}x direct`, 10, 35);
+                }
+            }
+            
+            // Draw direct path for reference
+            pathCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+            pathCtx.lineWidth = 1;
+            pathCtx.setLineDash([2, 2]);
+            pathCtx.beginPath();
+            pathCtx.moveTo(source.x, source.y);
+            pathCtx.lineTo(station.x, station.y);
+            pathCtx.stroke();
+            pathCtx.setLineDash([]);
+        }
+
+        // === ANALYSIS FUNCTIONS ===
+        function updateAnalysisResults() {
+            const scatteringLevel = parseFloat(document.getElementById('scattering-slider').value);
+            
+            // Calculate decay rate
+            const decayRate = (Math.PI * currentFrequency / currentCodaQ).toFixed(4);
+            
+            // Calculate coda length (time when amplitude drops to 5% of initial)
+            const codaLength = (-Math.log(0.05) * currentCodaQ / (Math.PI * currentFrequency)).toFixed(1);
+            
+            // Calculate RMS amplitude of coda
+            const codaStartTime = S_ARRIVAL_TIME + 30;
+            let rmsSum = 0;
+            let count = 0;
+            for (let i = codaStartTime; i < Math.min(codaStartTime + 500, SIGNAL_LENGTH); i++) {
+                if (!isNaN(codaEnvelope[i])) {
+                    rmsSum += codaEnvelope[i] * codaEnvelope[i];
+                    count++;
+                }
+            }
+            const rmsAmplitude = count > 0 ? Math.sqrt(rmsSum / count).toFixed(3) : '0.000';
+            
+            // Quality rating
+            let qualityRating;
+            if (currentCodaQ < 100) qualityRating = 'Poor';
+            else if (currentCodaQ < 200) qualityRating = 'Fair';
+            else if (currentCodaQ < 400) qualityRating = 'Good';
+            else qualityRating = 'Excellent';
+            
+            // Update display
+            document.getElementById('coda-q-value').textContent = currentCodaQ;
+            document.getElementById('decay-rate').textContent = decayRate;
+            document.getElementById('coda-length').textContent = codaLength + 's';
+            document.getElementById('rms-amplitude').textContent = rmsAmplitude;
+            document.getElementById('quality-rating').textContent = qualityRating;
+        }
+
+        // === EVENT LISTENERS ===
+        function setupEventListeners() {
+            const scatteringSlider = document.getElementById('scattering-slider');
+            const frequencySlider = document.getElementById('frequency-slider');
+            const attenuationSlider = document.getElementById('attenuation-slider');
+            
+            scatteringSlider.addEventListener('input', (e) => {
+                document.getElementById('scattering-value').textContent = parseFloat(e.target.value).toFixed(2);
+                generateCodaAndUpdate();
+            });
+            
+            frequencySlider.addEventListener('input', (e) => {
+                document.getElementById('frequency-value').textContent = parseFloat(e.target.value).toFixed(1);
+                createBaseSignal();
+                generateCodaAndUpdate();
+            });
+            
+            attenuationSlider.addEventListener('input', (e) => {
+                document.getElementById('attenuation-value').textContent = parseFloat(e.target.value).toFixed(2);
+                generateCodaAndUpdate();
+            });
+            
+            seismoCanvas.addEventListener('mousemove', (e) => {
+                const rect = seismoCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const hoverTime = (x / rect.width) * SIGNAL_LENGTH;
+                
+                if (hoverTime > S_ARRIVAL_TIME + 30) {
+                    drawPathVisualization(hoverTime);
+                } else {
+                    pathCtx.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
+                    // Draw empty path canvas with labels
+                    drawPathVisualization(0);
+                }
+            });
+            
+            seismoCanvas.addEventListener('mouseleave', () => {
+                drawPathVisualization(0);
+            });
+            
+            window.addEventListener('resize', () => {
+                drawSeismogram();
+                drawPathVisualization(0);
+            });
+        }
+
+        // === INITIALIZATION ===
+        function init() {
+            createBaseSignal();
+            generateCodaAndUpdate();
+            setupEventListeners();
+            drawPathVisualization(0);
+        }
+
+        // Start the application
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

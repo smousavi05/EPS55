@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seismic Wave Attenuation Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            height: fit-content;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .control-section h3 {
+            margin-bottom: 15px;
+            color: #fff;
+            font-size: 1.1em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 5px;
+        }
+
+        .slider-container {
+            margin: 15px 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .button {
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin: 5px;
+            width: 100%;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .simulation-area {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .wave-viewer {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(180deg, #87CEEB 0%, #DEB887 50%, #8B4513 100%);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .wave-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .source-marker {
+            position: absolute;
+            left: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            background: #ff4757;
+            border-radius: 50%;
+            border: 3px solid white;
+            z-index: 10;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translateY(-50%) scale(1); }
+            50% { transform: translateY(-50%) scale(1.2); }
+        }
+
+        .receiver-marker {
+            position: absolute;
+            right: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid #2ecc71;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            z-index: 10;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .seismogram-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .spectrum-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .chart {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .attenuation-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .attenuation-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .attenuation-item h4 {
+            color: #ffd700;
+            margin-bottom: 5px;
+        }
+
+        .distance-marker {
+            position: absolute;
+            bottom: 10px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌊 Seismic Wave Attenuation Simulator</h1>
+        
+        <div class="main-layout">
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h3>🎛️ Wave Generator</h3>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Frequency:</span>
+                            <span id="frequency-value">10 Hz</span>
+                        </div>
+                        <input type="range" class="slider" id="frequency-slider" min="1" max="50" value="10" step="1">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Amplitude:</span>
+                            <span id="amplitude-value">1.0</span>
+                        </div>
+                        <input type="range" class="slider" id="amplitude-slider" min="0.1" max="2.0" value="1.0" step="0.1">
+                    </div>
+                    <button class="button" id="generate-wave">Generate P-Wave Pulse</button>
+                </div>
+                
+                <div class="control-section">
+                    <h3>🗿 Medium Properties</h3>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Material Q:</span>
+                            <span id="q-value">Medium (100)</span>
+                        </div>
+                        <input type="range" class="slider" id="q-slider" min="10" max="1000" value="100" step="10">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Heterogeneity:</span>
+                            <span id="heterogeneity-value">Medium</span>
+                        </div>
+                        <input type="range" class="slider" id="heterogeneity-slider" min="0" max="100" value="50" step="1">
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>⚙️ Simulation</h3>
+                    <button class="button" id="start-simulation">Start Simulation</button>
+                    <button class="button" id="reset-simulation">Reset</button>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Speed:</span>
+                            <span id="speed-value">1x</span>
+                        </div>
+                        <input type="range" class="slider" id="speed-slider" min="0.1" max="3.0" value="1.0" step="0.1">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="simulation-area">
+                <h3>Wave Propagation Viewer</h3>
+                <div class="wave-viewer">
+                    <canvas class="wave-canvas" id="wave-canvas"></canvas>
+                    <div class="source-marker" title="Seismic Source"></div>
+                    <div class="receiver-marker" title="Receiver Station"></div>
+                    <div class="distance-marker" style="left: 50px;">0 km</div>
+                    <div class="distance-marker" style="left: 25%;">25 km</div>
+                    <div class="distance-marker" style="left: 50%;">50 km</div>
+                    <div class="distance-marker" style="left: 75%;">75 km</div>
+                    <div class="distance-marker" style="right: 50px;">100 km</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="charts-container">
+            <div class="seismogram-container">
+                <h3>📊 Real-time Seismogram</h3>
+                <canvas class="chart" id="seismogram-canvas"></canvas>
+            </div>
+            
+            <div class="spectrum-container">
+                <h3>📈 Frequency Spectrum</h3>
+                <canvas class="chart" id="spectrum-canvas"></canvas>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>Attenuation Mechanisms</h3>
+            <div class="attenuation-info">
+                <div class="attenuation-item">
+                    <h4>Geometrical Spreading</h4>
+                    <p id="geometrical-info">Amplitude ∝ 1/√r<br>Distance-dependent energy distribution</p>
+                </div>
+                <div class="attenuation-item">
+                    <h4>Intrinsic Attenuation</h4>
+                    <p id="intrinsic-info">Q = 100 (Medium)<br>High frequencies attenuated faster</p>
+                </div>
+                <div class="attenuation-item">
+                    <h4>Scattering</h4>
+                    <p id="scattering-info">Medium heterogeneity<br>Coda wave development</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SeismicAttenuationSimulator {
+            constructor() {
+                this.isRunning = false;
+                this.animationId = null;
+                this.time = 0;
+                this.speed = 1.0;
+                
+                // Wave parameters
+                this.frequency = 10; // Hz
+                this.amplitude = 1.0;
+                this.waveSpeed = 6000; // m/s (P-wave speed)
+                
+                // Medium properties
+                this.Q = 100;
+                this.heterogeneity = 50; // 0-100 scale
+                
+                // Canvas setup
+                this.waveCanvas = document.getElementById('wave-canvas');
+                this.waveCtx = this.waveCanvas.getContext('2d');
+                this.seismogramCanvas = document.getElementById('seismogram-canvas');
+                this.seismogramCtx = this.seismogramCanvas.getContext('2d');
+                this.spectrumCanvas = document.getElementById('spectrum-canvas');
+                this.spectrumCtx = this.spectrumCanvas.getContext('2d');
+                
+                // Data arrays
+                this.seismogramData = [];
+                this.timeData = [];
+                this.maxSeismogramLength = 500;
+                
+                this.initializeCanvases();
+                this.bindEvents();
+                this.updateLabels();
+            }
+            
+            initializeCanvases() {
+                // Set canvas sizes
+                this.resizeCanvas(this.waveCanvas);
+                this.resizeCanvas(this.seismogramCanvas);
+                this.resizeCanvas(this.spectrumCanvas);
+                
+                // Initial drawing
+                this.drawWaveViewer();
+                this.drawSeismogram();
+                this.drawSpectrum();
+            }
+            
+            resizeCanvas(canvas) {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * window.devicePixelRatio;
+                canvas.height = rect.height * window.devicePixelRatio;
+                const ctx = canvas.getContext('2d');
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                canvas.style.width = rect.width + 'px';
+                canvas.style.height = rect.height + 'px';
+            }
+            
+            bindEvents() {
+                document.getElementById('frequency-slider').addEventListener('input', (e) => {
+                    this.frequency = parseInt(e.target.value);
+                    this.updateLabels();
+                });
+                
+                document.getElementById('amplitude-slider').addEventListener('input', (e) => {
+                    this.amplitude = parseFloat(e.target.value);
+                    this.updateLabels();
+                });
+                
+                document.getElementById('q-slider').addEventListener('input', (e) => {
+                    this.Q = parseInt(e.target.value);
+                    this.updateLabels();
+                });
+                
+                document.getElementById('heterogeneity-slider').addEventListener('input', (e) => {
+                    this.heterogeneity = parseInt(e.target.value);
+                    this.updateLabels();
+                });
+                
+                document.getElementById('speed-slider').addEventListener('input', (e) => {
+                    this.speed = parseFloat(e.target.value);
+                    this.updateLabels();
+                });
+                
+                document.getElementById('start-simulation').addEventListener('click', () => {
+                    this.toggleSimulation();
+                });
+                
+                document.getElementById('reset-simulation').addEventListener('click', () => {
+                    this.resetSimulation();
+                });
+                
+                document.getElementById('generate-wave').addEventListener('click', () => {
+                    this.generateWave();
+                });
+            }
+            
+            updateLabels() {
+                document.getElementById('frequency-value').textContent = `${this.frequency} Hz`;
+                document.getElementById('amplitude-value').textContent = this.amplitude.toFixed(1);
+                
+                let qLabel = 'Low';
+                if (this.Q > 200) qLabel = 'High';
+                else if (this.Q > 50) qLabel = 'Medium';
+                document.getElementById('q-value').textContent = `${qLabel} (${this.Q})`;
+                
+                let hetLabel = 'Smooth';
+                if (this.heterogeneity > 66) hetLabel = 'Highly Chaotic';
+                else if (this.heterogeneity > 33) hetLabel = 'Fractured';
+                document.getElementById('heterogeneity-value').textContent = hetLabel;
+                
+                document.getElementById('speed-value').textContent = `${this.speed.toFixed(1)}x`;
+                
+                // Update info panels
+                document.getElementById('intrinsic-info').innerHTML = 
+                    `Q = ${this.Q} (${qLabel})<br>High frequencies attenuated ${this.Q < 50 ? 'rapidly' : this.Q > 200 ? 'slowly' : 'moderately'}`;
+                
+                document.getElementById('scattering-info').innerHTML = 
+                    `${hetLabel} heterogeneity<br>${this.heterogeneity > 66 ? 'Strong' : this.heterogeneity > 33 ? 'Moderate' : 'Weak'} coda development`;
+            }
+            
+            toggleSimulation() {
+                if (this.isRunning) {
+                    this.stopSimulation();
+                } else {
+                    this.startSimulation();
+                }
+            }
+            
+            startSimulation() {
+                this.isRunning = true;
+                document.getElementById('start-simulation').textContent = 'Stop Simulation';
+                this.animate();
+            }
+            
+            stopSimulation() {
+                this.isRunning = false;
+                document.getElementById('start-simulation').textContent = 'Start Simulation';
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                }
+            }
+            
+            resetSimulation() {
+                this.stopSimulation();
+                this.time = 0;
+                this.seismogramData = [];
+                this.timeData = [];
+                this.drawWaveViewer();
+                this.drawSeismogram();
+                this.drawSpectrum();
+            }
+            
+            generateWave() {
+                this.resetSimulation();
+                // Generate initial wave packet
+                this.startSimulation();
+            }
+            
+            animate() {
+                if (!this.isRunning) return;
+                
+                this.time += 0.02 * this.speed;
+                
+                this.drawWaveViewer();
+                this.updateSeismogram();
+                this.drawSeismogram();
+                this.drawSpectrum();
+                
+                this.animationId = requestAnimationFrame(() => this.animate());
+            }
+            
+            drawWaveViewer() {
+                const canvas = this.waveCanvas;
+                const ctx = this.waveCtx;
+                const rect = canvas.getBoundingClientRect();
+                
+                ctx.clearRect(0, 0, rect.width, rect.height);
+                
+                // Draw wave propagation
+                this.drawPropagatingWave(ctx, rect);
+            }
+            
+            drawPropagatingWave(ctx, rect) {
+                const sourceX = 50;
+                const receiverX = rect.width - 50;
+                const centerY = rect.height / 2;
+                const maxDistance = receiverX - sourceX;
+                
+                // Wave front position
+                const waveDistance = (this.time * this.waveSpeed / 1000) * (maxDistance / 100); // Scale to viewer
+                
+                if (waveDistance > 0 && waveDistance < maxDistance) {
+                    const currentX = sourceX + waveDistance;
+                    const distance = waveDistance * 100 / maxDistance; // km
+                    
+                    // Calculate attenuation effects
+                    const geometricalAttenuation = this.calculateGeometricalSpreading(distance);
+                    const intrinsicAttenuation = this.calculateIntrinsicAttenuation(distance, this.frequency);
+                    
+                    // Draw main wave
+                    this.drawMainWave(ctx, currentX, centerY, geometricalAttenuation, intrinsicAttenuation, distance);
+                    
+                    // Draw scattered waves (coda)
+                    if (this.heterogeneity > 20) {
+                        this.drawScatteredWaves(ctx, sourceX, currentX, centerY, distance);
+                    }
+                }
+            }
+            
+            drawMainWave(ctx, x, centerY, geoAtten, intrAtten, distance) {
+                const totalAttenuation = geoAtten * intrAtten;
+                const waveHeight = this.amplitude * totalAttenuation * 30;
+                
+                // Create wave packet
+                const packetWidth = 20;
+                const wavelength = 10;
+                
+                ctx.strokeStyle = `rgba(255, 71, 87, ${Math.min(1, totalAttenuation * 2)})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                for (let i = -packetWidth; i <= packetWidth; i++) {
+                    const envelope = Math.exp(-(i * i) / (packetWidth * packetWidth / 4));
+                    const wave = Math.sin(2 * Math.PI * i / wavelength + this.time * this.frequency);
+                    const y = centerY + waveHeight * envelope * wave;
+                    
+                    if (i === -packetWidth) {
+                        ctx.moveTo(x + i, y);
+                    } else {
+                        ctx.lineTo(x + i, y);
+                    }
+                }
+                ctx.stroke();
+                
+                // Draw wave front indicator
+                ctx.fillStyle = 'rgba(255, 71, 87, 0.7)';
+                ctx.beginPath();
+                ctx.arc(x, centerY, 3, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            
+            drawScatteredWaves(ctx, sourceX, waveX, centerY, distance) {
+                const scatterStrength = this.heterogeneity / 100;
+                const numScatterers = Math.floor(scatterStrength * 20);
+                
+                ctx.strokeStyle = `rgba(100, 181, 246, ${scatterStrength * 0.5})`;
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i < numScatterers; i++) {
+                    const scatterX = sourceX + Math.random() * (waveX - sourceX);
+                    const scatterY = centerY + (Math.random() - 0.5) * 60;
+                    const scatterRadius = Math.random() * 15 + 5;
+                    
+                    // Draw scattered wavelets
+                    ctx.beginPath();
+                    ctx.arc(scatterX, scatterY, scatterRadius, 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+            }
+            
+            calculateGeometricalSpreading(distance) {
+                // 1/sqrt(r) spreading for body waves
+                return 1 / Math.sqrt(Math.max(1, distance));
+            }
+            
+            calculateIntrinsicAttenuation(distance, frequency) {
+                // Exponential decay: exp(-π*f*t/Q) where t = distance/velocity
+                const travelTime = distance / (this.waveSpeed / 1000); // seconds
+                return Math.exp(-Math.PI * frequency * travelTime / this.Q);
+            }
+            
+            updateSeismogram() {
+                const sourceX = 50;
+                const receiverX = document.getElementById('wave-canvas').getBoundingClientRect().width - 50;
+                const maxDistance = receiverX - sourceX;
+                const waveDistance = (this.time * this.waveSpeed / 1000) * (maxDistance / 100);
+                const totalDistance = 100; // km
+                
+                let amplitude = 0;
+                
+                // Check if wave has reached receiver
+                if (waveDistance >= maxDistance) {
+                    const arrivalTime = this.time - (totalDistance / (this.waveSpeed / 1000));
+                    
+                    if (arrivalTime > 0) {
+                        // Calculate attenuated amplitude
+                        const geoAtten = this.calculateGeometricalSpreading(totalDistance);
+                        const intrAtten = this.calculateIntrinsicAttenuation(totalDistance, this.frequency);
+                        
+                        // Main wave
+                        const envelope = Math.exp(-arrivalTime * 2); // Decay envelope
+                        const mainWave = this.amplitude * geoAtten * intrAtten * envelope * 
+                                        Math.sin(2 * Math.PI * this.frequency * arrivalTime);
+                        
+                        // Add coda (scattered waves)
+                        let coda = 0;
+                        if (this.heterogeneity > 20 && arrivalTime > 0.5) {
+                            const codaStrength = this.heterogeneity / 100;
+                            const codaDecay = Math.exp(-arrivalTime * 0.5);
+                            coda = codaStrength * codaDecay * (Math.random() - 0.5) * this.amplitude * 0.3;
+                        }
+                        
+                        amplitude = mainWave + coda;
+                    }
+                }
+                
+                this.seismogramData.push(amplitude);
+                this.timeData.push(this.time);
+                
+                // Keep arrays manageable
+                if (this.seismogramData.length > this.maxSeismogramLength) {
+                    this.seismogramData.shift();
+                    this.timeData.shift();
+                }
+            }
+            
+            drawSeismogram() {
+                const canvas = this.seismogramCanvas;
+                const ctx = this.seismogramCtx;
+                const rect = canvas.getBoundingClientRect();
+                
+                ctx.clearRect(0, 0, rect.width, rect.height);
+                
+                if (this.seismogramData.length < 2) return;
+                
+                // Draw grid
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 10; i++) {
+                    const y = (i / 10) * rect.height;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(rect.width, y);
+                    ctx.stroke();
+                }
+                
+                // Draw seismogram
+                ctx.strokeStyle = '#4ecdc4';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                const maxAmp = Math.max(Math.abs(...this.seismogramData)) || 1;
+                const centerY = rect.height / 2;
+                
+                for (let i = 0; i < this.seismogramData.length; i++) {
+                    const x = (i / this.maxSeismogramLength) * rect.width;
+                    const y = centerY - (this.seismogramData[i] / maxAmp) * (rect.height / 2) * 0.8;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+                
+                // Draw center line
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(0, centerY);
+                ctx.lineTo(rect.width, centerY);
+                ctx.stroke();
+            }
+            
+            drawSpectrum() {
+                const canvas = this.spectrumCanvas;
+                const ctx = this.spectrumCtx;
+                const rect = canvas.getBoundingClientRect();
+                
+                ctx.clearRect(0, 0, rect.width, rect.height);
+                
+                // Calculate frequency spectrum (simplified)
+                const freqBins = 50;
+                const maxFreq = 50;
+                const spectrum = new Array(freqBins).fill(0);
+                
+                // Simulate frequency content based on Q and distance
+                for (let i = 0; i < freqBins; i++) {
+                    const freq = (i / freqBins) * maxFreq;
+                    const distance = 100; // km
+                    const attenuation = this.calculateIntrinsicAttenuation(distance, freq);
+                    
+                    // Original spectrum (Gaussian around main frequency)
+                    const originalAmp = Math.exp(-Math.pow(freq - this.frequency, 2) / (2 * Math.pow(this.frequency * 0.3, 2)));
+                    
+                    spectrum[i] = originalAmp * attenuation;
+                }
+                
+                // Draw spectrum
+                ctx.fillStyle = '#ffa726';
+                const maxSpec = Math.max(...spectrum) || 1;
+                
+                for (let i = 0; i < freqBins; i++) {
+                    const x = (i / freqBins) * rect.width;
+                    const height = (spectrum[i] / maxSpec) * rect.height * 0.8;
+                    const width = rect.width / freqBins;
+                    
+                    ctx.fillRect(x, rect.height - height, width - 1, height);
+                }
+                
+                // Draw frequency labels
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.font = '12px Arial';
+                ctx.fillText('0 Hz', 5, rect.height - 5);
+                ctx.fillText(`${maxFreq} Hz`, rect.width - 35, rect.height - 5);
+                ctx.fillText('Amplitude', 5, 15);
+            }
+        }
+        
+        // Initialize simulator when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SeismicAttenuationSimulator();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seismic Attenuation & Felt Area Simulator</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f9; color: #2c3e50; margin: 0; padding: 20px;
+        }
+        h1 { text-align: center; }
+        .main-container {
+            display: flex; flex-wrap: wrap; gap: 20px; max-width: 1600px; margin: auto;
+        }
+        .controls-panel {
+            flex: 1; min-width: 350px; background: #fff; padding: 20px;
+            border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); align-self: flex-start;
+        }
+        .map-panel {
+            flex: 2.5; min-width: 700px; height: 700px;
+        }
+        #map {
+            width: 100%; height: 100%; border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); cursor: crosshair;
+        }
+        .control-group { margin-bottom: 25px; }
+        .control-group legend {
+            font-size: 1.2em; font-weight: bold; color: #2a9d8f;
+            border-bottom: 2px solid #2a9d8f; margin-bottom: 10px; padding-bottom: 5px;
+        }
+        .param-slider { margin-bottom: 15px; }
+        .param-slider label { display: block; margin-bottom: 5px; }
+        .param-slider input { width: 100%; }
+        .legend { padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; }
+        .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }
+    </style>
+</head>
+<body>
+    <h1>Seismic Attenuation & Felt Area Simulator 🌎</h1>
+    <div class="main-container">
+        <div class="controls-panel">
+            <div class="control-group">
+                <legend>1. Trigger an Earthquake</legend>
+                <p>Click anywhere on the map to set the epicenter.</p>
+                <div class="param-slider">
+                    <label for="magnitude-slider">Magnitude: <span id="mag-value">6.0</span></label>
+                    <input type="range" id="magnitude-slider" min="4.0" max="8.0" value="6.0" step="0.1">
+                </div>
+                <div class="param-slider">
+                    <label for="depth-slider">Depth: <span id="depth-value">10</span> km (Shallow)</label>
+                    <input type="range" id="depth-slider" min="5" max="100" value="10" step="1">
+                </div>
+            </div>
+            <div class="control-group">
+                <legend>Results</legend>
+                <p id="results-text">Click the map to simulate an earthquake.</p>
+            </div>
+        </div>
+        <div class="map-panel">
+            <div id="map"></div>
+        </div>
+    </div>
+
+<script>
+// --- 1. SETUP & STATE MANAGEMENT ---
+const map = L.map('map').setView([40, -98], 4); // Centered on North America
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+let earthquake = null;
+let feltAreaLayers = L.layerGroup().addTo(map);
+
+// --- 2. Q-VALUE & MAP OVERLAYS ---
+
+// Define simplified Q regions for North America
+const Q_BOUNDARY_LON = -105;
+const LOW_Q_REGION = {
+    name: 'Western NA (Low Q)',
+    color: '#e76f51', // Reddish
+    Q: 300 // Lower Q, higher attenuation
+};
+const HIGH_Q_REGION = {
+    name: 'Eastern NA (High Q)',
+    color: '#264653', // Bluish
+    Q: 1500 // Higher Q, lower attenuation
+};
+
+// Draw the Q regions on the map
+const westPolygon = L.polygon([ [24, -125], [50, -125], [70, -110], [70, Q_BOUNDARY_LON], [24, Q_BOUNDARY_LON] ],
+    { color: LOW_Q_REGION.color, weight: 1, fillOpacity: 0.15 }).addTo(map);
+const eastPolygon = L.polygon([ [24, Q_BOUNDARY_LON], [70, Q_BOUNDARY_LON], [70, -60], [24, -80] ],
+    { color: HIGH_Q_REGION.color, weight: 1, fillOpacity: 0.15 }).addTo(map);
+
+// Add a legend
+const legend = L.control({position: 'bottomright'});
+legend.onAdd = function (map) {
+    const div = L.DomUtil.create('div', 'info legend');
+    div.innerHTML += '<h4>Regional Q Value</h4>' +
+        '<i style="background:' + LOW_Q_REGION.color + '"></i> ' + LOW_Q_REGION.name + '<br>' +
+        '<i style="background:' + HIGH_Q_REGION.color + '"></i> ' + HIGH_Q_REGION.name;
+    return div;
+};
+legend.addTo(map);
+
+
+// --- 3. SIMULATION LOGIC ---
+
+function simulateFeltArea() {
+    if (!earthquake) return;
+    
+    feltAreaLayers.clearLayers();
+
+    const { latlng, mag, depth } = earthquake;
+    
+    // Determine Q value based on longitude
+    const region = latlng.lng < Q_BOUNDARY_LON ? LOW_Q_REGION : HIGH_Q_REGION;
+    
+    // Add an epicenter marker
+    L.marker(latlng).addTo(feltAreaLayers)
+        .bindPopup(`M${mag.toFixed(1)} at ${depth} km depth<br>Region: ${region.name}`)
+        .openPopup();
+        
+    // Simplified formula for felt radius
+    // Combines magnitude scaling, depth effect (geometrical spreading), and attenuation (Q)
+    const magTerm = Math.pow(10, 0.5 * mag - 1.5); // Scaled energy release
+    const depthTerm = 1 / (1 + (depth / 25)); // Deeper quakes have less surface impact
+    const qTerm = Math.pow(region.Q, 0.4); // High Q -> larger felt area
+    
+    const feltRadius = magTerm * depthTerm * qTerm * 1000; // in meters
+    
+    // Draw circles representing different MMI levels
+    const mmiColors = ['#00ffff', '#00ff00', '#ffff00', '#ff9900', '#ff0000'];
+    for (let i = 0; i < 5; i++) {
+        const radius = feltRadius * Math.pow(0.6, i); // Each ring is smaller
+        if (radius > 1000) { // Only draw if reasonably large
+            L.circle(latlng, {
+                radius: radius,
+                color: mmiColors[i],
+                fillColor: mmiColors[i],
+                fillOpacity: 0.2,
+                weight: 1
+            }).addTo(feltAreaLayers);
+        }
+    }
+    
+    document.getElementById('results-text').innerHTML = 
+        `Simulated a M${mag.toFixed(1)} earthquake at ${depth} km depth. <br>
+         Located in the <strong>${region.name}</strong>, which has low attenuation. <br>
+         Notice the widespread felt area.`;
+     if (region.Q < 1000) {
+        document.getElementById('results-text').innerHTML = 
+        `Simulated a M${mag.toFixed(1)} earthquake at ${depth} km depth. <br>
+         Located in the <strong>${region.name}</strong>, which has high attenuation. <br>
+         Notice the more limited felt area.`;
+     }
+}
+
+
+// --- 4. EVENT LISTENERS ---
+const magSlider = document.getElementById('magnitude-slider');
+const depthSlider = document.getElementById('depth-slider');
+const magValue = document.getElementById('mag-value');
+const depthValue = document.getElementById('depth-value');
+
+// Update UI and re-simulate when sliders change
+function handleSliderChange() {
+    const mag = parseFloat(magSlider.value);
+    const depth = parseInt(depthSlider.value);
+    
+    magValue.textContent = mag.toFixed(1);
+    let depthLabel = `${depth} km`;
+    if (depth < 30) depthLabel += ' (Shallow)';
+    else if (depth > 70) depthLabel += ' (Deep)';
+    else depthLabel += ' (Intermediate)';
+    depthValue.textContent = depthLabel;
+
+    if (earthquake) { // If an earthquake has already been placed
+        earthquake.mag = mag;
+        earthquake.depth = depth;
+        simulateFeltArea();
+    }
+}
+
+magSlider.addEventListener('input', handleSliderChange);
+depthSlider.addEventListener('input', handleSliderChange);
+
+// Trigger earthquake on map click
+map.on('click', (e) => {
+    earthquake = {
+        latlng: e.latlng,
+        mag: parseFloat(magSlider.value),
+        depth: parseInt(depthSlider.value)
+    };
+    simulateFeltArea();
+});
+
+// --- 5. INITIALIZATION ---
+// Initial text update for sliders
+handleSliderChange();
+</script>
+</body>
+</html>

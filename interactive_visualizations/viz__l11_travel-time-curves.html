@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Time Curves and Seismic Phase Identification</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-label {
+            font-weight: 600;
+            color: #555;
+        }
+        .slider {
+            width: 200px;
+            -webkit-appearance: none;
+            height: 5px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+        }
+        .value-display {
+            background: #e8f4f8;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 80px;
+            text-align: center;
+        }
+        .chart-container {
+            position: relative;
+            height: 500px;
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        .seismogram-container {
+            position: relative;
+            height: 300px;
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .info-card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        .info-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .phase-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .p-color { background: #e74c3c; }
+        .s-color { background: #3498db; }
+        .pp-color { background: #f39c12; }
+        .ss-color { background: #27ae60; }
+        .pcp-color { background: #8e44ad; }
+        .scp-color { background: #2c3e50; }
+        .pkp-color { background: #e91e63; }
+        .sks-color { background: #00bcd4; }
+        .lg-color { background: #795548; }
+        .highlight {
+            color: #3498db;
+            font-weight: bold;
+        }
+        .phase-example {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .legend-custom {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        .usage-tips {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .usage-tips h4 {
+            margin-top: 0;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Travel Time Curves & Seismic Phase Identification</h1>
+        <p class="subtitle">Interactive demonstration of how seismologists use travel time curves to identify different seismic phases on seismograms</p>
+        
+        <div class="controls">
+            <div class="control-group">
+                <span class="control-label">Epicentral Distance (degrees):</span>
+                <input type="range" id="distanceSlider" class="slider" min="0" max="180" step="1" value="45">
+                <span class="value-display" id="distanceValue">45°</span>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Focal Depth (km):</span>
+                <input type="range" id="depthSlider" class="slider" min="0" max="700" step="10" value="33">
+                <span class="value-display" id="depthValue">33 km</span>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="travelTimeChart"></canvas>
+        </div>
+
+        <div class="legend-custom">
+            <h4 style="margin-top: 0;">Seismic Phase Types</h4>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <span class="phase-indicator p-color"></span>
+                    <span><strong>P</strong> - Direct P-wave</span>
+                </div>
+                <div class="legend-item">
+                    <span class="phase-indicator s-color"></span>
+                    <span><strong>S</strong> - Direct S-wave</span>
+                </div>
+                <div class="legend-item">
+                    <span class="phase-indicator pp-color"></span>
+                    <span><strong>PP</strong> - P reflected at surface</span>
+                </div>
+                <div class="legend-item">
+                    <span class="phase-indicator ss-color"></span>
+                    <span><strong>SS</strong> - S reflected at surface</span>
+                </div>
+                <div class="legend-item">
+                    <span class="phase-indicator pcp-color"></span>
+                    <span><strong>PcP</strong> - P reflected at core</span>
+                </div>
+                <div class="legend-item">
+                    <span class="phase-indicator scp-color"></span>
+                    <span><strong>ScP</strong> - S to P at core</span>
+                </div>
+                <div class="legend-item">
+                    <span class="phase-indicator pkp-color"></span>
+                    <span><strong>PKP</strong> - P through core</span>
+                </div>
+                <div class="legend-item">
+                    <span class="phase-indicator sks-color"></span>
+                    <span><strong>SKS</strong> - S to K to S</span>
+                </div>
+                <div class="legend-item">
+                    <span class="phase-indicator lg-color"></span>
+                    <span><strong>Lg</strong> - Surface wave</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="seismogram-container">
+            <canvas id="seismogramChart"></canvas>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-card">
+                <h3>How to Use Travel Time Curves</h3>
+                <ol style="font-size: 14px; padding-left: 20px;">
+                    <li>Measure the <span class="highlight">arrival time</span> of a phase on the seismogram</li>
+                    <li>Find the <span class="highlight">epicentral distance</span> using P-S time difference</li>
+                    <li>Use the travel time curve to <span class="highlight">identify the phase</span></li>
+                    <li>Check for consistency with expected <span class="highlight">amplitude and polarity</span></li>
+                </ol>
+                <div class="usage-tips">
+                    <h4>💡 Pro Tip</h4>
+                    <p style="margin: 0; font-size: 13px;">The P-S time difference increases by about 8 seconds per degree of distance. This helps quickly estimate epicentral distance!</p>
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <h3><span class="phase-indicator p-color"></span>Body Waves</h3>
+                <p style="font-size: 14px;">Travel through Earth's interior:</p>
+                <div class="phase-example">
+                    <strong>P & S:</strong> Direct waves, always first arrivals<br>
+                    <strong>PP & SS:</strong> Single surface reflection<br>
+                    <strong>PcP & ScS:</strong> Core-mantle boundary reflection<br>
+                    <strong>PKP:</strong> Through outer core (P-wave only)
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <h3><span class="phase-indicator pkp-color"></span>Core Phases</h3>
+                <p style="font-size: 14px;">Interact with Earth's core:</p>
+                <div class="phase-example">
+                    <strong>Shadow Zones:</strong><br>
+                    P-wave: 103° - 143°<br>
+                    S-wave: > 103° (blocked by liquid outer core)<br>
+                    <strong>PKP phases:</strong> Multiple branches (PKPab, PKPbc, PKPdf)
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <h3><span class="phase-indicator lg-color"></span>Surface Waves</h3>
+                <p style="font-size: 14px;">Travel along Earth's surface:</p>
+                <div class="phase-example">
+                    <strong>Lg:</strong> Trapped in continental crust<br>
+                    <strong>Love waves:</strong> Horizontal motion<br>
+                    <strong>Rayleigh waves:</strong> Elliptical motion<br>
+                    Large amplitude, arrive after body waves
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize charts
+        let travelTimeChart;
+        let seismogramChart;
+        
+        // Simplified travel time calculations
+        function calculateTravelTimes(maxDistance) {
+            const phases = {
+                P: { color: '#e74c3c', distances: [], times: [] },
+                S: { color: '#3498db', distances: [], times: [] },
+                PP: { color: '#f39c12', distances: [], times: [] },
+                SS: { color: '#27ae60', distances: [], times: [] },
+                PcP: { color: '#8e44ad', distances: [], times: [] },
+                ScP: { color: '#2c3e50', distances: [], times: [] },
+                PKP: { color: '#e91e63', distances: [], times: [] },
+                SKS: { color: '#00bcd4', distances: [], times: [] },
+                Lg: { color: '#795548', distances: [], times: [] }
+            };
+            
+            // Generate travel times (simplified models)
+            for (let d = 0; d <= 180; d += 2) {
+                // P wave (approximate)
+                if (d <= 103) {
+                    phases.P.distances.push(d);
+                    phases.P.times.push(d * 13.7 - 0.05 * d * d);
+                }
+                
+                // S wave
+                if (d <= 103) {
+                    phases.S.distances.push(d);
+                    phases.S.times.push(d * 24.5 - 0.08 * d * d);
+                }
+                
+                // PP wave
+                if (d >= 20 && d <= 160) {
+                    phases.PP.distances.push(d);
+                    phases.PP.times.push(100 + d * 8.5 + 0.02 * d * d);
+                }
+                
+                // SS wave
+                if (d >= 20 && d <= 160) {
+                    phases.SS.distances.push(d);
+                    phases.SS.times.push(180 + d * 15.2 + 0.03 * d * d);
+                }
+                
+                // PcP wave
+                if (d >= 5 && d <= 95) {
+                    phases.PcP.distances.push(d);
+                    phases.PcP.times.push(540 - d * 2.5 + 0.04 * d * d);
+                }
+                
+                // ScP wave
+                if (d >= 10 && d <= 95) {
+                    phases.ScP.distances.push(d);
+                    phases.ScP.times.push(700 - d * 3.0 + 0.05 * d * d);
+                }
+                
+                // PKP wave
+                if (d >= 143 && d <= 180) {
+                    phases.PKP.distances.push(d);
+                    phases.PKP.times.push(1200 - (180 - d) * 8);
+                }
+                
+                // SKS wave
+                if (d >= 65 && d <= 130) {
+                    phases.SKS.distances.push(d);
+                    phases.SKS.times.push(800 + (d - 65) * 5);
+                }
+                
+                // Lg wave
+                if (d >= 1 && d <= 40) {
+                    phases.Lg.distances.push(d);
+                    phases.Lg.times.push(d * 33.3);
+                }
+            }
+            
+            return phases;
+        }
+        
+        // Generate synthetic seismogram
+        function generateSeismogram(distance, depth) {
+            const time = [];
+            const amplitude = [];
+            const duration = 1800; // 30 minutes
+            
+            for (let t = 0; t < duration; t++) {
+                time.push(t);
+                amplitude.push(Math.random() * 0.1 - 0.05); // Background noise
+            }
+            
+            // Add phase arrivals based on distance
+            const phases = calculateTravelTimes(180);
+            
+            // Helper function to add a phase arrival
+            function addPhase(phaseName, arrivalTime, ampFactor = 1) {
+                if (arrivalTime > 0 && arrivalTime < duration) {
+                    const idx = Math.floor(arrivalTime);
+                    for (let i = 0; i < 50; i++) {
+                        if (idx + i < amplitude.length) {
+                            amplitude[idx + i] += ampFactor * Math.sin(i * 0.5) * Math.exp(-i * 0.1) * (1 + Math.random() * 0.3);
+                        }
+                    }
+                }
+            }
+            
+            // Add phases based on distance
+            Object.entries(phases).forEach(([phaseName, phaseData]) => {
+                const idx = phaseData.distances.findIndex(d => Math.abs(d - distance) < 1);
+                if (idx >= 0) {
+                    const arrivalTime = phaseData.times[idx];
+                    const ampFactor = phaseName === 'P' ? 2 : phaseName === 'S' ? 3 : 1;
+                    addPhase(phaseName, arrivalTime, ampFactor);
+                }
+            });
+            
+            return { time, amplitude };
+        }
+        
+        // Initialize travel time chart
+        function initTravelTimeChart() {
+            const ctx = document.getElementById('travelTimeChart').getContext('2d');
+            const phases = calculateTravelTimes(180);
+            
+            const datasets = Object.entries(phases).map(([phaseName, phaseData]) => ({
+                label: phaseName,
+                data: phaseData.distances.map((d, i) => ({ x: d, y: phaseData.times[i] })),
+                borderColor: phaseData.color,
+                backgroundColor: phaseData.color + '20',
+                borderWidth: 3,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                tension: 0.1,
+                showLine: true
+            }));
+            
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'nearest',
+                    intersect: false,
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Travel Time Curves for Major Seismic Phases',
+                        font: { size: 16, weight: 'bold' },
+                        color: '#333'
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            title: function(context) {
+                                const point = context[0];
+                                return `Phase: ${point.dataset.label}`;
+                            },
+                            label: function(context) {
+                                return [
+                                    `Distance: ${context.parsed.x.toFixed(1)}°`,
+                                    `Travel Time: ${context.parsed.y.toFixed(1)} sec`
+                                ];
+                            }
+                        }
+                    },
+                    annotation: {
+                        annotations: {}
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Epicentral Distance (degrees)',
+                            color: '#333',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            borderColor: '#333'
+                        },
+                        ticks: { color: '#666' },
+                        min: 0,
+                        max: 180
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Travel Time (seconds)',
+                            color: '#333',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            borderColor: '#333'
+                        },
+                        ticks: { color: '#666' },
+                        min: 0,
+                        max: 1400
+                    }
+                }
+            };
+            
+            if (travelTimeChart) {
+                travelTimeChart.destroy();
+            }
+            
+            travelTimeChart = new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets },
+                options: chartOptions,
+                plugins: [window['chartjs-plugin-annotation']]
+            });
+        }
+        
+        // Initialize seismogram chart
+        function initSeismogramChart(distance, depth) {
+            const ctx = document.getElementById('seismogramChart').getContext('2d');
+            const { time, amplitude } = generateSeismogram(distance, depth);
+            
+            // Find phase arrivals for annotations
+            const phases = calculateTravelTimes(180);
+            const annotations = {};
+            
+            Object.entries(phases).forEach(([phaseName, phaseData]) => {
+                const idx = phaseData.distances.findIndex(d => Math.abs(d - distance) < 1);
+                if (idx >= 0) {
+                    const arrivalTime = phaseData.times[idx];
+                    if (arrivalTime > 0 && arrivalTime < 1800) {
+                        annotations[phaseName] = {
+                            type: 'line',
+                            xMin: arrivalTime,
+                            xMax: arrivalTime,
+                            borderColor: phaseData.color,
+                            borderWidth: 2,
+                            label: {
+                                content: phaseName,
+                                enabled: true,
+                                position: 'start',
+                                backgroundColor: phaseData.color,
+                                color: 'white',
+                                font: { size: 11, weight: 'bold' },
+                                padding: 4
+                            }
+                        };
+                    }
+                }
+            });
+            
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                interaction: {
+                    mode: 'x',
+                    intersect: false,
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `Synthetic Seismogram at ${distance}° Distance`,
+                        font: { size: 16, weight: 'bold' },
+                        color: '#333'
+                    },
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            title: function(context) {
+                                const time = context[0].parsed.x;
+                                const minutes = Math.floor(time / 60);
+                                const seconds = (time % 60).toFixed(0);
+                                return `Time: ${minutes}:${seconds.padStart(2, '0')}`;
+                            },
+                            label: function(context) {
+                                return `Amplitude: ${context.parsed.y.toFixed(3)}`;
+                            }
+                        }
+                    },
+                    annotation: {
+                        annotations: annotations
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)',
+                            color: '#333',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            borderColor: '#333'
+                        },
+                        ticks: { 
+                            color: '#666',
+                            callback: function(value) {
+                                const minutes = Math.floor(value / 60);
+                                return `${minutes}m`;
+                            }
+                        },
+                        min: 0,
+                        max: 1800
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Amplitude',
+                            color: '#333',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            borderColor: '#333'
+                        },
+                        ticks: { color: '#666' }
+                    }
+                }
+            };
+            
+            if (seismogramChart) {
+                seismogramChart.destroy();
+            }
+            
+            seismogramChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: time,
+                    datasets: [{
+                        data: amplitude,
+                        borderColor: '#333',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        tension: 0,
+                        fill: false
+                    }]
+                },
+                options: chartOptions,
+                plugins: [window['chartjs-plugin-annotation']]
+            });
+        }
+        
+        // Update functions
+        function updateVisualization() {
+            const distance = parseInt(document.getElementById('distanceSlider').value);
+            const depth = parseInt(document.getElementById('depthSlider').value);
+            
+            document.getElementById('distanceValue').textContent = `${distance}°`;
+            document.getElementById('depthValue').textContent = `${depth} km`;
+            
+            // Update distance line on travel time chart
+            if (travelTimeChart) {
+                travelTimeChart.options.plugins.annotation.annotations = {
+                    distanceLine: {
+                        type: 'line',
+                        xMin: distance,
+                        xMax: distance,
+                        borderColor: 'rgba(255, 0, 0, 0.5)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        label: {
+                            content: `Current: ${distance}°`,
+                            enabled: true,
+                            position: 'start',
+                            backgroundColor: 'rgba(255, 0, 0, 0.8)',
+                            color: 'white',
+                            font: { size: 12, weight: 'bold' }
+                        }
+                    }
+                };
+                travelTimeChart.update();
+            }
+            
+            // Update seismogram
+            initSeismogramChart(distance, depth);
+        }
+        
+        // Event listeners
+        document.getElementById('distanceSlider').addEventListener('input', updateVisualization);
+        document.getElementById('depthSlider').addEventListener('input', updateVisualization);
+        
+        // Initialize
+        initTravelTimeChart();
+        updateVisualization();
+    </script>
+</body>
+</html>

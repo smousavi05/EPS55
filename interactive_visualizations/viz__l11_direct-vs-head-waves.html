@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct vs Head Waves Comparison</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .control-btn {
+            padding: 10px 20px;
+            background: #ffffff;
+            border: 2px solid #e0e0e0;
+            color: #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .control-btn:hover {
+            background: #f0f0f0;
+            border-color: #3498db;
+            transform: translateY(-2px);
+        }
+        .control-btn.active {
+            background: #3498db;
+            border-color: #3498db;
+            color: white;
+        }
+        .chart-container {
+            position: relative;
+            height: 600px;
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        .diagram-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .earth-diagram {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            display: block;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .info-card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        .info-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .wave-indicator {
+            width: 40px;
+            height: 4px;
+            border-radius: 2px;
+            display: inline-block;
+        }
+        .pg-color { background: #e74c3c; }
+        .pn-color { background: #c0392b; }
+        .sg-color { background: #3498db; }
+        .sn-color { background: #2980b9; }
+        .formula {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            text-align: center;
+            margin: 10px 0;
+            border: 1px solid #e0e0e0;
+            font-size: 13px;
+        }
+        .highlight {
+            color: #3498db;
+            font-weight: bold;
+        }
+        .velocity-table {
+            width: 100%;
+            margin: 15px 0;
+            border-collapse: collapse;
+        }
+        .velocity-table th, .velocity-table td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        .velocity-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        .legend-custom {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .legend-line {
+            width: 30px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        .legend-line.dashed {
+            background: repeating-linear-gradient(
+                to right,
+                currentColor,
+                currentColor 5px,
+                transparent 5px,
+                transparent 10px
+            );
+            height: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Direct Waves vs Head Waves</h1>
+        <p class="subtitle">Comparing travel times and cross-over distances for direct crustal waves (Pg, Sg) and critically refracted head waves (Pn, Sn)</p>
+        
+        <div class="controls">
+            <button class="control-btn active" onclick="showWaveType('both')">Show All Waves</button>
+            <button class="control-btn" onclick="showWaveType('p')">P-Waves Only</button>
+            <button class="control-btn" onclick="showWaveType('s')">S-Waves Only</button>
+            <button class="control-btn" onclick="toggleReducedVelocity()">Toggle Reduced Velocity</button>
+        </div>
+
+        <div class="diagram-container">
+            <svg class="earth-diagram" viewBox="0 0 800 400">
+                <!-- Earth layers -->
+                <rect x="0" y="150" width="800" height="250" fill="#f5e6d3" stroke="none"/>
+                <rect x="0" y="200" width="800" height="200" fill="#d4a574" stroke="none"/>
+                
+                <!-- Moho discontinuity -->
+                <line x1="0" y1="200" x2="800" y2="200" stroke="#333" stroke-width="2" stroke-dasharray="5,5"/>
+                <text x="10" y="195" font-size="14" fill="#333">Moho Discontinuity (35 km)</text>
+                
+                <!-- Surface -->
+                <line x1="0" y1="150" x2="800" y2="150" stroke="#333" stroke-width="3"/>
+                <text x="10" y="145" font-size="14" fill="#333">Surface</text>
+                
+                <!-- Earthquake source -->
+                <circle cx="100" cy="160" r="10" fill="#ff0000" stroke="#8b0000" stroke-width="2"/>
+                <text x="70" y="140" font-size="14" fill="#333" font-weight="bold">Source</text>
+                
+                <!-- Stations -->
+                <g id="stations">
+                    <circle cx="250" cy="150" r="6" fill="#666" stroke="#333" stroke-width="1"/>
+                    <text x="235" y="140" font-size="12" fill="#666">100 km</text>
+                    
+                    <circle cx="400" cy="150" r="6" fill="#666" stroke="#333" stroke-width="1"/>
+                    <text x="385" y="140" font-size="12" fill="#666">200 km</text>
+                    
+                    <circle cx="550" cy="150" r="6" fill="#666" stroke="#333" stroke-width="1"/>
+                    <text x="535" y="140" font-size="12" fill="#666">300 km</text>
+                    
+                    <circle cx="700" cy="150" r="6" fill="#666" stroke="#333" stroke-width="1"/>
+                    <text x="685" y="140" font-size="12" fill="#666">400 km</text>
+                </g>
+                
+                <!-- Wave paths -->
+                <!-- Pg direct path -->
+                <path d="M 100 160 L 250 150" fill="none" stroke="#e74c3c" stroke-width="3" opacity="0.8"/>
+                <path d="M 100 160 L 400 150" fill="none" stroke="#e74c3c" stroke-width="3" opacity="0.6"/>
+                <text x="160" y="145" font-size="12" fill="#e74c3c" font-weight="bold">Pg</text>
+                
+                <!-- Sg direct path -->
+                <path d="M 100 160 L 250 150" fill="none" stroke="#3498db" stroke-width="3" stroke-dasharray="5,3" opacity="0.8"/>
+                <path d="M 100 160 L 400 150" fill="none" stroke="#3498db" stroke-width="3" stroke-dasharray="5,3" opacity="0.6"/>
+                <text x="160" y="165" font-size="12" fill="#3498db" font-weight="bold">Sg</text>
+                
+                <!-- Pn head wave path -->
+                <path d="M 100 160 L 180 200 L 520 200 L 550 150" fill="none" stroke="#c0392b" stroke-width="3"/>
+                <path d="M 180 200 L 670 200 L 700 150" fill="none" stroke="#c0392b" stroke-width="3"/>
+                <text x="340" y="215" font-size="12" fill="#c0392b" font-weight="bold">Pn (along Moho)</text>
+                
+                <!-- Sn head wave path -->
+                <path d="M 100 160 L 180 200" fill="none" stroke="#2980b9" stroke-width="3" stroke-dasharray="5,3"/>
+                <path d="M 520 200 L 550 150" fill="none" stroke="#2980b9" stroke-width="3" stroke-dasharray="5,3"/>
+                <path d="M 180 200 L 520 200" fill="none" stroke="#2980b9" stroke-width="3" stroke-dasharray="8,4"/>
+                <text x="340" y="235" font-size="12" fill="#2980b9" font-weight="bold">Sn (along Moho)</text>
+                
+                <!-- Cross-over indicators -->
+                <circle cx="350" cy="150" r="8" fill="#ffd700" stroke="#ff8c00" stroke-width="2"/>
+                <text x="330" y="130" font-size="12" fill="#ff8c00" font-weight="bold">P-crossover</text>
+                
+                <circle cx="480" cy="150" r="8" fill="#9370db" stroke="#8b008b" stroke-width="2"/>
+                <text x="460" y="130" font-size="12" fill="#8b008b" font-weight="bold">S-crossover</text>
+            </svg>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="travelTimeChart"></canvas>
+        </div>
+        
+        <div class="legend-custom">
+            <div class="legend-item">
+                <div class="legend-line" style="background: #e74c3c;"></div>
+                <span>Pg (Direct P-wave)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line" style="background: #c0392b;"></div>
+                <span>Pn (Head P-wave)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line dashed" style="color: #3498db;"></div>
+                <span>Sg (Direct S-wave)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line dashed" style="color: #2980b9;"></div>
+                <span>Sn (Head S-wave)</span>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-card">
+                <h3>Wave Velocities</h3>
+                <table class="velocity-table">
+                    <tr>
+                        <th>Wave Type</th>
+                        <th>Crust</th>
+                        <th>Upper Mantle</th>
+                    </tr>
+                    <tr>
+                        <td><strong>P-waves</strong></td>
+                        <td>6.0 km/s</td>
+                        <td>8.0 km/s</td>
+                    </tr>
+                    <tr>
+                        <td><strong>S-waves</strong></td>
+                        <td>3.5 km/s</td>
+                        <td>4.5 km/s</td>
+                    </tr>
+                </table>
+                <p style="margin-top: 15px; font-size: 14px;">The velocity contrast at the Moho creates the conditions for head wave propagation.</p>
+            </div>
+            
+            <div class="info-card">
+                <h3><span class="wave-indicator pg-color"></span>Direct Waves (Pg, Sg)</h3>
+                <p>Travel directly through the crust from source to receiver.</p>
+                <div class="formula">T = D / V<sub>crust</sub></div>
+                <ul style="font-size: 14px;">
+                    <li>Simple straight-line path</li>
+                    <li>First arrivals at <span class="highlight">short distances</span></li>
+                    <li>Travel time increases linearly with distance</li>
+                    <li>Sg arrives after Pg (slower velocity)</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <h3><span class="wave-indicator pn-color"></span>Head Waves (Pn, Sn)</h3>
+                <p>Critically refracted along the Moho boundary.</p>
+                <div class="formula">T = 2h·cos(i<sub>c</sub>)/V<sub>c</sub> + (D-2h·tan(i<sub>c</sub>))/V<sub>m</sub></div>
+                <ul style="font-size: 14px;">
+                    <li>Travel down to Moho, along it, then up</li>
+                    <li>First arrivals at <span class="highlight">long distances</span></li>
+                    <li>Benefit from higher mantle velocities</li>
+                    <li>Critical angle: sin(i<sub>c</sub>) = V<sub>c</sub>/V<sub>m</sub></li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <h3>Cross-over Distances</h3>
+                <p>Where head waves overtake direct waves as first arrivals:</p>
+                <ul style="font-size: 14px;">
+                    <li><strong>P-waves:</strong> ~<span class="highlight">140 km</span> (Pn overtakes Pg)</li>
+                    <li><strong>S-waves:</strong> ~<span class="highlight">180 km</span> (Sn overtakes Sg)</li>
+                    <li>S-wave crossover occurs at greater distance due to smaller velocity contrast</li>
+                    <li>Creates distinct phase arrival patterns on seismograms</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const MOHO_DEPTH = 35; // km
+        const VP_CRUST = 6.0; // km/s
+        const VP_MANTLE = 8.0; // km/s
+        const VS_CRUST = 3.5; // km/s
+        const VS_MANTLE = 4.5; // km/s
+        const FOCAL_DEPTH = 10; // km
+        
+        let showReducedVelocity = false;
+        let currentWaveType = 'both';
+        let chart;
+        
+        // Calculate travel times
+        function calculateTravelTimes() {
+            const distances = [];
+            const pgTimes = [];
+            const pnTimes = [];
+            const sgTimes = [];
+            const snTimes = [];
+            
+            for (let d = 0; d <= 500; d += 5) {
+                distances.push(d);
+                
+                // Direct wave travel times
+                const directDistance = Math.sqrt(d * d + FOCAL_DEPTH * FOCAL_DEPTH);
+                pgTimes.push(directDistance / VP_CRUST);
+                sgTimes.push(directDistance / VS_CRUST);
+                
+                // Head wave travel times
+                // P-waves
+                const pCriticalAngle = Math.asin(VP_CRUST / VP_MANTLE);
+                const pDepthToMoho = MOHO_DEPTH - FOCAL_DEPTH;
+                const pHorizontalToMoho = pDepthToMoho * Math.tan(pCriticalAngle);
+                
+                if (d > 2 * pHorizontalToMoho) {
+                    const pTimeToMoho = pDepthToMoho / (VP_CRUST * Math.cos(pCriticalAngle));
+                    const pTimeAlongMoho = (d - 2 * pHorizontalToMoho) / VP_MANTLE;
+                    pnTimes.push(2 * pTimeToMoho + pTimeAlongMoho);
+                } else {
+                    pnTimes.push(null);
+                }
+                
+                // S-waves
+                const sCriticalAngle = Math.asin(VS_CRUST / VS_MANTLE);
+                const sHorizontalToMoho = pDepthToMoho * Math.tan(sCriticalAngle);
+                
+                if (d > 2 * sHorizontalToMoho) {
+                    const sTimeToMoho = pDepthToMoho / (VS_CRUST * Math.cos(sCriticalAngle));
+                    const sTimeAlongMoho = (d - 2 * sHorizontalToMoho) / VS_MANTLE;
+                    snTimes.push(2 * sTimeToMoho + sTimeAlongMoho);
+                } else {
+                    snTimes.push(null);
+                }
+            }
+            
+            return { distances, pgTimes, pnTimes, sgTimes, snTimes };
+        }
+        
+        // Find cross-over distances
+        function findCrossoverDistance(directTimes, headTimes, distances) {
+            for (let i = 0; i < distances.length; i++) {
+                if (headTimes[i] !== null && headTimes[i] < directTimes[i]) {
+                    if (i > 0 && directTimes[i-1] < headTimes[i-1]) {
+                        const ratio = (directTimes[i-1] - headTimes[i-1]) / 
+                                     ((directTimes[i-1] - headTimes[i-1]) - (directTimes[i] - headTimes[i]));
+                        return distances[i-1] + ratio * (distances[i] - distances[i-1]);
+                    }
+                    return distances[i];
+                }
+            }
+            return null;
+        }
+        
+        // Initialize or update chart
+        function updateChart() {
+            const { distances, pgTimes, pnTimes, sgTimes, snTimes } = calculateTravelTimes();
+            const pCrossover = findCrossoverDistance(pgTimes, pnTimes, distances);
+            const sCrossover = findCrossoverDistance(sgTimes, snTimes, distances);
+            
+            let datasets = [];
+            let annotations = {};
+            
+            // Prepare datasets based on current view
+            if (currentWaveType === 'both' || currentWaveType === 'p') {
+                datasets.push({
+                    label: 'Pg (Direct P-wave)',
+                    data: showReducedVelocity 
+                        ? pgTimes.map((t, i) => t - distances[i] / 8.0)
+                        : pgTimes,
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    tension: 0.1
+                });
+                
+                datasets.push({
+                    label: 'Pn (Head P-wave)',
+                    data: showReducedVelocity 
+                        ? pnTimes.map((t, i) => t !== null ? t - distances[i] / 8.0 : null)
+                        : pnTimes,
+                    borderColor: '#c0392b',
+                    backgroundColor: 'rgba(192, 57, 43, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    tension: 0.1
+                });
+                
+                if (pCrossover) {
+                    annotations.pCrossover = {
+                        type: 'line',
+                        xMin: pCrossover,
+                        xMax: pCrossover,
+                        borderColor: '#ff8c00',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        label: {
+                            content: `P-crossover: ${pCrossover.toFixed(0)} km`,
+                            enabled: true,
+                            position: 'end',
+                            backgroundColor: '#fff3cd',
+                            color: '#ff8c00',
+                            font: { weight: 'bold' }
+                        }
+                    };
+                }
+            }
+            
+            if (currentWaveType === 'both' || currentWaveType === 's') {
+                datasets.push({
+                    label: 'Sg (Direct S-wave)',
+                    data: showReducedVelocity 
+                        ? sgTimes.map((t, i) => t - distances[i] / 8.0)
+                        : sgTimes,
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderWidth: 3,
+                    borderDash: [5, 3],
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    tension: 0.1
+                });
+                
+                datasets.push({
+                    label: 'Sn (Head S-wave)',
+                    data: showReducedVelocity 
+                        ? snTimes.map((t, i) => t !== null ? t - distances[i] / 8.0 : null)
+                        : snTimes,
+                    borderColor: '#2980b9',
+                    backgroundColor: 'rgba(41, 128, 185, 0.1)',
+                    borderWidth: 3,
+                    borderDash: [5, 3],
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    tension: 0.1
+                });
+                
+                if (sCrossover) {
+                    annotations.sCrossover = {
+                        type: 'line',
+                        xMin: sCrossover,
+                        xMax: sCrossover,
+                        borderColor: '#8b008b',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        label: {
+                            content: `S-crossover: ${sCrossover.toFixed(0)} km`,
+                            enabled: true,
+                            position: 'end',
+                            backgroundColor: '#f3e5ff',
+                            color: '#8b008b',
+                            font: { weight: 'bold' }
+                        }
+                    };
+                }
+            }
+            
+            const chartData = {
+                labels: distances,
+                datasets: datasets
+            };
+            
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: showReducedVelocity 
+                            ? 'Travel Time vs Distance (Reduced Velocity: T - D/8.0)'
+                            : 'Travel Time vs Distance',
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        color: '#333'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: { size: 14 },
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            title: function(context) {
+                                return `Distance: ${context[0].label} km`;
+                            },
+                            label: function(context) {
+                                if (context.parsed.y === null) return null;
+                                const time = showReducedVelocity 
+                                    ? context.parsed.y + parseFloat(context.label) / 8.0
+                                    : context.parsed.y;
+                                return `${context.dataset.label}: ${time.toFixed(1)} s`;
+                            }
+                        }
+                    },
+                    annotation: {
+                        annotations: annotations
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Distance (km)',
+                            color: '#333',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            borderColor: '#333'
+                        },
+                        ticks: { color: '#666' }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: showReducedVelocity 
+                                ? 'Reduced Travel Time (s)'
+                                : 'Travel Time (s)',
+                            color: '#333',
+                            font: { size: 14, weight: 'bold' }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            borderColor: '#333'
+                        },
+                        ticks: { color: '#666' }
+                    }
+                }
+            };
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            const ctx = document.getElementById('travelTimeChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: chartOptions,
+                plugins: [window['chartjs-plugin-annotation']]
+            });
+        }
+        
+        // Control functions
+        function showWaveType(type) {
+            currentWaveType = type;
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            updateChart();
+        }
+        
+        function toggleReducedVelocity() {
+            showReducedVelocity = !showReducedVelocity;
+            event.target.classList.toggle('active');
+            updateChart();
+        }
+        
+        // Initialize
+        updateChart();
+    </script>
+</body>
+</html>

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rayleigh Wave Creation and Propagation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .control-btn {
+            padding: 10px 20px;
+            background: #ffffff;
+            border: 2px solid #e0e0e0;
+            color: #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .control-btn:hover {
+            background: #f0f0f0;
+            border-color: #3498db;
+            transform: translateY(-2px);
+        }
+        .control-btn.active {
+            background: #3498db;
+            border-color: #3498db;
+            color: white;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider {
+            width: 150px;
+            -webkit-appearance: none;
+            height: 5px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+        }
+        .main-visualization {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .wave-canvas {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            display: block;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+        }
+        .diagram-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .diagram-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .diagram-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .info-card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        .info-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+        .highlight {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .formula {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            text-align: center;
+            margin: 10px 0;
+            border: 1px solid #e0e0e0;
+        }
+        .motion-diagram {
+            width: 100%;
+            height: 200px;
+        }
+        .creation-steps {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #3498db;
+        }
+        .characteristics-table {
+            width: 100%;
+            margin: 15px 0;
+            border-collapse: collapse;
+        }
+        .characteristics-table th, .characteristics-table td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #e0e0e0;
+        }
+        .characteristics-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        @keyframes ellipticalMotion {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(10px, -10px); }
+            50% { transform: translate(0, -20px); }
+            75% { transform: translate(-10px, -10px); }
+            100% { transform: translate(0, 0); }
+        }
+        .particle-motion {
+            animation: ellipticalMotion 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rayleigh Wave Creation and Propagation</h1>
+        <p class="subtitle">Understanding the formation and characteristics of Rayleigh surface waves - the rolling motion of the Earth</p>
+        
+        <div class="controls">
+            <button class="control-btn active" onclick="toggleAnimation()">Pause/Play</button>
+            <button class="control-btn" onclick="changeView('surface')">Surface View</button>
+            <button class="control-btn" onclick="changeView('depth')">Depth Profile</button>
+            <button class="control-btn" onclick="changeView('3d')">3D Perspective</button>
+            <div class="control-group">
+                <label>Wave Speed:</label>
+                <input type="range" id="speedSlider" class="slider" min="0.5" max="2" step="0.1" value="1">
+            </div>
+        </div>
+
+        <div class="main-visualization">
+            <canvas id="rayleighCanvas" class="wave-canvas" width="1000" height="400"></canvas>
+        </div>
+
+        <div class="diagram-grid">
+            <div class="diagram-container">
+                <div class="diagram-title">Particle Motion Pattern</div>
+                <svg class="motion-diagram" viewBox="0 0 400 200">
+                    <!-- Ground surface -->
+                    <line x1="0" y1="100" x2="400" y2="100" stroke="#333" stroke-width="2"/>
+                    <text x="10" y="95" font-size="12" fill="#666">Surface</text>
+                    
+                    <!-- Depth scale -->
+                    <line x1="50" y1="100" x2="50" y2="200" stroke="#666" stroke-width="1"/>
+                    <text x="10" y="130" font-size="10" fill="#666">0.2λ</text>
+                    <text x="10" y="160" font-size="10" fill="#666">0.4λ</text>
+                    <text x="10" y="190" font-size="10" fill="#666">0.6λ</text>
+                    
+                    <!-- Elliptical motion paths at different depths -->
+                    <g transform="translate(150, 100)">
+                        <!-- Surface particle -->
+                        <ellipse cx="0" cy="0" rx="40" ry="30" fill="none" stroke="#e74c3c" stroke-width="2"/>
+                        <circle cx="0" cy="0" r="5" fill="#e74c3c" class="particle-motion"/>
+                        <text x="50" y="5" font-size="12" fill="#e74c3c">Surface</text>
+                    </g>
+                    
+                    <g transform="translate(150, 130)">
+                        <!-- Shallow particle -->
+                        <ellipse cx="0" cy="0" rx="30" ry="20" fill="none" stroke="#f39c12" stroke-width="2"/>
+                        <circle cx="0" cy="0" r="4" fill="#f39c12" class="particle-motion" style="animation-delay: 0.2s"/>
+                        <text x="40" y="5" font-size="12" fill="#f39c12">Shallow</text>
+                    </g>
+                    
+                    <g transform="translate(150, 160)">
+                        <!-- Deep particle -->
+                        <ellipse cx="0" cy="0" rx="20" ry="10" fill="none" stroke="#3498db" stroke-width="2"/>
+                        <circle cx="0" cy="0" r="3" fill="#3498db" class="particle-motion" style="animation-delay: 0.4s"/>
+                        <text x="30" y="5" font-size="12" fill="#3498db">Deep</text>
+                    </g>
+                    
+                    <!-- Wave propagation direction -->
+                    <path d="M 250 50 L 350 50" fill="none" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <text x="270" y="40" font-size="14" fill="#333">Wave Direction</text>
+                    
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+            
+            <div class="diagram-container">
+                <div class="diagram-title">Wave Creation Process</div>
+                <svg class="motion-diagram" viewBox="0 0 400 200">
+                    <!-- Source -->
+                    <circle cx="50" cy="100" r="15" fill="#ff0000" opacity="0.8"/>
+                    <text x="30" y="80" font-size="12" fill="#333" font-weight="bold">Source</text>
+                    
+                    <!-- P-wave conversion -->
+                    <path d="M 65 100 L 150 100" fill="none" stroke="#e74c3c" stroke-width="3" stroke-dasharray="5,3"/>
+                    <text x="90" y="95" font-size="11" fill="#e74c3c">P-wave</text>
+                    
+                    <!-- S-wave conversion -->
+                    <path d="M 65 100 L 150 120" fill="none" stroke="#3498db" stroke-width="3" stroke-dasharray="5,3"/>
+                    <text x="90" y="115" font-size="11" fill="#3498db">S-wave</text>
+                    
+                    <!-- Interaction zone -->
+                    <rect x="150" y="85" width="50" height="50" fill="#f39c12" opacity="0.3" rx="5"/>
+                    <text x="155" y="115" font-size="10" fill="#333">P+S</text>
+                    <text x="145" y="130" font-size="10" fill="#333">Interaction</text>
+                    
+                    <!-- Rayleigh wave -->
+                    <path d="M 200 100 Q 250 80, 300 100 T 400 100" fill="none" stroke="#27ae60" stroke-width="4"/>
+                    <text x="250" y="95" font-size="12" fill="#27ae60" font-weight="bold">Rayleigh Wave</text>
+                    
+                    <!-- Surface line -->
+                    <line x1="0" y1="100" x2="400" y2="100" stroke="#666" stroke-width="1" stroke-dasharray="2,2"/>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-card">
+                <h3>What are Rayleigh Waves?</h3>
+                <p>Rayleigh waves are surface seismic waves that produce an <span class="highlight">elliptical rolling motion</span> similar to ocean waves. Key characteristics:</p>
+                <table class="characteristics-table">
+                    <tr>
+                        <th>Property</th>
+                        <th>Value</th>
+                    </tr>
+                    <tr>
+                        <td>Velocity</td>
+                        <td>~0.9 × Vs (shear velocity)</td>
+                    </tr>
+                    <tr>
+                        <td>Typical Speed</td>
+                        <td>2-4 km/s</td>
+                    </tr>
+                    <tr>
+                        <td>Frequency</td>
+                        <td>0.02-0.5 Hz</td>
+                    </tr>
+                    <tr>
+                        <td>Penetration Depth</td>
+                        <td>~1 wavelength</td>
+                    </tr>
+                    <tr>
+                        <td>Dispersion</td>
+                        <td>Yes (velocity varies with frequency)</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="info-card">
+                <h3>Creation Mechanism</h3>
+                <p>Rayleigh waves form through the interaction of P and SV waves at the free surface:</p>
+                <div class="creation-steps">
+                    <strong>Step 1:</strong> Seismic source generates body waves<br>
+                    <strong>Step 2:</strong> P and SV waves reach the surface<br>
+                    <strong>Step 3:</strong> Constructive interference at critical angles<br>
+                    <strong>Step 4:</strong> Energy trapped near surface<br>
+                    <strong>Step 5:</strong> Elliptical particle motion established
+                </div>
+                <div class="formula">
+                    Rayleigh equation: (2-c²/β²)² = 4√(1-c²/α²)√(1-c²/β²)
+                </div>
+                <p style="font-size: 13px;">Where c = Rayleigh velocity, α = P-velocity, β = S-velocity</p>
+            </div>
+            
+            <div class="info-card">
+                <h3>Particle Motion & Amplitude</h3>
+                <p>The characteristic retrograde elliptical motion varies with depth:</p>
+                <ul style="font-size: 14px;">
+                    <li><strong>At surface:</strong> Maximum amplitude, retrograde ellipse</li>
+                    <li><strong>At 0.2λ depth:</strong> Motion reverses to prograde</li>
+                    <li><strong>Below 1λ:</strong> Amplitude negligible</li>
+                </ul>
+                <div class="formula">
+                    Amplitude ∝ exp(-2πz/λ)
+                </div>
+                <p style="margin-top: 15px;"><strong>Ground motion components:</strong></p>
+                <ul style="font-size: 14px;">
+                    <li>Vertical: ~1.5× horizontal amplitude</li>
+                    <li>Horizontal: In direction of propagation</li>
+                    <li>Phase shift: 90° between components</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('rayleighCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let animationId;
+        let isAnimating = true;
+        let time = 0;
+        let waveSpeed = 1;
+        let currentView = 'surface';
+        
+        // Wave parameters
+        const wavelength = 200;
+        const amplitude = 30;
+        const numParticles = 50;
+        const numDepthLayers = 10;
+        
+        // Particle grid
+        const particles = [];
+        
+        // Initialize particles
+        function initParticles() {
+            particles.length = 0;
+            
+            if (currentView === 'surface') {
+                // Surface view - single layer
+                for (let i = 0; i < numParticles; i++) {
+                    particles.push({
+                        baseX: i * (canvas.width / numParticles),
+                        baseY: canvas.height / 2,
+                        depth: 0,
+                        color: '#e74c3c'
+                    });
+                }
+            } else if (currentView === 'depth') {
+                // Depth profile view
+                for (let d = 0; d < numDepthLayers; d++) {
+                    for (let i = 0; i < numParticles; i++) {
+                        const depth = d / numDepthLayers;
+                        particles.push({
+                            baseX: i * (canvas.width / numParticles),
+                            baseY: 100 + d * 30,
+                            depth: depth,
+                            color: `hsl(${200 + depth * 160}, 70%, 50%)`
+                        });
+                    }
+                }
+            } else if (currentView === '3d') {
+                // 3D perspective view
+                for (let d = 0; d < numDepthLayers; d++) {
+                    for (let i = 0; i < numParticles; i++) {
+                        const depth = d / numDepthLayers;
+                        particles.push({
+                            baseX: i * (canvas.width / numParticles) + d * 10,
+                            baseY: 150 + d * 20,
+                            depth: depth,
+                            color: `hsla(${200 + depth * 160}, 70%, 50%, ${1 - depth * 0.5})`
+                        });
+                    }
+                }
+            }
+        }
+        
+        // Calculate Rayleigh wave displacement
+        function getRayleighDisplacement(x, depth, t) {
+            const k = 2 * Math.PI / wavelength;
+            const phase = k * x - k * waveSpeed * 50 * t;
+            
+            // Amplitude decreases exponentially with depth
+            const depthFactor = Math.exp(-2 * Math.PI * depth);
+            
+            // Elliptical motion components
+            const horizontal = amplitude * depthFactor * Math.sin(phase);
+            const vertical = amplitude * 1.5 * depthFactor * Math.cos(phase);
+            
+            // At certain depth, motion becomes prograde
+            const motionDirection = depth < 0.2 ? 1 : -1;
+            
+            return {
+                x: horizontal * motionDirection,
+                y: vertical
+            };
+        }
+        
+        // Draw ground surface
+        function drawGround() {
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 2;
+            
+            if (currentView === 'surface') {
+                // Draw deformed surface
+                ctx.beginPath();
+                for (let x = 0; x <= canvas.width; x += 5) {
+                    const disp = getRayleighDisplacement(x, 0, time);
+                    const y = canvas.height / 2 + disp.y;
+                    if (x === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            } else {
+                // Draw reference lines for depth views
+                ctx.setLineDash([5, 5]);
+                for (let d = 0; d < numDepthLayers; d++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, 100 + d * 30);
+                    ctx.lineTo(canvas.width, 100 + d * 30);
+                    ctx.strokeStyle = `rgba(0, 0, 0, ${0.2 - d * 0.015})`;
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]);
+            }
+        }
+        
+        // Draw particles
+        function drawParticles() {
+            particles.forEach(particle => {
+                const disp = getRayleighDisplacement(particle.baseX, particle.depth, time);
+                
+                const x = particle.baseX + disp.x;
+                const y = particle.baseY + disp.y;
+                
+                // Draw particle
+                ctx.beginPath();
+                ctx.arc(x, y, 4 - particle.depth * 3, 0, 2 * Math.PI);
+                ctx.fillStyle = particle.color;
+                ctx.fill();
+                
+                // Draw motion trail for surface particles
+                if (currentView === 'surface' && particle.depth === 0) {
+                    ctx.strokeStyle = particle.color + '40';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    for (let t = 0; t < 2 * Math.PI; t += 0.1) {
+                        const trailDisp = getRayleighDisplacement(particle.baseX, 0, time - t / 5);
+                        const tx = particle.baseX + trailDisp.x;
+                        const ty = particle.baseY + trailDisp.y;
+                        if (t === 0) {
+                            ctx.moveTo(tx, ty);
+                        } else {
+                            ctx.lineTo(tx, ty);
+                        }
+                    }
+                    ctx.stroke();
+                }
+            });
+        }
+        
+        // Draw labels and info
+        function drawLabels() {
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Arial';
+            
+            if (currentView === 'surface') {
+                ctx.fillText('Surface View - Retrograde Elliptical Motion', 10, 30);
+                ctx.fillText('Wave propagation →', canvas.width - 150, 30);
+            } else if (currentView === 'depth') {
+                ctx.fillText('Depth Profile - Amplitude Decay', 10, 30);
+                ctx.fillText('Depth →', 10, 90);
+            } else if (currentView === '3d') {
+                ctx.fillText('3D Perspective View', 10, 30);
+            }
+            
+            // Draw wavelength indicator
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(100, canvas.height - 30);
+            ctx.lineTo(100 + wavelength, canvas.height - 30);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillText('λ = ' + wavelength + ' units', 100 + wavelength/2 - 30, canvas.height - 35);
+        }
+        
+        // Animation loop
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw background
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            drawGround();
+            drawParticles();
+            drawLabels();
+            
+            if (isAnimating) {
+                time += 0.02 * waveSpeed;
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        // Control functions
+        function toggleAnimation() {
+            isAnimating = !isAnimating;
+            event.target.classList.toggle('active');
+            if (isAnimating) {
+                animate();
+            }
+        }
+        
+        function changeView(view) {
+            currentView = view;
+            
+            // Update button states
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                if (btn.textContent.includes('View')) {
+                    btn.classList.remove('active');
+                }
+            });
+            event.target.classList.add('active');
+            
+            initParticles();
+            if (!isAnimating) {
+                animate();
+            }
+        }
+        
+        // Speed control
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            waveSpeed = parseFloat(e.target.value);
+        });
+        
+        // Initialize
+        initParticles();
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Seismogram Viewer</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #2c3e50; }
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .controls-panel {
+            flex: 1;
+            min-width: 300px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            align-self: flex-start;
+        }
+        .viewer-panel {
+            flex: 3;
+            min-width: 600px;
+        }
+        #chart-container {
+            width: 100%;
+            cursor: crosshair;
+        }
+        .control-group { margin-bottom: 25px; }
+        .control-group legend {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+        }
+        select, button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+        }
+        .results-box {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .results-box h3 { margin-top: 0; }
+        .results-box p { margin: 5px 0; font-size: 0.95em; }
+        .results-box span { font-weight: bold; color: #2980b9; }
+        .description {
+            font-style: italic;
+            color: #7f8c8d;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Interactive Seismogram Viewer 📈</h1>
+    <div class="main-container">
+        <div class="controls-panel">
+            <div class="control-group">
+                <legend>1. Load Seismogram</legend>
+                <select id="seismogram-select"></select>
+            </div>
+            <div class="control-group">
+                <legend>2. Phase Picker Tool</legend>
+                <div id="phase-picker-radios"></div>
+            </div>
+             <div class="control-group">
+                <legend>3. Display Options</legend>
+                <div id="component-radios"></div>
+                <br>
+                <label><input type="checkbox" id="tt-curve-toggle"> Overlay Theoretical Travel-Times</label>
+            </div>
+            <div class="control-group">
+                <legend>4. Results</legend>
+                <div class="results-box" id="results-box">
+                    <p>S-P Time: <span id="sp-time">...</span></p>
+                    <p>Epicentral Distance: <span id="distance">~ ... km</span></p>
+                    <p>pP-P Time: <span id="pp-time">...</span></p>
+                    <p>Source Depth: <span id="depth">~ ... km</span></p>
+                    <div class="description" id="event-description"></div>
+                </div>
+            </div>
+        </div>
+        <div class="viewer-panel">
+            <div id="chart-container">
+                <canvas id="seismogram-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- 1. SIMULATED DATA GENERATION ---
+
+function createWavePacket(length, arrivalTime, freq, amplitude, duration = 0.05) {
+    const packet = new Array(length).fill(0);
+    const packetLength = Math.floor(length * duration);
+    for (let i = 0; i < packetLength; i++) {
+        if (arrivalTime + i < length) {
+            const t = i - packetLength / 2;
+            const envelope = Math.exp(-((t / (packetLength / 4)) ** 2));
+            packet[arrivalTime + i] = Math.sin(i * freq) * amplitude * envelope;
+        }
+    }
+    return packet;
+}
+
+// --- IMPROVEMENT: Added a coda generation for more realistic local events.
+function generateWaveform(length, phases, hasCoda = false) {
+    let waveform = new Array(length).fill(0).map(() => (Math.random() - 0.5) * 0.05); // Base noise
+    let lastArrivalTime = 0;
+    for (const phase of phases) {
+        const packet = createWavePacket(length, phase.time, phase.freq, phase.amp, phase.duration);
+        waveform = waveform.map((val, i) => val + packet[i]);
+        if (phase.time > lastArrivalTime) lastArrivalTime = phase.time;
+    }
+    // Add a decaying coda for local events
+    if (hasCoda && lastArrivalTime > 0) {
+        for (let i = lastArrivalTime; i < length; i++) {
+            const decay = Math.exp(-(i - lastArrivalTime) / 80);
+            waveform[i] += (Math.random() - 0.5) * 0.8 * decay;
+        }
+    }
+    return waveform;
+}
+
+const SEISMOGRAM_LIBRARY = {
+    local_shallow: {
+        name: "Local Shallow Event (25 km)",
+        // --- IMPROVEMENT: Added a descriptive guide for students.
+        description: "<strong>Key Features:</strong> Short S-P time. High-frequency body waves (P & S). Large, long-duration surface waves (Lg/Rayleigh) that are the most prominent feature.",
+        metadata: { distance_deg: 0.22, depth: 10, duration: 200 },
+        arrivals: { P: 40, S: 70, Lg: 90, Rayleigh: 95 },
+        data: (len) => ({
+            // --- IMPROVEMENT: Adjusted frequencies and amplitudes for clarity. P is higher freq/smaller amp. Surface waves are huge.
+            Z: generateWaveform(len, [{time: 40, freq: 1.2, amp: 0.3}, {time: 70, freq: 0.6, amp: 0.5}, {time: 95, freq: 0.2, amp: 1.5, duration: 0.3}], true),
+            N: generateWaveform(len, [{time: 40, freq: 1.2, amp: 0.1}, {time: 70, freq: 0.6, amp: 1.0}, {time: 90, freq: 0.2, amp: 1.2, duration: 0.4}], true),
+            E: generateWaveform(len, [{time: 40, freq: 1.2, amp: 0.1}, {time: 70, freq: 0.6, amp: 0.9}, {time: 90, freq: 0.2, amp: 1.1, duration: 0.4}], true)
+        })
+    },
+    teleseismic_deep: {
+        name: "Teleseismic Deep Event (80°, 400 km)",
+        description: "<strong>Key Features:</strong> Long travel times. Clear, distinct body wave arrivals (P, S, pP). P-wave is often strongest on the Z component. Very weak or absent surface waves.",
+        metadata: { distance_deg: 80, depth: 400, duration: 1200 },
+        arrivals: { P: 120, S: 220, pP: 215, sP: 245, ScS: 310 },
+        data: (len) => ({
+             // --- IMPROVEMENT: Emphasized P on Z and S on Horizontals. Kept it clean with no coda.
+            Z: generateWaveform(len, [{time: 120, freq: 0.5, amp: 1.0}, {time: 215, freq: 0.5, amp: 0.7}, {time: 245, freq: 0.4, amp: 0.6}, {time: 220, freq: 0.2, amp: 0.1}]),
+            N: generateWaveform(len, [{time: 120, freq: 0.5, amp: 0.1}, {time: 220, freq: 0.2, amp: 1.2}, {time: 310, freq: 0.2, amp: 0.6}]),
+            E: generateWaveform(len, [{time: 120, freq: 0.5, amp: 0.1}, {time: 220, freq: 0.2, amp: 1.1}, {time: 310, freq: 0.2, amp: 0.5}])
+        })
+    },
+    explosion: {
+        name: "Explosion (50 km)",
+        description: "<strong>Key Features:</strong> Very strong, compressional P-wave (outward motion). Very weak S-wave (shear motion is minimal). Surface waves may be present.",
+        metadata: { distance_deg: 0.45, depth: 0, duration: 200 },
+        arrivals: { P: 50, S: 90, Rayleigh: 100 },
+        data: (len) => ({
+            Z: generateWaveform(len, [{time: 50, freq: 0.9, amp: 1.0}, {time: 90, freq: 0.6, amp: 0.05}, {time: 100, freq: 0.3, amp: 0.4}]),
+            N: generateWaveform(len, [{time: 50, freq: 0.9, amp: 0.1}, {time: 90, freq: 0.6, amp: 0.02}]),
+            E: generateWaveform(len, [{time: 50, freq: 0.9, amp: 0.1}, {time: 90, freq: 0.6, amp: 0.02}])
+        })
+    }
+};
+
+// --- 2. CHART & UI SETUP ---
+const ctx = document.getElementById('seismogram-chart').getContext('2d');
+let seismogramChart;
+let userPicks = {};
+let currentSeismogramKey;
+
+const phasePickerRadios = document.getElementById('phase-picker-radios');
+const componentRadios = document.getElementById('component-radios');
+const seismogramSelect = document.getElementById('seismogram-select');
+const ttCurveToggle = document.getElementById('tt-curve-toggle');
+const eventDescriptionEl = document.getElementById('event-description');
+
+const PHASES = {
+    P: { color: 'blue', desc: 'P-wave: First arrival, compressional motion, strongest on Vertical.' },
+    S: { color: 'green', desc: 'S-wave: Second arrival, shear motion, strongest on Horizontals.' },
+    pP: { color: 'cyan', desc: 'pP: Depth phase, P-wave reflected from the surface near the source.' },
+    sP: { color: 'turquoise', desc: 'sP: Depth phase, S-wave converted to P at the surface near the source.' },
+    Lg: { color: 'orange', desc: 'Lg: Surface wave trapped in the crust, shear motion.' },
+    Rayleigh: { color: 'red', desc: 'Rayleigh: Surface wave, retrograde elliptical motion.' },
+    ScS: { color: 'purple', desc: 'ScS: S-wave reflected from the Core-Mantle Boundary.' }
+};
+
+function setupControls() {
+    Object.keys(SEISMOGRAM_LIBRARY).forEach(key => {
+        seismogramSelect.innerHTML += `<option value="${key}">${SEISMOGRAM_LIBRARY[key].name}</option>`;
+    });
+
+    Object.keys(PHASES).forEach(phase => {
+        phasePickerRadios.innerHTML += `<label><input type="radio" name="phase-picker" value="${phase}"> ${phase}</label><br>`;
+    });
+    document.querySelector('input[name="phase-picker"]').checked = true;
+
+    ['Z', 'N', 'E'].forEach(comp => {
+        componentRadios.innerHTML += `<label><input type="radio" name="component" value="${comp}"> ${comp}</label><br>`;
+    });
+    document.querySelector('input[name="component"]').checked = true;
+}
+
+function initializeChart() {
+    seismogramChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: {
+            responsive: true,
+            animation: false,
+            elements: { point: { radius: 0 } },
+            scales: { x: { title: { display: true, text: 'Time (s)' } } },
+            plugins: {
+                zoom: {
+                    pan: { enabled: true, mode: 'x' },
+                    zoom: { wheel: { enabled: true }, mode: 'x' }
+                },
+                legend: { display: false },
+                annotation: { annotations: {} },
+                tooltip: { enabled: false }
+            },
+            onClick: (e) => handleChartClick(e)
+        }
+    });
+}
+
+// --- 3. CORE FUNCTIONALITY ---
+function loadSeismogram(key) {
+    currentSeismogramKey = key;
+    const seismogram = SEISMOGRAM_LIBRARY[key];
+    const duration = seismogram.metadata.duration;
+    const data = seismogram.data(duration);
+
+    const timeLabels = Array.from({ length: duration }, (_, i) => i);
+
+    seismogramChart.data.labels = timeLabels;
+    seismogramChart.data.datasets = [
+        { label: 'Z', data: data.Z, borderColor: 'black', borderWidth: 1, hidden: false },
+        { label: 'N', data: data.N, borderColor: 'black', borderWidth: 1, hidden: true },
+        { label: 'E', data: data.E, borderColor: 'black', borderWidth: 1, hidden: true }
+    ];
+    
+    eventDescriptionEl.innerHTML = seismogram.description;
+    resetPicksAndCalcs();
+    seismogramChart.update();
+    seismogramChart.resetZoom();
+}
+
+function handleChartClick(e) {
+    const activePhase = document.querySelector('input[name="phase-picker"]:checked').value;
+    if (!activePhase) return;
+
+    const canvasPosition = Chart.helpers.getRelativePosition(e, seismogramChart);
+    const dataX = seismogramChart.scales.x.getValueForPixel(canvasPosition.x);
+    const time = Math.round(dataX);
+    
+    userPicks[activePhase] = time;
+    drawPicks();
+    calculateParameters();
+    alert(PHASES[activePhase].desc);
+}
+
+function drawPicks() {
+    const annotations = {};
+    for (const phase in userPicks) {
+        annotations[phase] = {
+            type: 'line',
+            xMin: userPicks[phase],
+            xMax: userPicks[phase],
+            borderColor: PHASES[phase].color,
+            borderWidth: 2,
+            label: {
+                content: phase,
+                enabled: true,
+                position: 'start',
+                backgroundColor: PHASES[phase].color
+            }
+        };
+    }
+    if (ttCurveToggle.checked) {
+        Object.assign(annotations, getTravelTimeAnnotations());
+    }
+    seismogramChart.options.plugins.annotation.annotations = annotations;
+    seismogramChart.update();
+}
+
+function calculateParameters() {
+    const spTimeEl = document.getElementById('sp-time');
+    const distanceEl = document.getElementById('distance');
+    const ppTimeEl = document.getElementById('pp-time');
+    const depthEl = document.getElementById('depth');
+
+    if (userPicks.P && userPicks.S) {
+        const spTime = userPicks.S - userPicks.P;
+        spTimeEl.textContent = `${spTime.toFixed(1)} s`;
+        distanceEl.textContent = `~ ${(spTime * 8).toFixed(0)} km`;
+    }
+    if (userPicks.P && userPicks.pP) {
+        const ppTime = userPicks.pP - userPicks.P;
+        ppTimeEl.textContent = `${ppTime.toFixed(1)} s`;
+        depthEl.textContent = `~ ${(ppTime * 7.5).toFixed(0)} km`; 
+    }
+}
+
+function resetPicksAndCalcs() {
+    userPicks = {};
+    drawPicks();
+    document.getElementById('sp-time').textContent = '...';
+    document.getElementById('distance').textContent = '~ ... km';
+    document.getElementById('pp-time').textContent = '...';
+    document.getElementById('depth').textContent = '~ ... km';
+}
+
+function getTravelTimeAnnotations() {
+    const annotations = {};
+    const arrivals = SEISMOGRAM_LIBRARY[currentSeismogramKey].arrivals;
+    for (const phase in arrivals) {
+        if (PHASES[phase]) {
+            annotations[`tt_${phase}`] = {
+                type: 'point',
+                xValue: arrivals[phase],
+                yValue: Math.max(...seismogramChart.data.datasets[0].data) * 1.1, // Place just above max amplitude
+                backgroundColor: PHASES[phase].color,
+                radius: 5,
+                label: {
+                    content: phase,
+                    enabled: true,
+                    position: 'top',
+                    yAdjust: -10
+                }
+            };
+        }
+    }
+    return annotations;
+}
+
+// --- 4. EVENT LISTENERS ---
+seismogramSelect.addEventListener('change', (e) => loadSeismogram(e.target.value));
+
+componentRadios.addEventListener('change', (e) => {
+    const selectedComp = e.target.value;
+    seismogramChart.data.datasets.forEach(ds => {
+        ds.hidden = (ds.label !== selectedComp);
+    });
+    seismogramChart.update();
+});
+
+ttCurveToggle.addEventListener('change', () => {
+    drawPicks();
+});
+
+// --- 5. INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', () => {
+    setupControls();
+    initializeChart();
+    loadSeismogram(seismogramSelect.value);
+});
+</script>
+
+</body>
+</html>

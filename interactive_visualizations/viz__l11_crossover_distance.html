@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seismic Cross-over Distance Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-label {
+            font-weight: 600;
+            color: #555;
+        }
+        .slider {
+            width: 200px;
+            -webkit-appearance: none;
+            height: 5px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+        }
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+        }
+        .value-display {
+            background: #e8f4f8;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+        }
+        .chart-container {
+            position: relative;
+            height: 600px;
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .info-card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        .info-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .wave-indicator {
+            width: 40px;
+            height: 4px;
+            border-radius: 2px;
+            display: inline-block;
+        }
+        .pg-color { background: #e74c3c; }
+        .pn-color { background: #3498db; }
+        .formula {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            text-align: center;
+            margin: 10px 0;
+            border: 1px solid #e0e0e0;
+        }
+        .highlight {
+            color: #3498db;
+            font-weight: bold;
+        }
+        .crossover-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .diagram-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .earth-diagram {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Seismic Cross-over Distance</h1>
+        <p class="subtitle">Understanding how earthquake depth affects the cross-over distance where Pn waves become first arrivals, surpassing direct Pg waves</p>
+        
+        <div class="controls">
+            <div class="control-group">
+                <span class="control-label">Focal Depth (km):</span>
+                <input type="range" id="depthSlider" class="slider" min="0" max="35" step="1" value="5">
+                <span class="value-display" id="depthValue">5 km</span>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Moho Depth:</span>
+                <span class="value-display" style="background: #e8f8e8;">35 km</span>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Cross-over Distance:</span>
+                <span class="value-display" id="xcoValue" style="background: #fff3cd;">162 km</span>
+            </div>
+        </div>
+
+        <div class="diagram-container">
+            <svg class="earth-diagram" viewBox="0 0 600 300">
+                <!-- Earth layers -->
+                <rect x="0" y="100" width="600" height="200" fill="#f5e6d3" stroke="none"/>
+                <rect x="0" y="135" width="600" height="165" fill="#d4a574" stroke="none"/>
+                
+                <!-- Moho discontinuity -->
+                <line x1="0" y1="135" x2="600" y2="135" stroke="#333" stroke-width="2" stroke-dasharray="5,5"/>
+                <text x="10" y="130" font-size="12" fill="#333">Moho (35 km)</text>
+                
+                <!-- Surface -->
+                <line x1="0" y1="100" x2="600" y2="100" stroke="#333" stroke-width="2"/>
+                <text x="10" y="95" font-size="12" fill="#333">Surface</text>
+                
+                <!-- Earthquake source -->
+                <circle id="eqSource" cx="50" cy="105" r="8" fill="#ff0000" stroke="#8b0000" stroke-width="2"/>
+                <text x="30" y="90" font-size="12" fill="#333">Source</text>
+                
+                <!-- Pg ray path -->
+                <path id="pgPath" d="M 50 105 Q 200 80 350 100" fill="none" stroke="#e74c3c" stroke-width="3"/>
+                <text x="180" y="75" font-size="12" fill="#e74c3c" font-weight="bold">Pg (direct)</text>
+                
+                <!-- Pn ray path -->
+                <path id="pnPath" d="M 50 105 L 150 135 L 450 135 L 550 100" fill="none" stroke="#3498db" stroke-width="3"/>
+                <text x="280" y="150" font-size="12" fill="#3498db" font-weight="bold">Pn (refracted)</text>
+                
+                <!-- Cross-over point -->
+                <circle id="xcoPoint" cx="350" cy="100" r="6" fill="#ffd700" stroke="#ff8c00" stroke-width="2"/>
+                <text x="330" y="115" font-size="12" fill="#ff8c00" font-weight="bold">X<tspan dy="3" font-size="10">co</tspan></text>
+                
+                <!-- Distance scale -->
+                <line x1="50" y1="280" x2="550" y2="280" stroke="#333" stroke-width="1"/>
+                <text x="275" y="295" font-size="12" fill="#333" text-anchor="middle">Distance (km)</text>
+            </svg>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="travelTimeChart"></canvas>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-card">
+                <h3><span class="wave-indicator pg-color"></span>Pg Waves (Direct)</h3>
+                <p>Direct P-waves traveling through the crust. These are the first arrivals at short distances.</p>
+                <div class="formula">Travel time = Distance / Vp_crust</div>
+                <ul>
+                    <li>Velocity in crust: ~6.0 km/s</li>
+                    <li>Straight ray path from source to receiver</li>
+                    <li>Dominant at distances < cross-over distance</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <h3><span class="wave-indicator pn-color"></span>Pn Waves (Refracted)</h3>
+                <p>P-waves critically refracted along the Moho discontinuity. These become first arrivals beyond the cross-over distance.</p>
+                <div class="formula">Travel time = 2h/Vp_crust + (Distance - X₀)/Vp_mantle</div>
+                <ul>
+                    <li>Velocity in upper mantle: ~8.0 km/s</li>
+                    <li>Travels down to Moho, along it, then back up</li>
+                    <li>Faster at long distances due to higher mantle velocity</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <h3>Cross-over Distance Formula</h3>
+                <p>The cross-over distance depends on focal depth:</p>
+                <div class="formula">
+                    X<sub>co</sub> ≈ (3 to 5) × Z<sub>moho</sub>
+                </div>
+                <div class="crossover-info">
+                    <strong>Key Relationship:</strong><br>
+                    • Shallow focus (0-5 km): X<sub>co</sub> ≈ 5 × Z<sub>moho</sub><br>
+                    • Deep crustal focus (>20 km): X<sub>co</sub> ≈ 3 × Z<sub>moho</sub><br>
+                    • Current: <span id="currentRatio" class="highlight">4.6</span> × Z<sub>moho</sub>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const MOHO_DEPTH = 35; // km
+        const VP_CRUST = 6.0; // km/s
+        const VP_MANTLE = 8.0; // km/s
+        
+        // Chart setup
+        let chart;
+        const ctx = document.getElementById('travelTimeChart').getContext('2d');
+        
+        // Calculate travel times
+        function calculateTravelTimes(focalDepth) {
+            const distances = [];
+            const pgTimes = [];
+            const pnTimes = [];
+            
+            for (let d = 0; d <= 300; d += 5) {
+                distances.push(d);
+                
+                // Pg travel time (direct wave)
+                const pgDistance = Math.sqrt(d * d + focalDepth * focalDepth);
+                pgTimes.push(pgDistance / VP_CRUST);
+                
+                // Pn travel time (refracted wave)
+                // Time to reach Moho + time along Moho + time back to surface
+                const depthToMoho = MOHO_DEPTH - focalDepth;
+                const criticalAngle = Math.asin(VP_CRUST / VP_MANTLE);
+                const horizontalToMoho = depthToMoho / Math.tan(criticalAngle);
+                
+                if (d > 2 * horizontalToMoho) {
+                    const timeToMoho = depthToMoho / (VP_CRUST * Math.cos(criticalAngle));
+                    const timeAlongMoho = (d - 2 * horizontalToMoho) / VP_MANTLE;
+                    const totalPnTime = 2 * timeToMoho + timeAlongMoho;
+                    pnTimes.push(totalPnTime);
+                } else {
+                    pnTimes.push(null); // Pn doesn't exist at very short distances
+                }
+            }
+            
+            return { distances, pgTimes, pnTimes };
+        }
+        
+        // Find cross-over distance
+        function findCrossoverDistance(focalDepth) {
+            const { distances, pgTimes, pnTimes } = calculateTravelTimes(focalDepth);
+            
+            for (let i = 0; i < distances.length; i++) {
+                if (pnTimes[i] !== null && pnTimes[i] < pgTimes[i]) {
+                    // Interpolate to find exact cross-over
+                    if (i > 0 && pgTimes[i-1] < pnTimes[i-1]) {
+                        const ratio = (pgTimes[i-1] - pnTimes[i-1]) / 
+                                     ((pgTimes[i-1] - pnTimes[i-1]) - (pgTimes[i] - pnTimes[i]));
+                        return distances[i-1] + ratio * (distances[i] - distances[i-1]);
+                    }
+                    return distances[i];
+                }
+            }
+            return 0;
+        }
+        
+        // Initialize chart
+        function initChart(focalDepth) {
+            const { distances, pgTimes, pnTimes } = calculateTravelTimes(focalDepth);
+            const xco = findCrossoverDistance(focalDepth);
+            
+            const chartData = {
+                labels: distances,
+                datasets: [{
+                    label: 'Pg (Direct Wave)',
+                    data: pgTimes,
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    tension: 0.1
+                }, {
+                    label: 'Pn (Refracted Wave)',
+                    data: pnTimes,
+                    borderColor: '#3498db',
+                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    tension: 0.1
+                }]
+            };
+            
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Travel Time vs Distance',
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        color: '#333'
+                    },
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 14
+                            },
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1,
+                        padding: 12,
+                        callbacks: {
+                            title: function(context) {
+                                return `Distance: ${context[0].label} km`;
+                            },
+                            label: function(context) {
+                                if (context.parsed.y === null) return null;
+                                return `${context.dataset.label}: ${context.parsed.y.toFixed(1)} seconds`;
+                            },
+                            afterBody: function(context) {
+                                const distance = parseFloat(context[0].label);
+                                if (Math.abs(distance - xco) < 5) {
+                                    return '\n🎯 Near cross-over distance!';
+                                }
+                                return '';
+                            }
+                        }
+                    },
+                    annotation: {
+                        annotations: {
+                            crossoverLine: {
+                                type: 'line',
+                                xMin: xco,
+                                xMax: xco,
+                                borderColor: '#ff8c00',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                label: {
+                                    content: `Cross-over: ${xco.toFixed(0)} km`,
+                                    enabled: true,
+                                    position: 'end',
+                                    backgroundColor: '#fff3cd',
+                                    color: '#ff8c00',
+                                    font: {
+                                        weight: 'bold'
+                                    }
+                                }
+                            },
+                            firstArrivalRegion1: {
+                                type: 'box',
+                                xMin: 0,
+                                xMax: xco,
+                                backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                                borderWidth: 0,
+                                label: {
+                                    content: 'Pg First Arrival',
+                                    enabled: true,
+                                    position: 'center',
+                                    color: '#e74c3c',
+                                    font: {
+                                        size: 12
+                                    },
+                                    yAdjust: -100
+                                }
+                            },
+                            firstArrivalRegion2: {
+                                type: 'box',
+                                xMin: xco,
+                                xMax: 300,
+                                backgroundColor: 'rgba(52, 152, 219, 0.05)',
+                                borderWidth: 0,
+                                label: {
+                                    content: 'Pn First Arrival',
+                                    enabled: true,
+                                    position: 'center',
+                                    color: '#3498db',
+                                    font: {
+                                        size: 12
+                                    },
+                                    yAdjust: -100
+                                }
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Distance (km)',
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            borderColor: '#333'
+                        },
+                        ticks: {
+                            color: '#666'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Travel Time (seconds)',
+                            color: '#333',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            borderColor: '#333'
+                        },
+                        ticks: {
+                            color: '#666'
+                        }
+                    }
+                }
+            };
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: chartOptions,
+                plugins: [window['chartjs-plugin-annotation']]
+            });
+        }
+        
+        // Update functions
+        function updateVisualization(focalDepth) {
+            const xco = findCrossoverDistance(focalDepth);
+            const ratio = xco / MOHO_DEPTH;
+            
+            // Update display values
+            document.getElementById('depthValue').textContent = `${focalDepth} km`;
+            document.getElementById('xcoValue').textContent = `${xco.toFixed(0)} km`;
+            document.getElementById('currentRatio').textContent = ratio.toFixed(1);
+            
+            // Update SVG diagram
+            const eqSource = document.getElementById('eqSource');
+            const sourceY = 100 + (focalDepth / MOHO_DEPTH) * 35;
+            eqSource.setAttribute('cy', sourceY);
+            
+            // Update ray paths
+            const pgPath = document.getElementById('pgPath');
+            const pnPath = document.getElementById('pnPath');
+            const xcoPoint = document.getElementById('xcoPoint');
+            
+            const xcoX = 50 + (xco / 300) * 500;
+            pgPath.setAttribute('d', `M 50 ${sourceY} Q ${(50 + xcoX) / 2} 80 ${xcoX} 100`);
+            pnPath.setAttribute('d', `M 50 ${sourceY} L ${50 + (MOHO_DEPTH - focalDepth) * 2} 135 L ${xcoX + 100} 135 L ${xcoX + 200} 100`);
+            xcoPoint.setAttribute('cx', xcoX);
+            
+            // Update chart
+            initChart(focalDepth);
+        }
+        
+        // Event listeners
+        const depthSlider = document.getElementById('depthSlider');
+        depthSlider.addEventListener('input', (e) => {
+            updateVisualization(parseInt(e.target.value));
+        });
+        
+        // Initial render
+        updateVisualization(5);
+    </script>
+</body>
+</html>

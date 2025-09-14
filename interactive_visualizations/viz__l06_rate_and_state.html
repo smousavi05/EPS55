@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Rate-and-State Friction Tool</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+            background-color: #f4f7f9;
+            color: #333;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 2em;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: #fff;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5em;
+            margin-top: 0;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2em;
+            margin-bottom: 2em;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .slider-group label {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 0.5em;
+        }
+        .slider-group input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .indicator {
+            padding: 1em;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            margin-bottom: 1em;
+        }
+        .interpretation {
+            padding: 1em;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .plot-container {
+            margin-top: 2em;
+        }
+        .velocity-weakening {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .velocity-strengthening {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .velocity-neutral {
+            background-color: #f3e5f5;
+            color: #6a1b9a;
+        }
+        .toggle-container {
+            text-align: center;
+            margin-top: 2em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Rate-and-State Friction Explorer 🌋</h1>
+
+    <div class="controls">
+        <div class="slider-group">
+            <label for="sliderA">Parameter 'A' (Direct Effect): <span id="valA">0.010</span></label>
+            <input type="range" id="sliderA" min="0.001" max="0.020" step="0.001" value="0.010">
+        </div>
+        <div class="slider-group">
+            <label for="sliderB">Parameter 'B' (State Effect): <span id="valB">0.015</span></label>
+            <input type="range" id="sliderB" min="0.001" max="0.020" step="0.001" value="0.015">
+        </div>
+    </div>
+
+    <div id="behavior-indicator" class="indicator"></div>
+
+    <div class="interpretation">
+        <h2>Seismological Interpretation</h2>
+        <p id="interpretation-text"></p>
+    </div>
+
+    <div class="plot-container">
+        <h2>Friction vs. Velocity (Steady State)</h2>
+        <canvas id="friction-plot"></canvas>
+    </div>
+
+    <div class="toggle-container">
+        <label><input type="checkbox" id="theta-toggle"> Show State Variable (θ) Visualization (Advanced)</label>
+    </div>
+
+    <div id="theta-plot-container" class="plot-container" style="display: none;">
+        <h2>State Variable (θ) Evolution</h2>
+        <canvas id="theta-plot"></canvas>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Get references to all HTML elements ---
+    const sliderA = document.getElementById('sliderA');
+    const sliderB = document.getElementById('sliderB');
+    const valA_display = document.getElementById('valA');
+    const valB_display = document.getElementById('valB');
+    const indicator = document.getElementById('behavior-indicator');
+    const interpretationText = document.getElementById('interpretation-text');
+    const frictionCtx = document.getElementById('friction-plot').getContext('2d');
+    const thetaCtx = document.getElementById('theta-plot').getContext('2d');
+    const thetaToggle = document.getElementById('theta-toggle');
+    const thetaPlotContainer = document.getElementById('theta-plot-container');
+
+    // --- Define physical constants for the model ---
+    const mu_0 = 0.6;   // Reference coefficient of friction
+    const V_0 = 1e-6;   // Reference velocity (m/s)
+    const D_c = 1e-5;   // Critical slip distance (m)
+
+    // --- Initialize the friction-velocity plot ---
+    const frictionChart = new Chart(frictionCtx, {
+        type: 'line',
+        data: {
+            labels: [], // Velocities will go here
+            datasets: [{
+                label: 'Coefficient of Friction (μ)',
+                data: [], // Friction values will go here
+                borderColor: '#3498db',
+                borderWidth: 3,
+                tension: 0.1,
+                fill: false
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    type: 'logarithmic',
+                    title: { display: true, text: 'Sliding Velocity (V) [m/s]' }
+                },
+                y: {
+                    title: { display: true, text: 'Coefficient of Friction (μ)' },
+                    min: mu_0 - 0.01,
+                    max: mu_0 + 0.01
+                }
+            }
+        }
+    });
+    
+    // --- Initialize the state variable plot ---
+    const thetaChart = new Chart(thetaCtx, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Healing (Fault Locked)',
+                data: Array.from({length: 100}, (_, i) => ({x: i+1, y: D_c / V_0 * Math.log(1 + (i+1)/10)})),
+                borderColor: '#2ecc71',
+                borderWidth: 2,
+                pointRadius: 0
+            }, {
+                label: 'Evolution during Slip',
+                data: Array.from({length: 100}, (_, i) => ({x: i+1, y: (D_c/V_0) * Math.exp(-(i+1)/25) + D_c/V_0 * 0.2})),
+                borderColor: '#e74c3c',
+                borderWidth: 2,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            scales: {
+                x: { title: { display: true, text: 'Time (t) or Slip (δ)' } },
+                y: { title: { display: true, text: 'State Variable (θ) [s]' } }
+            }
+        }
+    });
+
+    // --- Main function to update everything ---
+    function updateVisualization() {
+        const A = parseFloat(sliderA.value);
+        const B = parseFloat(sliderB.value);
+        const AmB = A - B;
+
+        // Update slider value displays
+        valA_display.textContent = A.toFixed(3);
+        valB_display.textContent = B.toFixed(3);
+
+        // --- Update Indicator and Interpretation ---
+        indicator.classList.remove('velocity-weakening', 'velocity-strengthening', 'velocity-neutral');
+        if (AmB < 0) {
+            indicator.classList.add('velocity-weakening');
+            indicator.textContent = 'Velocity-Weakening (A - B < 0)';
+            interpretationText.innerHTML = 'This behavior is <strong>unstable</strong>. A fault in this regime resists sliding faster, causing stress to build up. When the fault finally slips, it does so rapidly, leading to <strong>stick-slip motion and earthquakes</strong>.';
+        } else if (AmB > 0) {
+            indicator.classList.add('velocity-strengthening');
+            indicator.textContent = 'Velocity-Strengthening (A - B > 0)';
+            interpretationText.innerHTML = 'This behavior is <strong>stable</strong>. The faster the fault slides, the stronger it becomes, preventing runaway slip. This promotes <strong>stable, continuous sliding (aseismic creep)</strong> without large earthquakes.';
+        } else {
+            indicator.classList.add('velocity-neutral');
+            indicator.textContent = 'Velocity-Neutral (A - B = 0)';
+            interpretationText.innerHTML = 'In this special case, friction is independent of the sliding rate. This leads to stable sliding.';
+        }
+
+        // --- Update Friction-Velocity Plot ---
+        const velocities = Array.from({length: 100}, (_, i) => 10**(-9 + i * 0.07)); // Log spaced velocities
+        const frictionData = velocities.map(V => mu_0 + AmB * Math.log(V / V_0));
+        
+        frictionChart.data.labels = velocities;
+        frictionChart.data.datasets[0].data = frictionData;
+        frictionChart.update();
+    }
+
+    // --- Event Listeners ---
+    sliderA.addEventListener('input', updateVisualization);
+    sliderB.addEventListener('input', updateVisualization);
+    thetaToggle.addEventListener('change', () => {
+        thetaPlotContainer.style.display = thetaToggle.checked ? 'block' : 'none';
+    });
+
+    // --- Initial call to set up the tool ---
+    updateVisualization();
+});
+</script>
+
+</body>
+</html>

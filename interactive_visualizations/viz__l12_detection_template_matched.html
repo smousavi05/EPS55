@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matched Filtering for Earthquake Detection</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .control-btn {
+            padding: 10px 20px;
+            background: #ffffff;
+            border: 2px solid #e0e0e0;
+            color: #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .control-btn:hover {
+            background: #f0f0f0;
+            border-color: #3498db;
+            transform: translateY(-2px);
+        }
+        .control-btn.active {
+            background: #3498db;
+            border-color: #3498db;
+            color: white;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider {
+            width: 150px;
+            -webkit-appearance: none;
+            height: 5px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+        }
+        .value-display {
+            background: #e8f4f8;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .process-flow {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .flow-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .flow-step {
+            flex: 1;
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 0 10px;
+            position: relative;
+        }
+        .flow-step h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        .flow-arrow {
+            position: absolute;
+            right: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            color: #3498db;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .info-card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        .info-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+        .highlight {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .formula {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            text-align: center;
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+        }
+        .detection-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+        .detection-positive {
+            background: #27ae60;
+            color: white;
+        }
+        .detection-negative {
+            background: #7f8c8d;
+            color: white;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .correlation-value {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .threshold-line {
+            position: absolute;
+            width: 100%;
+            border-top: 2px dashed #e74c3c;
+            color: #e74c3c;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .advantages-list {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #3498db;
+        }
+        .parameters-table {
+            width: 100%;
+            margin: 15px 0;
+            border-collapse: collapse;
+        }
+        .parameters-table th, .parameters-table td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #e0e0e0;
+        }
+        .parameters-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Matched Filtering for Earthquake Detection</h1>
+        <p class="subtitle">Interactive demonstration of template matching technique for detecting small earthquakes hidden in seismic noise</p>
+        
+        <div class="controls">
+            <button class="control-btn active" onclick="runDetection()">Run Detection</button>
+            <button class="control-btn" onclick="animateCorrelation()">Animate Process</button>
+            <button class="control-btn" onclick="resetData()">Reset Data</button>
+            <div class="control-group">
+                <label>Detection Threshold:</label>
+                <input type="range" id="thresholdSlider" class="slider" min="0.3" max="0.9" step="0.05" value="0.7">
+                <span class="value-display" id="thresholdValue">0.70</span>
+            </div>
+            <div class="control-group">
+                <label>Animation Speed:</label>
+                <input type="range" id="speedSlider" class="slider" min="1" max="10" step="1" value="5">
+            </div>
+        </div>
+
+        <div class="process-flow">
+            <h3 style="text-align: center; margin-bottom: 20px;">Matched Filtering Process</h3>
+            <div class="flow-diagram">
+                <div class="flow-step">
+                    <h4>1. Template Event</h4>
+                    <p>Known earthquake waveform</p>
+                    <span class="flow-arrow">→</span>
+                </div>
+                <div class="flow-step">
+                    <h4>2. Continuous Data</h4>
+                    <p>Seismic station recording</p>
+                    <span class="flow-arrow">→</span>
+                </div>
+                <div class="flow-step">
+                    <h4>3. Cross-Correlation</h4>
+                    <p>Slide template across data</p>
+                    <span class="flow-arrow">→</span>
+                </div>
+                <div class="flow-step">
+                    <h4>4. Detection</h4>
+                    <p>Peaks above threshold</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="templateChart"></canvas>
+            <div class="detection-indicator detection-negative" id="templateDetection">Template Event</div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="continuousChart"></canvas>
+            <div class="detection-indicator detection-negative" id="continuousDetection">No Detection</div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="correlationChart"></canvas>
+            <div class="correlation-value" id="maxCorrelation">Max Correlation: 0.00</div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-card">
+                <h3>How Matched Filtering Works</h3>
+                <p>Template matching uses cross-correlation to find similar waveforms in continuous data:</p>
+                <div class="formula">
+                    CC(t) = Σ[template(i) × data(t+i)] / √[Σtemplate²(i) × Σdata²(t+i)]
+                </div>
+                <ol style="font-size: 14px; padding-left: 20px;">
+                    <li>Select a <span class="highlight">template waveform</span> from a known earthquake</li>
+                    <li>Slide template across continuous seismic data</li>
+                    <li>Calculate <span class="highlight">normalized cross-correlation</span> at each position</li>
+                    <li>Identify peaks above <span class="highlight">detection threshold</span></li>
+                    <li>Peaks indicate similar earthquakes at those times</li>
+                </ol>
+                <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    <strong>Correlation Values:</strong><br>
+                    • Background noise: ~0.0-0.2<br>
+                    • Different event: ~0.3-0.5<br>
+                    • Similar event: ~0.8-1.0
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <h3>Detection Parameters</h3>
+                <table class="parameters-table">
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Typical Value</th>
+                        <th>Purpose</th>
+                    </tr>
+                    <tr>
+                        <td>Template Length</td>
+                        <td>2-10 seconds</td>
+                        <td>Capture P & S waves</td>
+                    </tr>
+                    <tr>
+                        <td>Correlation Threshold</td>
+                        <td>0.6-0.8</td>
+                        <td>Balance detections/false positives</td>
+                    </tr>
+                    <tr>
+                        <td>Frequency Band</td>
+                        <td>1-15 Hz</td>
+                        <td>Focus on earthquake signals</td>
+                    </tr>
+                    <tr>
+                        <td>Network Channels</td>
+                        <td>3-12</td>
+                        <td>Improve detection robustness</td>
+                    </tr>
+                </table>
+                <p style="margin-top: 15px; font-size: 14px;">
+                    <strong>Detection capability:</strong> Can find earthquakes <span class="highlight">10-100× smaller</span> than traditional methods
+                </p>
+            </div>
+            
+            <div class="info-card">
+                <h3>Advantages & Applications</h3>
+                <div class="advantages-list">
+                    <strong>✓ Advantages:</strong><br>
+                    • Detects events below noise level<br>
+                    • Finds repeating earthquakes<br>
+                    • Automated processing<br>
+                    • Objective detection criteria<br>
+                    • Works in high-noise environments
+                </div>
+                <p style="margin-top: 15px;"><strong>Applications:</strong></p>
+                <ul style="font-size: 14px; padding-left: 20px;">
+                    <li><strong>Aftershock sequences:</strong> Find small events following large earthquakes</li>
+                    <li><strong>Induced seismicity:</strong> Monitor fracking, geothermal sites</li>
+                    <li><strong>Volcanic monitoring:</strong> Detect repeating volcano-tectonic events</li>
+                    <li><strong>Nuclear monitoring:</strong> Identify small explosions</li>
+                    <li><strong>Fault studies:</strong> Map microseismicity patterns</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart instances
+        let templateChart, continuousChart, correlationChart;
+        let templateData = [];
+        let continuousData = [];
+        let correlationData = [];
+        let noiseLevel = 'low';
+        let detectionThreshold = 0.7;
+        let hiddenEventPosition = -1;
+        
+        // Animation variables
+        let animationFrame = null;
+        let currentPosition = 0;
+        let isAnimating = false;
+        let overlayDataset = null;
+        
+        // Generate synthetic earthquake waveform
+        function generateEarthquakeSignal(duration, amplitude = 1) {
+            const signal = [];
+            const samples = duration * 100; // 100 Hz sampling
+            
+            // P-wave arrival
+            const pStart = samples * 0.2;
+            const pDuration = samples * 0.1;
+            
+            // S-wave arrival
+            const sStart = samples * 0.35;
+            const sDuration = samples * 0.3;
+            
+            for (let i = 0; i < samples; i++) {
+                let value = 0;
+                
+                // P-wave (higher frequency, lower amplitude)
+                if (i >= pStart && i < pStart + pDuration) {
+                    const t = (i - pStart) / pDuration;
+                    value += amplitude * 0.5 * Math.sin(2 * Math.PI * 10 * t) * 
+                            Math.exp(-5 * t) * Math.sin(Math.PI * t);
+                }
+                
+                // S-wave (lower frequency, higher amplitude)
+                if (i >= sStart && i < sStart + sDuration) {
+                    const t = (i - sStart) / sDuration;
+                    value += amplitude * Math.sin(2 * Math.PI * 5 * t) * 
+                            Math.exp(-3 * t) * Math.sin(Math.PI * t);
+                }
+                
+                signal.push(value);
+            }
+            
+            return signal;
+        }
+        
+        // Generate noise
+        function generateNoise(length, level) {
+            const noise = [];
+            const amplitude = level === 'high' ? 0.15 : 0.05; // Reduced noise levels
+            
+            for (let i = 0; i < length; i++) {
+                noise.push((Math.random() - 0.5) * amplitude);
+            }
+            
+            return noise;
+        }
+        
+        // Generate different earthquake signal (different source)
+        function generateDifferentEarthquake(duration, amplitude = 1) {
+            const signal = [];
+            const samples = duration * 100; // 100 Hz sampling
+            
+            // Different P-wave arrival (lower frequency)
+            const pStart = samples * 0.15;
+            const pDuration = samples * 0.15;
+            
+            // Different S-wave arrival (different frequency content)
+            const sStart = samples * 0.3;
+            const sDuration = samples * 0.4;
+            
+            for (let i = 0; i < samples; i++) {
+                let value = 0;
+                
+                // P-wave with different frequency
+                if (i >= pStart && i < pStart + pDuration) {
+                    const t = (i - pStart) / pDuration;
+                    value += amplitude * 0.3 * Math.sin(2 * Math.PI * 6 * t) * 
+                            Math.exp(-3 * t) * Math.sin(Math.PI * t);
+                }
+                
+                // S-wave with different characteristics
+                if (i >= sStart && i < sStart + sDuration) {
+                    const t = (i - sStart) / sDuration;
+                    value += amplitude * 0.8 * Math.sin(2 * Math.PI * 3 * t) * 
+                            Math.exp(-2 * t) * Math.sin(Math.PI * t) *
+                            (1 + 0.3 * Math.sin(2 * Math.PI * 8 * t)); // Add complexity
+                }
+                
+                signal.push(value);
+            }
+            
+            return signal;
+        }
+        
+        // Cross-correlation function
+        function crossCorrelate(template, data) {
+            const correlation = [];
+            const templateLength = template.length;
+            const dataLength = data.length;
+            
+            // Normalize template
+            const templateMean = template.reduce((a, b) => a + b) / templateLength;
+            const templateStd = Math.sqrt(
+                template.reduce((a, b) => a + Math.pow(b - templateMean, 2), 0) / templateLength
+            );
+            
+            for (let i = 0; i <= dataLength - templateLength; i++) {
+                // Extract window
+                const window = data.slice(i, i + templateLength);
+                
+                // Normalize window
+                const windowMean = window.reduce((a, b) => a + b) / templateLength;
+                const windowStd = Math.sqrt(
+                    window.reduce((a, b) => a + Math.pow(b - windowMean, 2), 0) / templateLength
+                );
+                
+                // Calculate correlation
+                let cc = 0;
+                for (let j = 0; j < templateLength; j++) {
+                    cc += ((template[j] - templateMean) / templateStd) * 
+                          ((window[j] - windowMean) / windowStd);
+                }
+                cc /= templateLength;
+                
+                correlation.push(cc);
+            }
+            
+            return correlation;
+        }
+        
+        // Generate different earthquake signals with varying characteristics
+        function generateVariedEarthquake(duration, type = 'A', amplitude = 1) {
+            const signal = [];
+            const samples = duration * 100; // 100 Hz sampling
+            
+            switch(type) {
+                case 'A': // High frequency, short duration
+                    for (let i = 0; i < samples; i++) {
+                        let value = 0;
+                        // P-wave
+                        if (i >= samples * 0.1 && i < samples * 0.25) {
+                            const t = (i - samples * 0.1) / (samples * 0.15);
+                            value += amplitude * 0.4 * Math.sin(2 * Math.PI * 15 * t) * 
+                                    Math.exp(-6 * t) * Math.sin(Math.PI * t);
+                        }
+                        // S-wave
+                        if (i >= samples * 0.25 && i < samples * 0.5) {
+                            const t = (i - samples * 0.25) / (samples * 0.25);
+                            value += amplitude * 0.7 * Math.sin(2 * Math.PI * 8 * t) * 
+                                    Math.exp(-4 * t) * Math.sin(Math.PI * t);
+                        }
+                        signal.push(value);
+                    }
+                    break;
+                    
+                case 'B': // Low frequency, long duration
+                    for (let i = 0; i < samples; i++) {
+                        let value = 0;
+                        // P-wave
+                        if (i >= samples * 0.15 && i < samples * 0.35) {
+                            const t = (i - samples * 0.15) / (samples * 0.2);
+                            value += amplitude * 0.3 * Math.sin(2 * Math.PI * 4 * t) * 
+                                    Math.exp(-2 * t) * Math.sin(Math.PI * t);
+                        }
+                        // S-wave
+                        if (i >= samples * 0.3 && i < samples * 0.8) {
+                            const t = (i - samples * 0.3) / (samples * 0.5);
+                            value += amplitude * Math.sin(2 * Math.PI * 2 * t) * 
+                                    Math.exp(-1.5 * t) * Math.sin(Math.PI * t) *
+                                    (1 + 0.2 * Math.sin(2 * Math.PI * 6 * t));
+                        }
+                        signal.push(value);
+                    }
+                    break;
+                    
+                case 'C': // Complex waveform
+                    for (let i = 0; i < samples; i++) {
+                        let value = 0;
+                        // Multiple P arrivals
+                        if (i >= samples * 0.1 && i < samples * 0.3) {
+                            const t = (i - samples * 0.1) / (samples * 0.2);
+                            value += amplitude * 0.5 * Math.sin(2 * Math.PI * 12 * t) * 
+                                    Math.exp(-5 * t) * (Math.sin(Math.PI * t) + 0.3 * Math.sin(3 * Math.PI * t));
+                        }
+                        // Complex S-wave
+                        if (i >= samples * 0.35 && i < samples * 0.7) {
+                            const t = (i - samples * 0.35) / (samples * 0.35);
+                            value += amplitude * 0.8 * Math.sin(2 * Math.PI * 4 * t) * 
+                                    Math.exp(-2.5 * t) * Math.sin(Math.PI * t) *
+                                    (1 + 0.4 * Math.cos(2 * Math.PI * 10 * t));
+                        }
+                        signal.push(value);
+                    }
+                    break;
+            }
+            
+            return signal;
+        }
+        
+        // Initialize data
+        function initializeData() {
+            // Generate template
+            templateData = generateEarthquakeSignal(3); // 3 second template
+            
+            // Generate continuous data with low noise
+            const noise = generateNoise(3000, noiseLevel); // 30 seconds
+            continuousData = [...noise];
+            
+            // Add similar earthquake at t=9s (will be detected)
+            const similarPosition = 900; // 9 seconds * 100 samples/second
+            const similarEvent = generateEarthquakeSignal(3, 0.9); // 90% amplitude
+            for (let j = 0; j < similarEvent.length; j++) {
+                if (similarPosition + j < continuousData.length) {
+                    continuousData[similarPosition + j] += similarEvent[j] * 0.95; // Very similar
+                }
+            }
+            
+            // Add different earthquakes of various types
+            const events = [
+                { position: 300, type: 'A', amplitude: 0.6, name: 'Event A' },  // t=3s
+                { position: 600, type: 'B', amplitude: 0.8, name: 'Event B' },  // t=6s
+                { position: 1200, type: 'C', amplitude: 0.7, name: 'Event C' }, // t=12s
+                { position: 1500, type: 'A', amplitude: 1.2, name: 'Event D' }, // t=15s
+                { position: 1800, type: 'different', amplitude: 1.0, name: 'Event E' }, // t=18s
+                { position: 2100, type: 'B', amplitude: 0.5, name: 'Event F' }, // t=21s
+                { position: 2400, type: 'C', amplitude: 0.9, name: 'Event G' }  // t=24s
+            ];
+            
+            events.forEach(event => {
+                let eventSignal;
+                if (event.type === 'different') {
+                    eventSignal = generateDifferentEarthquake(3, event.amplitude);
+                } else {
+                    eventSignal = generateVariedEarthquake(3, event.type, event.amplitude);
+                }
+                
+                for (let j = 0; j < eventSignal.length; j++) {
+                    if (event.position + j < continuousData.length) {
+                        continuousData[event.position + j] += eventSignal[j];
+                    }
+                }
+            });
+            
+            // Store positions for visualization
+            window.eventPositions = {
+                similar: 9, // seconds
+                events: events.map(e => ({ time: e.position / 100, name: e.name }))
+            };
+            
+            hiddenEventPosition = -1;
+        }
+        
+        // Animate correlation process
+        function animateCorrelation() {
+            if (isAnimating) {
+                stopAnimation();
+                return;
+            }
+            
+            isAnimating = true;
+            currentPosition = 0;
+            correlationData = [];
+            
+            const animationSpeed = parseInt(document.getElementById('speedSlider').value);
+            const step = animationSpeed * 5; // Samples per frame
+            
+            function animate() {
+                if (currentPosition <= continuousData.length - templateData.length) {
+                    // Calculate correlation for current position
+                    const window = continuousData.slice(currentPosition, currentPosition + templateData.length);
+                    
+                    // Normalize template
+                    const templateMean = templateData.reduce((a, b) => a + b) / templateData.length;
+                    const templateStd = Math.sqrt(
+                        templateData.reduce((a, b) => a + Math.pow(b - templateMean, 2), 0) / templateData.length
+                    );
+                    
+                    // Normalize window
+                    const windowMean = window.reduce((a, b) => a + b) / window.length;
+                    const windowStd = Math.sqrt(
+                        window.reduce((a, b) => a + Math.pow(b - windowMean, 2), 0) / window.length
+                    );
+                    
+                    // Calculate correlation
+                    let cc = 0;
+                    for (let j = 0; j < templateData.length; j++) {
+                        cc += ((templateData[j] - templateMean) / templateStd) * 
+                              ((window[j] - windowMean) / windowStd);
+                    }
+                    cc /= templateData.length;
+                    
+                    correlationData.push(cc);
+                    
+                    // Update correlation chart
+                    correlationChart.data.labels = createTimeLabels(correlationData.length);
+                    correlationChart.data.datasets[0].data = correlationData;
+                    correlationChart.update('none');
+                    
+                    // Update continuous chart with sliding window
+                    const existingAnnotations = {
+                        similarEvent: {
+                            type: 'box',
+                            xMin: window.eventPositions?.similar - 0.5,
+                            xMax: window.eventPositions?.similar + 2.5,
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            borderColor: '#27ae60',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            label: {
+                                content: 'Similar Event',
+                                enabled: true,
+                                position: 'start',
+                                backgroundColor: '#27ae60',
+                                color: 'white',
+                                font: { size: 11 }
+                            }
+                        },
+                        differentEvent: {
+                            type: 'box',
+                            xMin: window.eventPositions?.different - 0.5,
+                            xMax: window.eventPositions?.different + 2.5,
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderColor: '#e74c3c',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            label: {
+                                content: 'Different Event',
+                                enabled: true,
+                                position: 'start',
+                                backgroundColor: '#e74c3c',
+                                color: 'white',
+                                font: { size: 11 }
+                            }
+                        },
+                        slidingWindow: {
+                            type: 'box',
+                            xMin: currentPosition / 100,
+                            xMax: (currentPosition + templateData.length) / 100,
+                            backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                            borderColor: '#ffc107',
+                            borderWidth: 2,
+                            label: {
+                                content: 'Template Window',
+                                enabled: true,
+                                position: 'start',
+                                backgroundColor: '#ffc107',
+                                color: 'black',
+                                font: { size: 11 }
+                            }
+                        }
+                    };
+                    continuousChart.options.plugins.annotation.annotations = existingAnnotations;
+                    continuousChart.update('none');
+                    
+                    // Update max correlation display
+                    const maxCorr = Math.max(...correlationData);
+                    document.getElementById('maxCorrelation').textContent = 
+                        `Max Correlation: ${maxCorr.toFixed(3)} | Position: ${(currentPosition/100).toFixed(1)}s`;
+                    
+                    currentPosition += step;
+                    animationFrame = requestAnimationFrame(animate);
+                } else {
+                    // Animation complete
+                    stopAnimation();
+                    runDetection();
+                }
+            }
+            
+            // Update button text
+            event.target.textContent = 'Stop Animation';
+            animate();
+        }
+        
+        // Stop animation
+        function stopAnimation() {
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+            isAnimating = false;
+            document.querySelector('[onclick="animateCorrelation()"]').textContent = 'Animate Process';
+        }
+        
+        // Reset data
+        function resetData() {
+            stopAnimation();
+            initializeData();
+            
+            // Clear any existing detected events dataset
+            if (continuousChart.data.datasets.length > 2) {
+                continuousChart.data.datasets.pop();
+            }
+            
+            updateCharts();
+            correlationData = [];
+            correlationChart.data.labels = [];
+            correlationChart.data.datasets[0].data = [];
+            correlationChart.update();
+            document.getElementById('maxCorrelation').textContent = 'Max Correlation: 0.00';
+            document.getElementById('continuousDetection').textContent = 'No Detection';
+            document.getElementById('continuousDetection').className = 'detection-indicator detection-negative';
+        }
+        
+        // Create time labels
+        function createTimeLabels(length, samplingRate = 100) {
+            const labels = [];
+            for (let i = 0; i < length; i++) {
+                labels.push((i / samplingRate).toFixed(2));
+            }
+            return labels;
+        }
+        
+        // Initialize charts
+        function initCharts() {
+            // Generate initial data if not already done
+            if (templateData.length === 0) {
+                initializeData();
+            }
+            
+            // Template chart
+            const templateCtx = document.getElementById('templateChart').getContext('2d');
+            templateChart = new Chart(templateCtx, {
+                type: 'line',
+                data: {
+                    labels: createTimeLabels(templateData.length),
+                    datasets: [{
+                        label: 'Template Waveform',
+                        data: templateData,
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Template Event (Known Earthquake)',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Time (s)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Amplitude' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        }
+                    }
+                }
+            });
+            
+            // Continuous data chart
+            const continuousCtx = document.getElementById('continuousChart').getContext('2d');
+            continuousChart = new Chart(continuousCtx, {
+                type: 'line',
+                data: {
+                    labels: createTimeLabels(continuousData.length),
+                    datasets: [{
+                        label: 'Continuous Seismic Data',
+                        data: continuousData,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        tension: 0
+                    }, {
+                        label: 'Template Overlay',
+                        data: new Array(continuousData.length).fill(null),
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        tension: 0.1,
+                        hidden: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Continuous Seismic Recording with Template Matching',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: { 
+                            display: true,
+                            labels: {
+                                filter: function(item) {
+                                    return item.text !== 'Template Overlay' || isAnimating;
+                                }
+                            }
+                        },
+                        annotation: {
+                            annotations: {
+                                similarEvent: {
+                                    type: 'box',
+                                    xMin: 8.5,
+                                    xMax: 11.5,
+                                    backgroundColor: 'rgba(39, 174, 96, 0.15)',
+                                    borderColor: '#27ae60',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        content: 'Similar Event (Target)',
+                                        enabled: true,
+                                        position: 'start',
+                                        backgroundColor: '#27ae60',
+                                        color: 'white',
+                                        font: { size: 11, weight: 'bold' }
+                                    }
+                                },
+                                eventA: {
+                                    type: 'box',
+                                    xMin: 2.5,
+                                    xMax: 5.5,
+                                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                                    borderColor: '#95a5a6',
+                                    borderWidth: 1,
+                                    label: {
+                                        content: 'Event A',
+                                        enabled: true,
+                                        position: 'start',
+                                        font: { size: 10 }
+                                    }
+                                },
+                                eventB: {
+                                    type: 'box',
+                                    xMin: 5.5,
+                                    xMax: 8.5,
+                                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                                    borderColor: '#95a5a6',
+                                    borderWidth: 1,
+                                    label: {
+                                        content: 'Event B',
+                                        enabled: true,
+                                        position: 'start',
+                                        font: { size: 10 }
+                                    }
+                                },
+                                eventC: {
+                                    type: 'box',
+                                    xMin: 11.5,
+                                    xMax: 14.5,
+                                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                                    borderColor: '#95a5a6',
+                                    borderWidth: 1,
+                                    label: {
+                                        content: 'Event C',
+                                        enabled: true,
+                                        position: 'start',
+                                        font: { size: 10 }
+                                    }
+                                },
+                                eventD: {
+                                    type: 'box',
+                                    xMin: 14.5,
+                                    xMax: 17.5,
+                                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                                    borderColor: '#95a5a6',
+                                    borderWidth: 1,
+                                    label: {
+                                        content: 'Event D',
+                                        enabled: true,
+                                        position: 'start',
+                                        font: { size: 10 }
+                                    }
+                                },
+                                eventE: {
+                                    type: 'box',
+                                    xMin: 17.5,
+                                    xMax: 20.5,
+                                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                                    borderColor: '#f39c12',
+                                    borderWidth: 1,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        content: 'Event E (Different)',
+                                        enabled: true,
+                                        position: 'start',
+                                        backgroundColor: '#f39c12',
+                                        color: 'white',
+                                        font: { size: 10 }
+                                    }
+                                },
+                                eventF: {
+                                    type: 'box',
+                                    xMin: 20.5,
+                                    xMax: 23.5,
+                                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                                    borderColor: '#95a5a6',
+                                    borderWidth: 1,
+                                    label: {
+                                        content: 'Event F',
+                                        enabled: true,
+                                        position: 'start',
+                                        font: { size: 10 }
+                                    }
+                                },
+                                eventG: {
+                                    type: 'box',
+                                    xMin: 23.5,
+                                    xMax: 26.5,
+                                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                                    borderColor: '#95a5a6',
+                                    borderWidth: 1,
+                                    label: {
+                                        content: 'Event G',
+                                        enabled: true,
+                                        position: 'start',
+                                        font: { size: 10 }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Time (s)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Amplitude' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        }
+                    }
+                }
+            });
+            
+            // Correlation chart
+            const correlationCtx = document.getElementById('correlationChart').getContext('2d');
+            correlationChart = new Chart(correlationCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Cross-Correlation',
+                        data: [],
+                        borderColor: '#27ae60',
+                        backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Cross-Correlation Function',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: { display: false },
+                        annotation: {
+                            annotations: {
+                                threshold: {
+                                    type: 'line',
+                                    yMin: detectionThreshold,
+                                    yMax: detectionThreshold,
+                                    borderColor: '#e74c3c',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        content: `Threshold: ${detectionThreshold}`,
+                                        enabled: true,
+                                        position: 'end',
+                                        backgroundColor: '#e74c3c',
+                                        color: 'white',
+                                        font: { size: 12 }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Time (s)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Correlation Coefficient' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            min: -0.5,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update charts
+        function updateCharts() {
+            // Update continuous data
+            continuousChart.data.datasets[0].data = continuousData;
+            continuousChart.data.datasets[1].data = new Array(continuousData.length).fill(null);
+            continuousChart.update();
+        }
+        
+        // Run detection
+        function runDetection() {
+            // Calculate cross-correlation
+            correlationData = crossCorrelate(templateData, continuousData);
+            
+            // Update correlation chart - adjust time labels to account for template center
+            const templateOffset = templateData.length / 2 / 100; // Half template length in seconds
+            const correlationLabels = [];
+            for (let i = 0; i < correlationData.length; i++) {
+                correlationLabels.push(((i / 100) + templateOffset).toFixed(2));
+            }
+            
+            correlationChart.data.labels = correlationLabels;
+            correlationChart.data.datasets[0].data = correlationData;
+            correlationChart.update();
+            
+            // Find detections - improved peak detection
+            const maxCorr = Math.max(...correlationData);
+            const detections = [];
+            const minPeakDistance = 100; // Minimum 1 second between peaks
+            
+            for (let i = 1; i < correlationData.length - 1; i++) {
+                if (correlationData[i] > detectionThreshold) {
+                    // Check if it's a local maximum
+                    let isLocalMax = true;
+                    
+                    // Check neighboring points
+                    for (let j = Math.max(0, i - 10); j <= Math.min(correlationData.length - 1, i + 10); j++) {
+                        if (j !== i && correlationData[j] > correlationData[i]) {
+                            isLocalMax = false;
+                            break;
+                        }
+                    }
+                    
+                    if (isLocalMax) {
+                        // Check if far enough from previous detection
+                        let farEnough = true;
+                        for (const det of detections) {
+                            if (Math.abs(i - (det.time - templateOffset) * 100) < minPeakDistance) {
+                                farEnough = false;
+                                break;
+                            }
+                        }
+                        
+                        if (farEnough) {
+                            detections.push({
+                                time: (i / 100) + templateOffset,
+                                correlation: correlationData[i],
+                                startIndex: i,
+                                startTime: i / 100  // Start time of template window
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Update detection indicators
+            document.getElementById('maxCorrelation').textContent = 
+                `Max Correlation: ${maxCorr.toFixed(3)}`;
+            
+            const continuousDetectionEl = document.getElementById('continuousDetection');
+            if (detections.length > 0) {
+                continuousDetectionEl.textContent = `${detections.length} Detection(s) Found!`;
+                continuousDetectionEl.className = 'detection-indicator detection-positive';
+            } else {
+                continuousDetectionEl.textContent = 'No Detection';
+                continuousDetectionEl.className = 'detection-indicator detection-negative';
+            }
+            
+            // Create highlighted waveform data
+            const highlightedData = new Array(continuousData.length).fill(null);
+            detections.forEach(detection => {
+                const startIdx = Math.floor(detection.startTime * 100);
+                for (let i = 0; i < templateData.length && startIdx + i < highlightedData.length; i++) {
+                    highlightedData[startIdx + i] = continuousData[startIdx + i];
+                }
+            });
+            
+            // Update continuous chart with highlighted detected events
+            if (continuousChart.data.datasets.length < 3) {
+                continuousChart.data.datasets.push({
+                    label: 'Detected Events',
+                    data: highlightedData,
+                    borderColor: '#27ae60',
+                    backgroundColor: 'rgba(39, 174, 96, 0.3)',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    tension: 0,
+                    fill: true
+                });
+            } else {
+                continuousChart.data.datasets[2].data = highlightedData;
+            }
+            
+            // Add detection annotations to continuous chart
+            const annotations = {
+                similarEvent: {
+                    type: 'box',
+                    xMin: 8.5,
+                    xMax: 11.5,
+                    backgroundColor: 'rgba(39, 174, 96, 0.15)',
+                    borderColor: '#27ae60',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    label: {
+                        content: 'Similar Event (Target)',
+                        enabled: true,
+                        position: 'start',
+                        backgroundColor: '#27ae60',
+                        color: 'white',
+                        font: { size: 11, weight: 'bold' }
+                    }
+                },
+                eventA: {
+                    type: 'box',
+                    xMin: 2.5,
+                    xMax: 5.5,
+                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                    borderColor: '#95a5a6',
+                    borderWidth: 1,
+                    label: {
+                        content: 'Event A',
+                        enabled: true,
+                        position: 'start',
+                        font: { size: 10 }
+                    }
+                },
+                eventB: {
+                    type: 'box',
+                    xMin: 5.5,
+                    xMax: 8.5,
+                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                    borderColor: '#95a5a6',
+                    borderWidth: 1,
+                    label: {
+                        content: 'Event B',
+                        enabled: true,
+                        position: 'start',
+                        font: { size: 10 }
+                    }
+                },
+                eventC: {
+                    type: 'box',
+                    xMin: 11.5,
+                    xMax: 14.5,
+                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                    borderColor: '#95a5a6',
+                    borderWidth: 1,
+                    label: {
+                        content: 'Event C',
+                        enabled: true,
+                        position: 'start',
+                        font: { size: 10 }
+                    }
+                },
+                eventD: {
+                    type: 'box',
+                    xMin: 14.5,
+                    xMax: 17.5,
+                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                    borderColor: '#95a5a6',
+                    borderWidth: 1,
+                    label: {
+                        content: 'Event D',
+                        enabled: true,
+                        position: 'start',
+                        font: { size: 10 }
+                    }
+                },
+                eventE: {
+                    type: 'box',
+                    xMin: 17.5,
+                    xMax: 20.5,
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    borderColor: '#f39c12',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    label: {
+                        content: 'Event E (Different)',
+                        enabled: true,
+                        position: 'start',
+                        backgroundColor: '#f39c12',
+                        color: 'white',
+                        font: { size: 10 }
+                    }
+                },
+                eventF: {
+                    type: 'box',
+                    xMin: 20.5,
+                    xMax: 23.5,
+                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                    borderColor: '#95a5a6',
+                    borderWidth: 1,
+                    label: {
+                        content: 'Event F',
+                        enabled: true,
+                        position: 'start',
+                        font: { size: 10 }
+                    }
+                },
+                eventG: {
+                    type: 'box',
+                    xMin: 23.5,
+                    xMax: 26.5,
+                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                    borderColor: '#95a5a6',
+                    borderWidth: 1,
+                    label: {
+                        content: 'Event G',
+                        enabled: true,
+                        position: 'start',
+                        font: { size: 10 }
+                    }
+                }
+            };
+            
+            detections.forEach((detection, idx) => {
+                annotations[`detection${idx}`] = {
+                    type: 'line',
+                    xMin: detection.time,
+                    xMax: detection.time,
+                    borderColor: '#27ae60',
+                    borderWidth: 3,
+                    label: {
+                        content: `Detection (${detection.correlation.toFixed(2)})`,
+                        enabled: true,
+                        position: 'start',
+                        backgroundColor: '#27ae60',
+                        color: 'white',
+                        font: { size: 11 }
+                    }
+                };
+            });
+            
+            continuousChart.options.plugins.annotation.annotations = annotations;
+            continuousChart.update();
+        }
+        
+        // Control functions
+        function changeNoiseLevel(level) {
+            noiseLevel = level;
+            initializeData();
+            updateCharts();
+            runDetection();
+            
+            // Update button states
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                if (btn.textContent.includes('Noise')) {
+                    btn.classList.remove('active');
+                }
+            });
+            event.target.classList.add('active');
+        }
+        
+        // Threshold slider
+        document.getElementById('thresholdSlider').addEventListener('input', (e) => {
+            detectionThreshold = parseFloat(e.target.value);
+            document.getElementById('thresholdValue').textContent = detectionThreshold.toFixed(2);
+            
+            // Update threshold line
+            if (correlationChart) {
+                correlationChart.options.plugins.annotation.annotations.threshold.yMin = detectionThreshold;
+                correlationChart.options.plugins.annotation.annotations.threshold.yMax = detectionThreshold;
+                correlationChart.options.plugins.annotation.annotations.threshold.label.content = 
+                    `Threshold: ${detectionThreshold}`;
+                correlationChart.update();
+                
+                runDetection();
+            }
+        });
+        
+        // Initialize
+        function initialize() {
+            try {
+                console.log('Initializing matched filter visualization...');
+                
+                // Check if canvas elements exist
+                const templateCanvas = document.getElementById('templateChart');
+                const continuousCanvas = document.getElementById('continuousChart');
+                const correlationCanvas = document.getElementById('correlationChart');
+                
+                if (!templateCanvas || !continuousCanvas || !correlationCanvas) {
+                    console.error('Canvas elements not found!');
+                    return;
+                }
+                
+                console.log('Canvas elements found, initializing data...');
+                initializeData();
+                
+                console.log('Data initialized, creating charts...');
+                initCharts();
+                
+                console.log('Charts created, running detection...');
+                setTimeout(() => {
+                    runDetection();
+                    console.log('Detection complete!');
+                }, 100);
+            } catch (error) {
+                console.error('Error initializing visualization:', error);
+                console.error('Stack trace:', error.stack);
+            }
+        }
+        
+        // Try multiple initialization methods
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            // DOM is already loaded
+            initialize();
+        }
+    </script>
+</body>
+</html>

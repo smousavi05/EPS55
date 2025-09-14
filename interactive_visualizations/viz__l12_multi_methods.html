@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Seismic Detector Simulator</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@^3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@^2"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: #2c3e50; }
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1600px;
+            margin: auto;
+        }
+        .controls-panel {
+            flex: 1;
+            min-width: 350px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            align-self: flex-start;
+        }
+        .viewer-panel {
+            flex: 3;
+            min-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .chart-wrapper {
+            position: relative;
+            background: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .control-group { margin-bottom: 25px; }
+        .control-group legend {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #34495e;
+            border-bottom: 2px solid #3498db;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+        }
+        .signal-buttons button {
+            width: 100%; padding: 8px; margin-bottom: 8px;
+            border-radius: 5px; border: 1px solid #ccc;
+            font-size: 0.9em; cursor: pointer; background-color: #f8f9fa;
+        }
+        .signal-buttons button:hover { background-color: #e9ecef; }
+        .param-slider { display: flex; flex-direction: column; margin-bottom: 10px; }
+        .param-slider label { margin-bottom: 5px; font-size: 0.9em; }
+        .param-slider input { width: 100%; }
+        .detection-flag {
+            position: absolute;
+            top: 15px; right: 15px;
+            background-color: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.9em;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        .detection-flag.triggered { opacity: 1; }
+    </style>
+</head>
+<body>
+
+    <h1>Real-Time Seismic Detector Simulator 🔬</h1>
+    <div class="main-container">
+        <div class="controls-panel">
+            <div class="control-group">
+                <legend>Playback Controls</legend>
+                <div class="param-slider">
+                    <label for="speed-slider">Playback Speed: <span id="speed-value">50</span> ms/tick</label>
+                    <input type="range" id="speed-slider" min="10" max="200" value="50" step="10">
+                </div>
+            </div>
+            <div class="control-group">
+                <legend>Inject Signal</legend>
+                <div class="signal-buttons">
+                    <button data-event="small_eq">Inject Small Earthquake</button>
+                    <button data-event="large_eq">Inject Large Earthquake</button>
+                    <button data-event="repeater">Inject Repeating EQ (Template)</button>
+                    <button data-event="noise">Inject Cultural Noise (Truck)</button>
+                    <button data-event="aftershock">Inject Aftershock</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <legend>Detector Parameters</legend>
+                <fieldset>
+                    <legend>Amplitude</legend>
+                    <div class="param-slider">
+                        <label for="amp-thresh-slider">Threshold: <span id="amp-thresh-value">0.8</span></label>
+                        <input type="range" id="amp-thresh-slider" min="0.1" max="2.0" value="0.8" step="0.1">
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>STA/LTA</legend>
+                    <div class="param-slider">
+                        <label for="sta-win-slider">STA Window: <span id="sta-win-value">10</span></label>
+                        <input type="range" id="sta-win-slider" min="5" max="50" value="10" step="1">
+                    </div>
+                    <div class="param-slider">
+                        <label for="lta-win-slider">LTA Window: <span id="lta-win-value">100</span></label>
+                        <input type="range" id="lta-win-slider" min="50" max="200" value="100" step="5">
+                    </div>
+                     <div class="param-slider">
+                        <label for="stalta-thresh-slider">Ratio Threshold: <span id="stalta-thresh-value">3.0</span></label>
+                        <input type="range" id="stalta-thresh-slider" min="1.5" max="10" value="3.0" step="0.5">
+                    </div>
+                </fieldset>
+                 <fieldset>
+                    <legend>Template Matching</legend>
+                    <div class="param-slider">
+                        <label for="corr-thresh-slider">Correlation Threshold: <span id="corr-thresh-value">0.8</span></label>
+                        <input type="range" id="corr-thresh-slider" min="0.5" max="0.99" value="0.8" step="0.01">
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>AI</legend>
+                    <div class="param-slider">
+                        <label for="ai-thresh-slider">Probability Threshold: <span id="ai-thresh-value">0.8</span></label>
+                        <input type="range" id="ai-thresh-slider" min="0.1" max="0.99" value="0.8" step="0.01">
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+        <div class="viewer-panel">
+            <div class="chart-wrapper">
+                <h4>Continuous Seismogram</h4>
+                <canvas id="seismogram-chart"></canvas>
+                <div id="amp-flag" class="detection-flag">Threshold Trigger!</div>
+            </div>
+            <div class="chart-wrapper">
+                <h4>STA/LTA Ratio</h4>
+                <canvas id="stalta-chart"></canvas>
+                <div id="stalta-flag" class="detection-flag">Detection!</div>
+            </div>
+            <div class="chart-wrapper">
+                <h4>Template Match Correlation</h4>
+                <canvas id="correlation-chart"></canvas>
+                <div id="corr-flag" class="detection-flag">Similar Event!</div>
+            </div>
+            <div class="chart-wrapper">
+                <h4>AI Earthquake Probability</h4>
+                <canvas id="ai-chart"></canvas>
+                <div id="ai-flag" class="detection-flag">Detection!</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- 1. DATA & PARAMETER SETUP ---
+let PARAMS = {
+    playbackSpeed: 50,
+    ampThresh: 0.8,
+    staWindow: 10,
+    ltaWindow: 100,
+    staltaThresh: 3.0,
+    corrThresh: 0.8,
+    aiThresh: 0.8
+};
+
+// Generate a wave packet
+function generatePacket(length, freq, amp) {
+    const packet = [];
+    for (let i = 0; i < length; i++) {
+        const t = i - length / 2;
+        const envelope = Math.exp(-((t / (length / 4)) ** 2));
+        packet.push(Math.sin(i * freq) * amp * envelope);
+    }
+    return packet;
+}
+
+const TEMPLATES = {
+    small_eq: [...generatePacket(30, 0.8, 0.5), ...generatePacket(50, 0.5, 0.9)],
+    large_eq: [...generatePacket(50, 0.7, 1.2), ...generatePacket(100, 0.4, 2.0)],
+    repeater: [...generatePacket(25, 0.9, 0.4), ...generatePacket(40, 0.6, 0.7)],
+    noise: generatePacket(150, 0.1, 0.4),
+    aftershock: [...generatePacket(20, 0.8, 0.3), ...generatePacket(30, 0.5, 0.5)],
+};
+
+let eventQueue = [];
+let dataBuffer = new Array(200).fill(0);
+let mainInterval;
+
+// --- 2. CHART CONFIGURATION ---
+const createChartConfig = (yMax) => ({
+    type: 'line',
+    data: { datasets: [{ data: [], borderColor: 'black', borderWidth: 1.5 }, { data: [], borderColor: 'red', borderDash: [5, 5], borderWidth: 2 }] },
+    options: {
+        animation: false, elements: { point: { radius: 0 } }, scales: {
+            x: { type: 'realtime', realtime: { duration: 20000, refresh: 100, delay: 100 } },
+            y: { min: -yMax, max: yMax }
+        }, plugins: { legend: { display: false }, tooltip: { enabled: false } }
+    }
+});
+
+const seismogramChart = new Chart(document.getElementById('seismogram-chart'), createChartConfig(2.5));
+const staltaChart = new Chart(document.getElementById('stalta-chart'), createChartConfig(10));
+const correlationChart = new Chart(document.getElementById('correlation-chart'), createChartConfig(1));
+const aiChart = new Chart(document.getElementById('ai-chart'), createChartConfig(1));
+
+// --- 3. DETECTION ALGORITHMS ---
+
+function runDetectors(value, timestamp) {
+    dataBuffer.push(value);
+    dataBuffer.shift();
+
+    // Amplitude Threshold
+    const ampTrigger = Math.abs(value) > PARAMS.ampThresh;
+    triggerFlag('amp-flag', ampTrigger);
+
+    // STA/LTA
+    const staData = dataBuffer.slice(-PARAMS.staWindow).map(v => v**2);
+    const ltaData = dataBuffer.slice(-PARAMS.ltaWindow).map(v => v**2);
+    const sta = staData.reduce((a, b) => a + b, 0) / staData.length;
+    const lta = ltaData.reduce((a, b) => a + b, 0) / ltaData.length || 0.001;
+    const ratio = sta / lta;
+    staltaChart.data.datasets[0].data.push({ x: timestamp, y: ratio });
+    const staltaTrigger = ratio > PARAMS.staltaThresh && lta > 0.01; // Avoid triggering on pure noise
+    triggerFlag('stalta-flag', staltaTrigger);
+    
+    // Template Matching (Normalized Cross-Correlation)
+    const template = TEMPLATES.repeater;
+    const slice = dataBuffer.slice(-template.length);
+    let dot = 0, sum_slice = 0, sum_template = 0;
+    for (let i = 0; i < template.length; i++) {
+        dot += slice[i] * template[i];
+        sum_slice += slice[i] ** 2;
+        sum_template += template[i] ** 2;
+    }
+    const corr = dot / (Math.sqrt(sum_slice * sum_template) || 1);
+    correlationChart.data.datasets[0].data.push({ x: timestamp, y: corr });
+    const corrTrigger = corr > PARAMS.corrThresh;
+    triggerFlag('corr-flag', corrTrigger);
+
+    // AI (Simulated)
+    let probability = 0.05; // Base noise probability
+    if (eventQueue.length > 0) {
+        if (eventQueue[0].type.includes('_eq') || eventQueue[0].type.includes('aftershock')) probability = 0.95;
+        else if (eventQueue[0].type === 'noise') probability = 0.3;
+    }
+    probability += (Math.random() - 0.5) * 0.1; // Add noise
+    aiChart.data.datasets[0].data.push({ x: timestamp, y: probability });
+    const aiTrigger = probability > PARAMS.aiThresh;
+    triggerFlag('ai-flag', aiTrigger);
+}
+
+// --- 4. MAIN LOOP & UI ---
+function update() {
+    let currentValue = (Math.random() - 0.5) * 0.1; // Background noise
+    if (eventQueue.length > 0) {
+        currentValue += eventQueue[0].data.shift();
+        if (eventQueue[0].data.length === 0) eventQueue.shift();
+    }
+    
+    const timestamp = Date.now();
+    seismogramChart.data.datasets[0].data.push({ x: timestamp, y: currentValue });
+    
+    runDetectors(currentValue, timestamp);
+    updateThresholdLines(timestamp);
+}
+
+function updateThresholdLines(timestamp) {
+    seismogramChart.data.datasets[1].data.push({ x: timestamp, y: PARAMS.ampThresh }, { x: timestamp, y: -PARAMS.ampThresh });
+    staltaChart.data.datasets[1].data.push({ x: timestamp, y: PARAMS.staltaThresh });
+    correlationChart.data.datasets[1].data.push({ x: timestamp, y: PARAMS.corrThresh });
+    aiChart.data.datasets[1].data.push({ x: timestamp, y: PARAMS.aiThresh });
+}
+
+let lastTriggerTime = {};
+function triggerFlag(id, isTriggered) {
+    const flag = document.getElementById(id.replace('-flag', '-flag'));
+    if (isTriggered) {
+        flag.classList.add('triggered');
+        lastTriggerTime[id] = Date.now();
+    } else if (lastTriggerTime[id] && (Date.now() - lastTriggerTime[id] > 2000)) { // Hold for 2s
+        flag.classList.remove('triggered');
+    }
+}
+
+function startInterval() {
+    if (mainInterval) clearInterval(mainInterval);
+    mainInterval = setInterval(update, PARAMS.playbackSpeed);
+}
+
+// Event Listeners
+document.querySelectorAll('.signal-buttons button').forEach(button => {
+    button.addEventListener('click', () => {
+        const eventType = button.dataset.event;
+        eventQueue.push({ type: eventType, data: [...TEMPLATES[eventType]] });
+    });
+});
+
+document.querySelectorAll('.param-slider input').forEach(slider => {
+    slider.addEventListener('input', (e) => {
+        const id = e.target.id;
+        const value = parseFloat(e.target.value);
+        document.getElementById(id.replace('-slider', '-value')).textContent = value.toFixed(2);
+        
+        if (id === 'speed-slider') { PARAMS.playbackSpeed = 210 - value; startInterval(); } // Invert speed
+        if (id === 'amp-thresh-slider') PARAMS.ampThresh = value;
+        if (id === 'sta-win-slider') PARAMS.staWindow = value;
+        if (id === 'lta-win-slider') PARAMS.ltaWindow = value;
+        if (id === 'stalta-thresh-slider') PARAMS.staltaThresh = value;
+        if (id === 'corr-thresh-slider') PARAMS.corrThresh = value;
+        if (id === 'ai-thresh-slider') PARAMS.aiThresh = value;
+    });
+    // Trigger input event to set initial values
+    slider.dispatchEvent(new Event('input'));
+});
+
+// --- 5. INITIALIZATION ---
+startInterval();
+
+</script>
+</body>
+</html>

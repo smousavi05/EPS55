@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amplitude Threshold Earthquake Detection</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .control-btn {
+            padding: 10px 20px;
+            background: #ffffff;
+            border: 2px solid #e0e0e0;
+            color: #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .control-btn:hover {
+            background: #f0f0f0;
+            border-color: #3498db;
+            transform: translateY(-2px);
+        }
+        .control-btn.active {
+            background: #3498db;
+            border-color: #3498db;
+            color: white;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider {
+            width: 200px;
+            -webkit-appearance: none;
+            height: 5px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e74c3c;
+            cursor: pointer;
+        }
+        .value-display {
+            background: #ffe5e5;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+            color: #e74c3c;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .method-box {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .method-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .pros { color: #27ae60; }
+        .cons { color: #e74c3c; }
+        .detection-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        .detection-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .info-card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        .info-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+        .highlight {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .formula {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            text-align: center;
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+        }
+        .threshold-line-label {
+            position: absolute;
+            background: #e74c3c;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Amplitude Threshold Earthquake Detection</h1>
+        <p class="subtitle">Traditional amplitude-based detection method: simple but with significant limitations compared to matched filtering</p>
+        
+        <div class="controls">
+            <button class="control-btn active" onclick="runDetection()">Run Detection</button>
+            <button class="control-btn" onclick="resetData()">Reset</button>
+            <button class="control-btn" onclick="addNoise()">Add More Noise</button>
+            <div class="control-group">
+                <label>Amplitude Threshold:</label>
+                <input type="range" id="thresholdSlider" class="slider" min="0.1" max="1.5" step="0.05" value="0.5">
+                <span class="value-display" id="thresholdValue">0.50</span>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="amplitudeChart"></canvas>
+            <div class="detection-indicator" id="detectionStatus" style="background: #7f8c8d; color: white;">No Detection Run</div>
+        </div>
+
+        <div class="detection-stats" id="detectionStats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalDetections">0</div>
+                <div class="stat-label">Total Detections</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="truePositives" style="color: #27ae60;">0</div>
+                <div class="stat-label">True Positives</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="falsePositives" style="color: #e74c3c;">0</div>
+                <div class="stat-label">False Positives</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="missedEvents" style="color: #f39c12;">0</div>
+                <div class="stat-label">Missed Events</div>
+            </div>
+        </div>
+
+        <div class="info-panel" style="margin-top: 30px;">
+            <div class="info-card">
+                <h3>Simple Amplitude Threshold Detection</h3>
+                <p>The most basic earthquake detection method triggers when the signal amplitude exceeds a fixed threshold:</p>
+                <div class="formula">
+                    if |amplitude| > threshold → Detection!
+                </div>
+                <p style="margin-top: 15px;"><strong>How it works:</strong></p>
+                <ol style="font-size: 14px;">
+                    <li>Set a fixed amplitude threshold value</li>
+                    <li>Monitor continuous seismic data</li>
+                    <li>Trigger detection when amplitude exceeds threshold</li>
+                    <li>Mark detection end when amplitude drops below threshold</li>
+                </ol>
+            </div>
+            
+            <div class="info-card">
+                <h3>Why Simple Thresholding Fails</h3>
+                <p>This basic approach has fundamental limitations:</p>
+                <ul style="font-size: 14px;">
+                    <li><span class="highlight">Cannot distinguish earthquake types</span> - any signal above threshold triggers detection</li>
+                    <li><span class="highlight">No waveform analysis</span> - treats all signals equally</li>
+                    <li><span class="highlight">Fixed sensitivity</span> - same threshold for all conditions</li>
+                    <li><span class="highlight">Distance dependent</span> - same earthquake has different amplitudes at different stations</li>
+                    <li><span class="highlight">Noise vulnerable</span> - any spike triggers detection</li>
+                </ul>
+                <p style="margin-top: 15px; background: #ffe5e5; padding: 10px; border-radius: 5px;">
+                    <strong>Critical Issue:</strong> No threshold value works well - set it low and get many false alarms, set it high and miss real earthquakes!
+                </p>
+            </div>
+            
+            <div class="info-card">
+                <h3>Detection Performance Issues</h3>
+                <p>Common problems with amplitude threshold detection:</p>
+                <table style="width: 100%; margin-top: 15px; border-collapse: collapse;">
+                    <tr style="background: #f8f9fa;">
+                        <th style="padding: 8px; border: 1px solid #e0e0e0;">Problem</th>
+                        <th style="padding: 8px; border: 1px solid #e0e0e0;">Example</th>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">False Positives</td>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">Vehicles, explosions, machinery</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">Missed Events</td>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">Small/distant earthquakes</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">No Classification</td>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">Can't identify source type</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">Manual Tuning</td>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">Threshold needs constant adjustment</td>
+                    </tr>
+                </table>
+                <p style="margin-top: 15px; font-size: 14px;">
+                    <strong>Bottom Line:</strong> Simple amplitude thresholding is outdated and ineffective for modern seismic monitoring. It's why advanced methods like matched filtering were developed.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart instance
+        let amplitudeChart;
+        let continuousData = [];
+        let detectionThreshold = 0.5;
+        let noiseLevel = 0.1;
+        
+        // Known earthquake positions for validation
+        const earthquakeEvents = [
+            { start: 300, end: 600, name: 'Event A', amplitude: 0.6 },
+            { start: 900, end: 1200, name: 'Event B (Target)', amplitude: 0.9 },
+            { start: 1500, end: 1800, name: 'Event C', amplitude: 0.4 },
+            { start: 2100, end: 2400, name: 'Event D', amplitude: 1.2 },
+            { start: 2700, end: 3000, name: 'Event E', amplitude: 0.3 }
+        ];
+        
+        // Generate synthetic data
+        function generateData() {
+            // Base noise
+            continuousData = [];
+            for (let i = 0; i < 3500; i++) {
+                continuousData.push((Math.random() - 0.5) * noiseLevel);
+            }
+            
+            // Add real earthquakes
+            earthquakeEvents.forEach(event => {
+                for (let i = event.start; i < event.end && i < continuousData.length; i++) {
+                    const t = (i - event.start) / (event.end - event.start);
+                    
+                    // P-wave arrival (higher frequency, lower amplitude)
+                    if (t < 0.3) {
+                        const pTime = t / 0.3;
+                        const pEnvelope = Math.sin(Math.PI * pTime) * Math.exp(-3 * pTime);
+                        continuousData[i] += event.amplitude * 0.4 * pEnvelope * 
+                                           Math.sin(2 * Math.PI * 10 * pTime);
+                    }
+                    
+                    // S-wave arrival (lower frequency, higher amplitude)
+                    if (t >= 0.2) {
+                        const sTime = (t - 0.2) / 0.8;
+                        const sEnvelope = Math.sin(Math.PI * sTime) * Math.exp(-2 * sTime);
+                        continuousData[i] += event.amplitude * sEnvelope * 
+                                           Math.sin(2 * Math.PI * 5 * sTime) *
+                                           (1 + 0.2 * Math.sin(2 * Math.PI * 15 * sTime));
+                    }
+                    
+                    // Add coda waves
+                    if (t >= 0.7) {
+                        const codaTime = (t - 0.7) / 0.3;
+                        continuousData[i] += event.amplitude * 0.2 * Math.exp(-5 * codaTime) *
+                                           Math.sin(2 * Math.PI * 3 * codaTime);
+                    }
+                }
+            });
+            
+            // Add earthquake-like noise events (teleseismic, mine blasts, sonic booms, etc.)
+            const noiseEvents = [
+                { pos: 600, duration: 100, amp: 0.7, type: 'teleseismic' },
+                { pos: 1350, duration: 50, amp: 0.8, type: 'blast' },
+                { pos: 1950, duration: 150, amp: 0.5, type: 'vehicle' },
+                { pos: 2550, duration: 80, amp: 0.6, type: 'sonic' },
+                { pos: 3100, duration: 120, amp: 0.4, type: 'machinery' }
+            ];
+            
+            noiseEvents.forEach(event => {
+                for (let i = 0; i < event.duration && event.pos + i < continuousData.length; i++) {
+                    const t = i / event.duration;
+                    
+                    switch(event.type) {
+                        case 'teleseismic':
+                            // Long-period surface waves from distant earthquake
+                            continuousData[event.pos + i] += event.amp * Math.sin(2 * Math.PI * 0.5 * t) *
+                                                            Math.exp(-0.5 * t);
+                            break;
+                            
+                        case 'blast':
+                            // Sharp onset, short duration (mine/quarry blast)
+                            if (t < 0.2) {
+                                continuousData[event.pos + i] += event.amp * Math.exp(-10 * t) *
+                                                                Math.sin(2 * Math.PI * 20 * t);
+                            }
+                            break;
+                            
+                        case 'vehicle':
+                            // Monochromatic signal from heavy vehicle
+                            continuousData[event.pos + i] += event.amp * 0.5 * 
+                                                            Math.sin(2 * Math.PI * 2 * t) *
+                                                            (0.5 + 0.5 * Math.sin(2 * Math.PI * 0.1 * t));
+                            break;
+                            
+                        case 'sonic':
+                            // Sonic boom - N-wave pattern
+                            if (t < 0.3) {
+                                continuousData[event.pos + i] += event.amp * (1 - 2 * t / 0.3);
+                            } else if (t < 0.7) {
+                                continuousData[event.pos + i] -= event.amp * (1 - 2 * (t - 0.3) / 0.4);
+                            }
+                            break;
+                            
+                        case 'machinery':
+                            // Industrial machinery - harmonic signal
+                            continuousData[event.pos + i] += event.amp * 0.3 * 
+                                                            (Math.sin(2 * Math.PI * 3.3 * t) +
+                                                             0.5 * Math.sin(2 * Math.PI * 6.6 * t) +
+                                                             0.3 * Math.sin(2 * Math.PI * 9.9 * t));
+                            break;
+                    }
+                }
+            });
+            
+            // Add some random noise spikes
+            for (let i = 0; i < 5; i++) {
+                const spikePos = Math.floor(Math.random() * 3000) + 200;
+                const spikeAmp = 0.3 + Math.random() * 0.5;
+                const spikeWidth = Math.floor(Math.random() * 5) + 2;
+                
+                for (let j = 0; j < spikeWidth; j++) {
+                    if (spikePos + j < continuousData.length) {
+                        continuousData[spikePos + j] += spikeAmp * Math.exp(-j/2) * 
+                                                       (Math.random() > 0.5 ? 1 : -1);
+                    }
+                }
+            }
+            
+            // Store noise event positions for display
+            window.noiseEventPositions = noiseEvents;
+        }
+        
+        // Create time labels
+        function createTimeLabels(length, samplingRate = 100) {
+            const labels = [];
+            for (let i = 0; i < length; i++) {
+                labels.push((i / samplingRate).toFixed(2));
+            }
+            return labels;
+        }
+        
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('amplitudeChart').getContext('2d');
+            
+            amplitudeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: createTimeLabels(continuousData.length),
+                    datasets: [{
+                        label: 'Seismic Signal',
+                        data: continuousData,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        tension: 0
+                    }, {
+                        label: 'Detected Events',
+                        data: new Array(continuousData.length).fill(null),
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.2)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        tension: 0,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Amplitude-Based Detection',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        annotation: {
+                            annotations: {
+                                threshold: {
+                                    type: 'line',
+                                    yMin: detectionThreshold,
+                                    yMax: detectionThreshold,
+                                    borderColor: '#e74c3c',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        content: `Threshold: ${detectionThreshold.toFixed(2)}`,
+                                        enabled: true,
+                                        position: 'end',
+                                        backgroundColor: '#e74c3c',
+                                        color: 'white',
+                                        font: { size: 12, weight: 'bold' }
+                                    }
+                                },
+                                thresholdNeg: {
+                                    type: 'line',
+                                    yMin: -detectionThreshold,
+                                    yMax: -detectionThreshold,
+                                    borderColor: '#e74c3c',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5]
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time (seconds)',
+                                color: '#333',
+                                font: { size: 14, weight: 'bold' }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                borderColor: '#333'
+                            },
+                            ticks: {
+                                color: '#666',
+                                callback: function(value, index) {
+                                    const time = parseFloat(this.getLabelForValue(value));
+                                    return time % 5 === 0 ? time : '';
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Amplitude',
+                                color: '#333',
+                                font: { size: 14, weight: 'bold' }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                borderColor: '#333'
+                            },
+                            ticks: { color: '#666' }
+                        }
+                    }
+                }
+            });
+            
+            // Add event annotations
+            const annotations = amplitudeChart.options.plugins.annotation.annotations;
+            
+            // Real earthquake events
+            earthquakeEvents.forEach((event, idx) => {
+                annotations[`event${idx}`] = {
+                    type: 'box',
+                    xMin: event.start / 100,
+                    xMax: event.end / 100,
+                    backgroundColor: idx === 1 ? 'rgba(39, 174, 96, 0.1)' : 'rgba(52, 152, 219, 0.05)',
+                    borderColor: idx === 1 ? '#27ae60' : '#3498db',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    label: {
+                        content: event.name,
+                        enabled: true,
+                        position: 'start',
+                        font: { size: 11 },
+                        backgroundColor: idx === 1 ? '#27ae60' : '#3498db',
+                        color: 'white'
+                    }
+                };
+            });
+            
+            // Noise events that look like earthquakes
+            if (window.noiseEventPositions) {
+                window.noiseEventPositions.forEach((event, idx) => {
+                    const labels = {
+                        'teleseismic': 'Distant Earthquake',
+                        'blast': 'Mine Blast',
+                        'vehicle': 'Heavy Vehicle',
+                        'sonic': 'Sonic Boom',
+                        'machinery': 'Industrial Noise'
+                    };
+                    
+                    annotations[`noise${idx}`] = {
+                        type: 'box',
+                        xMin: event.pos / 100,
+                        xMax: (event.pos + event.duration) / 100,
+                        backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                        borderColor: '#e74c3c',
+                        borderWidth: 1,
+                        borderDash: [3, 3],
+                        label: {
+                            content: labels[event.type],
+                            enabled: true,
+                            position: 'start',
+                            font: { size: 10 },
+                            backgroundColor: '#e74c3c',
+                            color: 'white'
+                        }
+                    };
+                });
+            }
+            
+            amplitudeChart.update();
+        }
+        
+        // Run detection
+        function runDetection() {
+            const detections = [];
+            const detectedData = new Array(continuousData.length).fill(null);
+            let inDetection = false;
+            let detectionStart = 0;
+            
+            // Simple amplitude threshold detection
+            for (let i = 0; i < continuousData.length; i++) {
+                if (Math.abs(continuousData[i]) > detectionThreshold) {
+                    detectedData[i] = continuousData[i];
+                    
+                    if (!inDetection) {
+                        inDetection = true;
+                        detectionStart = i;
+                    }
+                } else if (inDetection) {
+                    // End of detection
+                    detections.push({
+                        start: detectionStart,
+                        end: i,
+                        maxAmp: Math.max(...continuousData.slice(detectionStart, i).map(Math.abs))
+                    });
+                    inDetection = false;
+                }
+            }
+            
+            // Update chart
+            amplitudeChart.data.datasets[1].data = detectedData;
+            amplitudeChart.update();
+            
+            // Calculate statistics
+            let truePositives = 0;
+            let falsePositives = 0;
+            let missedEvents = 0;
+            
+            // Check each detection
+            detections.forEach(detection => {
+                let isRealEvent = false;
+                for (const event of earthquakeEvents) {
+                    if ((detection.start >= event.start && detection.start <= event.end) ||
+                        (detection.end >= event.start && detection.end <= event.end)) {
+                        isRealEvent = true;
+                        break;
+                    }
+                }
+                if (isRealEvent) {
+                    truePositives++;
+                } else {
+                    falsePositives++;
+                }
+            });
+            
+            // Check for missed events
+            earthquakeEvents.forEach(event => {
+                let wasDetected = false;
+                for (const detection of detections) {
+                    if ((detection.start >= event.start && detection.start <= event.end) ||
+                        (detection.end >= event.start && detection.end <= event.end)) {
+                        wasDetected = true;
+                        break;
+                    }
+                }
+                if (!wasDetected) {
+                    missedEvents++;
+                }
+            });
+            
+            // Update statistics
+            document.getElementById('totalDetections').textContent = detections.length;
+            document.getElementById('truePositives').textContent = truePositives;
+            document.getElementById('falsePositives').textContent = falsePositives;
+            document.getElementById('missedEvents').textContent = missedEvents;
+            
+            // Update status
+            const statusEl = document.getElementById('detectionStatus');
+            if (falsePositives > 0 || missedEvents > 0) {
+                statusEl.textContent = `Detection Issues: ${falsePositives} false, ${missedEvents} missed`;
+                statusEl.style.background = '#e74c3c';
+            } else if (detections.length > 0) {
+                statusEl.textContent = `${detections.length} Events Detected`;
+                statusEl.style.background = '#27ae60';
+            } else {
+                statusEl.textContent = 'No Events Detected';
+                statusEl.style.background = '#f39c12';
+            }
+        }
+        
+        // Control functions
+        function resetData() {
+            generateData();
+            amplitudeChart.data.datasets[0].data = continuousData;
+            amplitudeChart.data.datasets[1].data = new Array(continuousData.length).fill(null);
+            amplitudeChart.update();
+            
+            // Reset statistics
+            document.getElementById('totalDetections').textContent = '0';
+            document.getElementById('truePositives').textContent = '0';
+            document.getElementById('falsePositives').textContent = '0';
+            document.getElementById('missedEvents').textContent = '0';
+            document.getElementById('detectionStatus').textContent = 'No Detection Run';
+            document.getElementById('detectionStatus').style.background = '#7f8c8d';
+        }
+        
+        function addNoise() {
+            noiseLevel = Math.min(0.3, noiseLevel + 0.05);
+            resetData();
+        }
+        
+        // Threshold slider
+        document.getElementById('thresholdSlider').addEventListener('input', (e) => {
+            detectionThreshold = parseFloat(e.target.value);
+            document.getElementById('thresholdValue').textContent = detectionThreshold.toFixed(2);
+            
+            // Update threshold lines
+            amplitudeChart.options.plugins.annotation.annotations.threshold.yMin = detectionThreshold;
+            amplitudeChart.options.plugins.annotation.annotations.threshold.yMax = detectionThreshold;
+            amplitudeChart.options.plugins.annotation.annotations.threshold.label.content = 
+                `Threshold: ${detectionThreshold.toFixed(2)}`;
+            amplitudeChart.options.plugins.annotation.annotations.thresholdNeg.yMin = -detectionThreshold;
+            amplitudeChart.options.plugins.annotation.annotations.thresholdNeg.yMax = -detectionThreshold;
+            amplitudeChart.update();
+            
+            runDetection();
+        });
+        
+        // Initialize
+        window.addEventListener('DOMContentLoaded', function() {
+            generateData();
+            initChart();
+        });
+    </script>
+</body>
+</html>

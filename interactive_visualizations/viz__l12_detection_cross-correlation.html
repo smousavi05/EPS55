@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cross-Correlation Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00d4ff, #ff0080);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            text-align: center;
+            font-size: 1.2em;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        
+        .canvas-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .info-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-box h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        
+        .info-box p {
+            line-height: 1.6;
+            color: #ccc;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .stat-label {
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 20px;
+            border-radius: 8px;
+        }
+        
+        .speed-control input[type="range"] {
+            width: 150px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cross-Correlation Visualization</h1>
+        <p class="subtitle">Understanding how signals correlate as they slide past each other</p>
+        
+        <div class="canvas-container">
+            <canvas id="signalCanvas" width="1000" height="300"></canvas>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="correlationCanvas" width="1000" height="250"></canvas>
+        </div>
+        
+        <div class="controls">
+            <button id="playBtn">Play Animation</button>
+            <button id="resetBtn">Reset</button>
+            <button id="signal1Btn">Change Signal 1</button>
+            <button id="signal2Btn">Change Signal 2</button>
+            <div class="speed-control">
+                <label>Speed:</label>
+                <input type="range" id="speedSlider" min="1" max="10" value="5">
+                <span id="speedValue">5</span>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="lagValue">0</div>
+                <div class="stat-label">Current Lag</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="correlationValue">0.00</div>
+                <div class="stat-label">Correlation at Current Lag</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="maxCorrelation">0.00</div>
+                <div class="stat-label">Max Correlation</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="maxLag">0</div>
+                <div class="stat-label">Lag at Max Correlation</div>
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <h3>What is Cross-Correlation?</h3>
+            <p>Cross-correlation is a measure of similarity between two signals as a function of the displacement (lag) of one relative to the other. It's commonly used in signal processing, pattern recognition, and time series analysis to find patterns, delays, or similarities between signals.</p>
+            
+            <h3 style="margin-top: 20px;">How it Works:</h3>
+            <p>1. The red signal (Signal 1) remains stationary while the blue signal (Signal 2) slides across it.</p>
+            <p>2. At each position (lag), we multiply corresponding values and sum them up.</p>
+            <p>3. The result shows how well the signals match at each lag position.</p>
+            <p>4. A high correlation value indicates the signals are similar at that lag.</p>
+            
+            <h3 style="margin-top: 20px;">Applications:</h3>
+            <p>• Finding time delays between signals (e.g., echo detection)</p>
+            <p>• Pattern matching in images and audio</p>
+            <p>• Synchronizing signals in communications</p>
+            <p>• Detecting periodicities in time series data</p>
+        </div>
+    </div>
+    
+    <script>
+        const signalCanvas = document.getElementById('signalCanvas');
+        const correlationCanvas = document.getElementById('correlationCanvas');
+        const signalCtx = signalCanvas.getContext('2d');
+        const correlationCtx = correlationCanvas.getContext('2d');
+        
+        let animationId = null;
+        let currentLag = -200;
+        let correlationResults = [];
+        let maxCorrelationValue = -Infinity;
+        let maxCorrelationLag = 0;
+        let isPlaying = false;
+        let animationSpeed = 5;
+        
+        // Signal parameters
+        const signalLength = 100;
+        const totalLength = 600;
+        
+        // Signal types
+        const signalTypes = {
+            pulse: (x, width, offset) => {
+                return (x > offset && x < offset + width) ? 1 : 0;
+            },
+            sine: (x, freq, phase) => {
+                return Math.sin((x * freq + phase) * Math.PI / 180);
+            },
+            gaussian: (x, mean, std) => {
+                return Math.exp(-Math.pow(x - mean, 2) / (2 * Math.pow(std, 2)));
+            },
+            square: (x, period, phase) => {
+                return ((x + phase) % period < period/2) ? 1 : -1;
+            }
+        };
+        
+        let signal1Type = 'pulse';
+        let signal2Type = 'pulse';
+        let signal1Params = [20, 40];  // Pulse width and offset
+        let signal2Params = [20, 40];  // Same for initial alignment
+        
+        // Generate signals
+        function generateSignal(type, params, length) {
+            const signal = [];
+            for (let i = 0; i < length; i++) {
+                signal.push(signalTypes[type](i, ...params));
+            }
+            return signal;
+        }
+        
+        let signal1 = generateSignal(signal1Type, signal1Params, signalLength);
+        let signal2 = generateSignal(signal2Type, signal2Params, signalLength);
+        
+        // Calculate cross-correlation for a specific lag
+        function calculateCorrelation(sig1, sig2, lag) {
+            // The actual lag between signals based on their canvas positions
+            // Signal 1 is at position 300, Signal 2 starts at 100
+            // So when lag = 0, Signal 2 is at position 100
+            // When lag = 200, Signal 2 is at position 300 (aligned with Signal 1)
+            const actualLag = 200 - lag;
+            
+            let sum = 0;
+            let norm1 = 0;
+            let norm2 = 0;
+            let count = 0;
+            
+            // Calculate correlation
+            for (let i = 0; i < sig1.length; i++) {
+                const j = i + actualLag;
+                if (j >= 0 && j < sig2.length) {
+                    sum += sig1[i] * sig2[j];
+                    norm1 += sig1[i] * sig1[i];
+                    norm2 += sig2[j] * sig2[j];
+                    count++;
+                }
+            }
+            
+            if (count === 0 || norm1 === 0 || norm2 === 0) return 0;
+            
+            // Normalized cross-correlation
+            return sum / Math.sqrt(norm1 * norm2);
+        }
+        
+        // Draw signals with axes
+        function drawSignals() {
+            signalCtx.clearRect(0, 0, signalCanvas.width, signalCanvas.height);
+            
+            const padding = 50;
+            const graphWidth = signalCanvas.width - 2 * padding;
+            const graphHeight = signalCanvas.height - 2 * padding;
+            const centerY = padding + graphHeight / 2;
+            const scale = graphHeight / 3;
+            
+            // Draw axes
+            signalCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            signalCtx.lineWidth = 2;
+            
+            // X-axis
+            signalCtx.beginPath();
+            signalCtx.moveTo(padding, centerY);
+            signalCtx.lineTo(signalCanvas.width - padding, centerY);
+            signalCtx.stroke();
+            
+            // Y-axis
+            signalCtx.beginPath();
+            signalCtx.moveTo(padding, padding);
+            signalCtx.lineTo(padding, signalCanvas.height - padding);
+            signalCtx.stroke();
+            
+            // Draw grid
+            signalCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            signalCtx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const x = padding + (i / 10) * graphWidth;
+                signalCtx.beginPath();
+                signalCtx.moveTo(x, padding);
+                signalCtx.lineTo(x, signalCanvas.height - padding);
+                signalCtx.stroke();
+            }
+            
+            // Position calculations
+            const sig1Start = 300; // Middle position
+            const sig2Start = 100 + currentLag; // Starting at 1/3, then moving
+            
+            // Draw Signal 1 (stationary, red)
+            signalCtx.strokeStyle = '#ff0080';
+            signalCtx.lineWidth = 3;
+            signalCtx.beginPath();
+            for (let i = 0; i < signal1.length; i++) {
+                const x = padding + ((sig1Start + i) / totalLength) * graphWidth;
+                const y = centerY - signal1[i] * scale;
+                if (i === 0) signalCtx.moveTo(x, y);
+                else signalCtx.lineTo(x, y);
+            }
+            signalCtx.stroke();
+            
+            // Draw Signal 2 (moving, blue)
+            signalCtx.strokeStyle = '#00d4ff';
+            signalCtx.lineWidth = 3;
+            signalCtx.beginPath();
+            let firstPoint = true;
+            for (let i = 0; i < signal2.length; i++) {
+                const x = padding + ((sig2Start + i) / totalLength) * graphWidth;
+                const y = centerY - signal2[i] * scale;
+                if (x >= padding && x <= signalCanvas.width - padding) {
+                    if (firstPoint) {
+                        signalCtx.moveTo(x, y);
+                        firstPoint = false;
+                    } else {
+                        signalCtx.lineTo(x, y);
+                    }
+                }
+            }
+            signalCtx.stroke();
+            
+            // Draw overlap highlight
+            const overlapStart = Math.max(sig1Start, sig2Start);
+            const overlapEnd = Math.min(sig1Start + signal1.length, sig2Start + signal2.length);
+            
+            if (overlapEnd > overlapStart) {
+                signalCtx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                const startX = padding + (overlapStart / totalLength) * graphWidth;
+                const endX = padding + (overlapEnd / totalLength) * graphWidth;
+                signalCtx.fillRect(startX, padding, endX - startX, graphHeight);
+            }
+            
+            // Labels
+            signalCtx.font = '14px Arial';
+            signalCtx.fillStyle = '#888';
+            signalCtx.fillText('Time →', signalCanvas.width - padding - 50, centerY + 30);
+            signalCtx.save();
+            signalCtx.translate(20, centerY);
+            signalCtx.rotate(-Math.PI/2);
+            signalCtx.fillText('Amplitude', 0, 0);
+            signalCtx.restore();
+            
+            // Signal labels
+            signalCtx.font = '16px Arial';
+            signalCtx.fillStyle = '#ff0080';
+            signalCtx.fillText('Signal 1 (Reference)', padding + 10, 30);
+            signalCtx.fillStyle = '#00d4ff';
+            signalCtx.fillText('Signal 2 (Sliding)', padding + 10, 50);
+        }
+        
+        // Draw correlation graph with axes
+        function drawCorrelation() {
+            correlationCtx.clearRect(0, 0, correlationCanvas.width, correlationCanvas.height);
+            
+            const padding = 50;
+            const graphWidth = correlationCanvas.width - 2 * padding;
+            const graphHeight = correlationCanvas.height - 2 * padding;
+            const centerY = padding + graphHeight / 2;
+            
+            // Draw axes
+            correlationCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            correlationCtx.lineWidth = 2;
+            
+            // X-axis
+            correlationCtx.beginPath();
+            correlationCtx.moveTo(padding, centerY);
+            correlationCtx.lineTo(correlationCanvas.width - padding, centerY);
+            correlationCtx.stroke();
+            
+            // Y-axis
+            correlationCtx.beginPath();
+            correlationCtx.moveTo(padding, padding);
+            correlationCtx.lineTo(padding, correlationCanvas.height - padding);
+            correlationCtx.stroke();
+            
+            // Draw grid
+            correlationCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            correlationCtx.lineWidth = 1;
+            
+            // Horizontal grid lines
+            for (let i = 0; i <= 4; i++) {
+                const y = padding + (i / 4) * graphHeight;
+                correlationCtx.beginPath();
+                correlationCtx.moveTo(padding, y);
+                correlationCtx.lineTo(correlationCanvas.width - padding, y);
+                correlationCtx.stroke();
+            }
+            
+            // Vertical grid lines
+            for (let i = 0; i <= 8; i++) {
+                const x = padding + (i / 8) * graphWidth;
+                correlationCtx.beginPath();
+                correlationCtx.moveTo(x, padding);
+                correlationCtx.lineTo(x, correlationCanvas.height - padding);
+                correlationCtx.stroke();
+            }
+            
+            // Draw Y-axis labels
+            correlationCtx.font = '12px Arial';
+            correlationCtx.fillStyle = '#888';
+            correlationCtx.textAlign = 'right';
+            correlationCtx.fillText('1.0', padding - 10, padding + 5);
+            correlationCtx.fillText('0.5', padding - 10, padding + graphHeight/4 + 5);
+            correlationCtx.fillText('0', padding - 10, centerY + 5);
+            correlationCtx.fillText('-0.5', padding - 10, padding + 3*graphHeight/4 + 5);
+            correlationCtx.fillText('-1.0', padding - 10, correlationCanvas.height - padding + 5);
+            
+            // Draw X-axis labels
+            correlationCtx.textAlign = 'center';
+            correlationCtx.fillText('-200', padding, correlationCanvas.height - padding + 20);
+            correlationCtx.fillText('0', padding + graphWidth/2, correlationCanvas.height - padding + 20);
+            correlationCtx.fillText('200', padding + 3*graphWidth/4, correlationCanvas.height - padding + 20);
+            correlationCtx.fillText('400', correlationCanvas.width - padding, correlationCanvas.height - padding + 20);
+            
+            // Draw correlation curve
+            if (correlationResults.length > 0) {
+                correlationCtx.strokeStyle = '#ffd700';
+                correlationCtx.lineWidth = 3;
+                correlationCtx.beginPath();
+                
+                correlationResults.forEach((result, i) => {
+                    const x = padding + ((result.lag + 200) / 600) * graphWidth;  // Adjusted for extended range
+                    const y = centerY - result.value * (graphHeight / 2);
+                    if (i === 0) correlationCtx.moveTo(x, y);
+                    else correlationCtx.lineTo(x, y);
+                });
+                correlationCtx.stroke();
+                
+                // Draw current position marker
+                const currentIndex = correlationResults.findIndex(r => r.lag === currentLag);
+                if (currentIndex !== -1) {
+                    const x = padding + ((currentLag + 200) / 600) * graphWidth;  // Adjusted for extended range
+                    const y = centerY - correlationResults[currentIndex].value * (graphHeight / 2);
+                    
+                    correlationCtx.fillStyle = '#ffd700';
+                    correlationCtx.beginPath();
+                    correlationCtx.arc(x, y, 8, 0, Math.PI * 2);
+                    correlationCtx.fill();
+                    
+                    // Draw vertical line
+                    correlationCtx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
+                    correlationCtx.setLineDash([5, 5]);
+                    correlationCtx.beginPath();
+                    correlationCtx.moveTo(x, padding);
+                    correlationCtx.lineTo(x, correlationCanvas.height - padding);
+                    correlationCtx.stroke();
+                    correlationCtx.setLineDash([]);
+                }
+                
+                // Highlight max correlation
+                const maxIndex = correlationResults.findIndex(r => r.value === maxCorrelationValue);
+                if (maxIndex !== -1) {
+                    const x = padding + ((correlationResults[maxIndex].lag + 200) / 600) * graphWidth;  // Adjusted for extended range
+                    const y = centerY - maxCorrelationValue * (graphHeight / 2);
+                    
+                    correlationCtx.strokeStyle = '#00ff00';
+                    correlationCtx.lineWidth = 2;
+                    correlationCtx.beginPath();
+                    correlationCtx.arc(x, y, 12, 0, Math.PI * 2);
+                    correlationCtx.stroke();
+                }
+            }
+            
+            // Labels
+            correlationCtx.font = '16px Arial';
+            correlationCtx.fillStyle = '#ffd700';
+            correlationCtx.textAlign = 'left';
+            correlationCtx.fillText('Cross-Correlation Function', padding + 10, 30);
+            
+            correlationCtx.font = '14px Arial';
+            correlationCtx.fillStyle = '#888';
+            correlationCtx.textAlign = 'center';
+            correlationCtx.fillText('Lag →', correlationCanvas.width / 2, correlationCanvas.height - 10);
+            
+            correlationCtx.save();
+            correlationCtx.translate(20, correlationCanvas.height / 2);
+            correlationCtx.rotate(-Math.PI/2);
+            correlationCtx.textAlign = 'center';
+            correlationCtx.fillText('Correlation', 0, 0);
+            correlationCtx.restore();
+        }
+        
+        // Update statistics
+        function updateStats() {
+            document.getElementById('lagValue').textContent = currentLag;
+            const currentCorrelation = calculateCorrelation(signal1, signal2, currentLag);
+            document.getElementById('correlationValue').textContent = currentCorrelation.toFixed(3);
+            document.getElementById('maxCorrelation').textContent = maxCorrelationValue.toFixed(3);
+            document.getElementById('maxLag').textContent = maxCorrelationLag;
+        }
+        
+        // Animation loop
+        function animate() {
+            if (!isPlaying) return;
+            
+            currentLag += animationSpeed;
+            
+            if (currentLag > 400) {  // Extended range to show signal moving past
+                isPlaying = false;
+                document.getElementById('playBtn').textContent = 'Play Animation';
+                return;
+            }
+            
+            const correlation = calculateCorrelation(signal1, signal2, currentLag);
+            correlationResults.push({ lag: currentLag, value: correlation });
+            
+            if (correlation > maxCorrelationValue) {
+                maxCorrelationValue = correlation;
+                maxCorrelationLag = currentLag;
+            }
+            
+            drawSignals();
+            drawCorrelation();
+            updateStats();
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // Event listeners
+        document.getElementById('playBtn').addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            document.getElementById('playBtn').textContent = isPlaying ? 'Pause' : 'Play Animation';
+            if (isPlaying && currentLag >= 400) {
+                reset();
+            }
+            if (isPlaying) animate();
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', reset);
+        
+        function reset() {
+            isPlaying = false;
+            currentLag = -200;
+            correlationResults = [];
+            maxCorrelationValue = -Infinity;
+            maxCorrelationLag = 0;
+            document.getElementById('playBtn').textContent = 'Play Animation';
+            drawSignals();
+            drawCorrelation();
+            updateStats();
+        }
+        
+        document.getElementById('signal1Btn').addEventListener('click', () => {
+            const types = ['pulse', 'sine', 'gaussian', 'square'];
+            const currentIndex = types.indexOf(signal1Type);
+            signal1Type = types[(currentIndex + 1) % types.length];
+            
+            // Set appropriate parameters for each signal type
+            switch(signal1Type) {
+                case 'pulse':
+                    signal1Params = [20, 40];
+                    break;
+                case 'sine':
+                    signal1Params = [5, 0];
+                    break;
+                case 'gaussian':
+                    signal1Params = [50, 15];
+                    break;
+                case 'square':
+                    signal1Params = [40, 0];
+                    break;
+            }
+            
+            signal1 = generateSignal(signal1Type, signal1Params, signalLength);
+            reset();
+        });
+        
+        document.getElementById('signal2Btn').addEventListener('click', () => {
+            const types = ['pulse', 'sine', 'gaussian', 'square'];
+            const currentIndex = types.indexOf(signal2Type);
+            signal2Type = types[(currentIndex + 1) % types.length];
+            
+            // Set appropriate parameters for each signal type
+            switch(signal2Type) {
+                case 'pulse':
+                    signal2Params = [20, 40];
+                    break;
+                case 'sine':
+                    signal2Params = [5, 0];
+                    break;
+                case 'gaussian':
+                    signal2Params = [50, 15];
+                    break;
+                case 'square':
+                    signal2Params = [40, 0];
+                    break;
+            }
+            
+            signal2 = generateSignal(signal2Type, signal2Params, signalLength);
+            reset();
+        });
+        
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            animationSpeed = parseInt(e.target.value);
+            document.getElementById('speedValue').textContent = animationSpeed;
+        });
+        
+        // Initial draw
+        drawSignals();
+        drawCorrelation();
+        updateStats();
+    </script>
+</body>
+</html>

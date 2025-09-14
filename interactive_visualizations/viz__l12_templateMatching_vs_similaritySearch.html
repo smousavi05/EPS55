@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seismogram Forest Simulator</title>
+    <style>
+        :root {
+            --bg-color: #f0f4f8; --panel-bg: #ffffff; --text-color: #1e2a3a;
+            --primary: #0077b6; --secondary: #00b4d8; --accent: #ade8f4;
+            --match-strong: #40916c; --match-medium: #fca311;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color); color: var(--text-color);
+            margin: 0; padding: 20px;
+        }
+        h1, p { text-align: center; }
+        .main-container {
+            display: flex; flex-wrap: wrap; gap: 20px; max-width: 1400px; margin: auto;
+        }
+        .controls-panel {
+            flex: 1; min-width: 300px; background: var(--panel-bg);
+            padding: 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            align-self: flex-start;
+        }
+        .forest-panel {
+            flex: 3; min-width: 600px;
+        }
+        .control-group { margin-bottom: 25px; }
+        .control-group legend {
+            font-size: 1.2em; font-weight: bold; color: var(--primary);
+            border-bottom: 2px solid var(--secondary); margin-bottom: 10px; padding-bottom: 5px;
+        }
+        button {
+            width: 100%; padding: 12px; border: none; border-radius: 5px; color: white;
+            font-size: 1.1em; cursor: pointer; transition: background-color 0.2s; margin-top: 10px;
+        }
+        #btn-scan { background-color: var(--primary); }
+        #btn-cluster { background-color: #5a189a; }
+        #btn-new { background-color: #7f8c8d; }
+        #seismogram-forest {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px; background: var(--panel-bg); padding: 15px; border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .seismo-canvas {
+            border: 3px solid transparent; border-radius: 5px; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .seismo-canvas:hover { border-color: var(--accent); }
+        .seismo-canvas.selected { border-color: var(--primary); background-color: #eaf4f4; }
+        .seismo-canvas.match-strong { border-color: var(--match-strong); }
+        .seismo-canvas.match-medium { border-color: var(--match-medium); }
+        #template-preview-wrapper { text-align: center; }
+        #status-box { margin-top: 15px; font-style: italic; color: #555; }
+    </style>
+</head>
+<body>
+    <h1>Seismogram Forest 🌲</h1>
+    <p>Click a waveform to select it as a template, then scan the forest to find its family!</p>
+    <div class="main-container">
+        <div class="controls-panel">
+            <div class="control-group">
+                <legend>1. Game Mode</legend>
+                <label><input type="radio" name="mode" value="template" checked> Template Matching</label><br>
+                <label><input type="radio" name="mode" value="cluster"> Similarity Search</label>
+            </div>
+            <div class="control-group" id="template-controls">
+                <legend>2. Your Template</legend>
+                <div id="template-preview-wrapper">
+                    <canvas id="template-preview" width="150" height="75" style="border: 2px solid var(--primary); border-radius: 5px;"></canvas>
+                </div>
+                <button id="btn-scan">Scan Forest</button>
+            </div>
+             <div class="control-group" id="cluster-controls" style="display:none;">
+                <legend>2. Discover Patterns</legend>
+                <button id="btn-cluster">Find All Families</button>
+            </div>
+            <div class="control-group">
+                <legend>3. Actions</legend>
+                <button id="btn-new">Generate New Forest</button>
+                <div id="status-box">Select a waveform to begin.</div>
+            </div>
+        </div>
+        <div class="forest-panel">
+            <div id="seismogram-forest"></div>
+        </div>
+    </div>
+
+<script>
+// --- 1. SETUP & WAVEFORM GENERATION ---
+const forestContainer = document.getElementById('seismogram-forest');
+const templatePreview = document.getElementById('template-preview');
+const statusBox = document.getElementById('status-box');
+const FOREST_SIZE = 48;
+let forestData = [];
+let selectedTemplate = null;
+
+const BASE_TEMPLATES = {
+    family_A: [0, 0.1, 0.3, 0.8, 0.5, -0.2, -0.6, -0.3, 0.1, 0.4, 0.2, 0, 0],
+    family_B: [0, -0.1, -0.2, 0.2, 0.6, 0.9, 0.6, 0.2, -0.3, -0.5, -0.2, 0],
+    noise_spike: [0, 0, 0, 0, 1.0, -0.8, 0.2, 0, 0, 0],
+    noise_tremor: Array.from({length: 20}, () => Math.sin(Math.random() * 20) * 0.4)
+};
+
+function generateForest() {
+    forestData = [];
+    const families = Object.keys(BASE_TEMPLATES);
+    for (let i = 0; i < FOREST_SIZE; i++) {
+        const familyName = families[Math.floor(Math.random() * families.length)];
+        const base = BASE_TEMPLATES[familyName];
+        const noisyData = base.map(val => val + (Math.random() - 0.5) * 0.2);
+        forestData.push({
+            id: i, data: noisyData, family: familyName,
+            similarity: 0, clusterId: null, element: null
+        });
+    }
+    renderForest();
+}
+
+function renderForest() {
+    forestContainer.innerHTML = '';
+    selectedTemplate = null;
+    clearTemplatePreview();
+    forestData.forEach(item => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 120; canvas.height = 60;
+        canvas.className = 'seismo-canvas';
+        canvas.dataset.id = item.id;
+        drawWaveform(canvas, item.data);
+        item.element = canvas;
+        forestContainer.appendChild(canvas);
+        
+        canvas.addEventListener('click', () => handleCanvasClick(item));
+    });
+    statusBox.textContent = 'A new forest has grown. Select a template.';
+}
+
+function drawWaveform(canvas, data, color = 'black') {
+    const ctx = canvas.getContext('2d');
+    const h = canvas.height; const w = canvas.width;
+    const midY = h / 2;
+    ctx.clearRect(0, 0, w, h);
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    data.forEach((val, i) => {
+        const x = (i / (data.length - 1)) * w;
+        const y = midY - val * (midY * 0.8);
+        ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
+// --- 2. CORE ALGORITHMS (SIMILARITY & CLUSTERING) ---
+
+function calculateNCC(vecA, vecB) {
+    let dot = 0, normA = 0, normB = 0;
+    const len = Math.min(vecA.length, vecB.length);
+    for (let i = 0; i < len; i++) {
+        dot += (vecA[i] || 0) * (vecB[i] || 0);
+        normA += (vecA[i] || 0) ** 2;
+        normB += (vecB[i] || 0) ** 2;
+    }
+    if (normA === 0 || normB === 0) return 0;
+    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+function runTemplateScan() {
+    if (!selectedTemplate) {
+        statusBox.textContent = 'Please select a template waveform first!';
+        return;
+    }
+    let strongMatches = 0;
+    forestData.forEach(item => {
+        item.similarity = calculateNCC(selectedTemplate.data, item.data);
+        item.element.classList.remove('match-strong', 'match-medium');
+        if (item.id === selectedTemplate.id) return;
+        if (item.similarity > 0.9) {
+            item.element.classList.add('match-strong');
+            strongMatches++;
+        } else if (item.similarity > 0.7) {
+            item.element.classList.add('match-medium');
+        }
+    });
+    statusBox.textContent = `Scan complete! Found ${strongMatches} other strong matches.`;
+}
+
+function runClustering() {
+    forestData.forEach(item => { item.clusterId = null; });
+    const CLUSTER_COLORS = ['#e63946', '#5a189a', '#1d3557', '#457b9d', '#fca311', '#2a9d8f'];
+    let clusterId = 0;
+    
+    forestData.forEach(leader => {
+        if (leader.clusterId === null) {
+            leader.clusterId = clusterId;
+            forestData.forEach(follower => {
+                if (follower.clusterId === null) {
+                    const similarity = calculateNCC(leader.data, follower.data);
+                    if (similarity > 0.85) {
+                        follower.clusterId = clusterId;
+                    }
+                }
+            });
+            clusterId++;
+        }
+    });
+    
+    forestData.forEach(item => {
+        item.element.style.borderColor = CLUSTER_COLORS[item.clusterId % CLUSTER_COLORS.length];
+    });
+    statusBox.textContent = `Found ${clusterId} distinct families of waveforms.`;
+}
+
+// --- 3. UI & EVENT HANDLING ---
+
+function handleCanvasClick(item) {
+    if (document.querySelector('input[name="mode"]:checked').value !== 'template') return;
+    
+    forestData.forEach(d => d.element.classList.remove('selected'));
+    
+    selectedTemplate = item;
+    item.element.classList.add('selected');
+    // --- FIX: Replaced invalid CSS `var()` syntax with a valid color string. ---
+    drawWaveform(templatePreview, item.data, '#0077b6');
+    statusBox.textContent = `Template from the '${item.family}' family selected. Ready to scan.`;
+}
+
+function clearTemplatePreview() {
+    const ctx = templatePreview.getContext('2d');
+    ctx.clearRect(0, 0, templatePreview.width, templatePreview.height);
+}
+
+function resetAllStyles() {
+    forestData.forEach(item => {
+        item.element.className = 'seismo-canvas';
+        item.element.style.borderColor = 'transparent';
+    });
+    clearTemplatePreview();
+    selectedTemplate = null;
+}
+
+document.querySelectorAll('input[name="mode"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        const isTemplateMode = e.target.value === 'template';
+        document.getElementById('template-controls').style.display = isTemplateMode ? 'block' : 'none';
+        document.getElementById('cluster-controls').style.display = isTemplateMode ? 'none' : 'block';
+        resetAllStyles();
+        statusBox.textContent = isTemplateMode ? 'Mode: Template Matching. Select a waveform.' : 'Mode: Similarity Search. Ready to find families.';
+    });
+});
+
+document.getElementById('btn-scan').addEventListener('click', runTemplateScan);
+document.getElementById('btn-cluster').addEventListener('click', runClustering);
+document.getElementById('btn-new').addEventListener('click', generateForest);
+
+// --- 4. INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', generateForest);
+</script>
+</body>
+</html>

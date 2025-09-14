@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Earthquake Detection Schematic</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            max-width: 1400px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+        
+        svg {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Earthquake Signal Detection Using Neural Networks</h1>
+        <p class="subtitle">Schematic representation of a fully connected neural network for seismic event classification</p>
+        
+        <svg viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg">
+            <!-- Input Waveform -->
+            <g id="input-waveform">
+                <rect x="20" y="200" width="200" height="200" fill="none" stroke="#ddd" stroke-width="2" rx="5"/>
+                <text x="120" y="180" text-anchor="middle" font-size="14" fill="#666">Input Seismic Signal</text>
+                
+                <!-- Waveform path -->
+                <path d="M 40 300 L 50 295 L 60 305 L 70 290 L 80 310 L 90 280 L 100 340 L 110 260 L 120 320 L 130 280 L 140 310 L 150 290 L 160 305 L 170 295 L 180 300 L 190 298 L 200 300" 
+                      fill="none" stroke="#2196F3" stroke-width="2"/>
+                
+                <!-- Time axis -->
+                <line x1="40" y1="350" x2="200" y2="350" stroke="#999" stroke-width="1"/>
+                <text x="120" y="370" text-anchor="middle" font-size="12" fill="#999">Time (s)</text>
+                
+                <!-- Amplitude axis -->
+                <line x1="40" y1="250" x2="40" y2="350" stroke="#999" stroke-width="1"/>
+                <text x="25" y="300" text-anchor="middle" font-size="12" fill="#999" transform="rotate(-90 25 300)">Amplitude</text>
+            </g>
+            
+            <!-- Feature Extraction Arrow -->
+            <g id="feature-extraction">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+                        <polygon points="0 0, 10 5, 0 10" fill="#666"/>
+                    </marker>
+                </defs>
+                <line x1="230" y1="300" x2="280" y2="300" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                <text x="255" y="290" text-anchor="middle" font-size="12" fill="#666">Feature</text>
+                <text x="255" y="305" text-anchor="middle" font-size="12" fill="#666">Extraction</text>
+            </g>
+            
+            <!-- Neural Network -->
+            <g id="neural-network">
+                <!-- Input Layer -->
+                <g id="input-layer">
+                    <text x="340" y="150" text-anchor="middle" font-size="14" fill="#666">Input Layer</text>
+                    <circle cx="340" cy="200" r="20" fill="#E3F2FD" stroke="#2196F3" stroke-width="2"/>
+                    <circle cx="340" cy="260" r="20" fill="#E3F2FD" stroke="#2196F3" stroke-width="2"/>
+                    <circle cx="340" cy="320" r="20" fill="#E3F2FD" stroke="#2196F3" stroke-width="2"/>
+                    <circle cx="340" cy="380" r="20" fill="#E3F2FD" stroke="#2196F3" stroke-width="2"/>
+                    <circle cx="340" cy="440" r="20" fill="#E3F2FD" stroke="#2196F3" stroke-width="2"/>
+                    
+                    <text x="340" y="205" text-anchor="middle" font-size="12" fill="#333">f₁</text>
+                    <text x="340" y="265" text-anchor="middle" font-size="12" fill="#333">f₂</text>
+                    <text x="340" y="325" text-anchor="middle" font-size="12" fill="#333">f₃</text>
+                    <text x="340" y="385" text-anchor="middle" font-size="12" fill="#333">f₄</text>
+                    <text x="340" y="445" text-anchor="middle" font-size="12" fill="#333">f₅</text>
+                </g>
+                
+                <!-- Hidden Layer 1 -->
+                <g id="hidden-layer-1">
+                    <text x="500" y="150" text-anchor="middle" font-size="14" fill="#666">Hidden Layer 1</text>
+                    <circle cx="500" cy="220" r="20" fill="#FFF3E0" stroke="#FF9800" stroke-width="2"/>
+                    <circle cx="500" cy="280" r="20" fill="#FFF3E0" stroke="#FF9800" stroke-width="2"/>
+                    <circle cx="500" cy="340" r="20" fill="#FFF3E0" stroke="#FF9800" stroke-width="2"/>
+                    <circle cx="500" cy="400" r="20" fill="#FFF3E0" stroke="#FF9800" stroke-width="2"/>
+                </g>
+                
+                <!-- Hidden Layer 2 -->
+                <g id="hidden-layer-2">
+                    <text x="660" y="150" text-anchor="middle" font-size="14" fill="#666">Hidden Layer 2</text>
+                    <circle cx="660" cy="250" r="20" fill="#FFF3E0" stroke="#FF9800" stroke-width="2"/>
+                    <circle cx="660" cy="310" r="20" fill="#FFF3E0" stroke="#FF9800" stroke-width="2"/>
+                    <circle cx="660" cy="370" r="20" fill="#FFF3E0" stroke="#FF9800" stroke-width="2"/>
+                </g>
+                
+                <!-- Output Layer -->
+                <g id="output-layer">
+                    <text x="820" y="150" text-anchor="middle" font-size="14" fill="#666">Output Layer</text>
+                    <circle cx="820" cy="280" r="20" fill="#E8F5E9" stroke="#4CAF50" stroke-width="2"/>
+                    <circle cx="820" cy="340" r="20" fill="#E8F5E9" stroke="#4CAF50" stroke-width="2"/>
+                    
+                    <text x="820" y="285" text-anchor="middle" font-size="12" fill="#333">E</text>
+                    <text x="820" y="345" text-anchor="middle" font-size="12" fill="#333">N</text>
+                </g>
+                
+                <!-- Connections -->
+                <g id="connections" opacity="0.3">
+                    <!-- Input to Hidden 1 -->
+                    <line x1="360" y1="200" x2="480" y2="220" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="200" x2="480" y2="280" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="200" x2="480" y2="340" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="200" x2="480" y2="400" stroke="#999" stroke-width="1"/>
+                    
+                    <line x1="360" y1="260" x2="480" y2="220" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="260" x2="480" y2="280" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="260" x2="480" y2="340" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="260" x2="480" y2="400" stroke="#999" stroke-width="1"/>
+                    
+                    <line x1="360" y1="320" x2="480" y2="220" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="320" x2="480" y2="280" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="320" x2="480" y2="340" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="320" x2="480" y2="400" stroke="#999" stroke-width="1"/>
+                    
+                    <line x1="360" y1="380" x2="480" y2="220" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="380" x2="480" y2="280" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="380" x2="480" y2="340" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="380" x2="480" y2="400" stroke="#999" stroke-width="1"/>
+                    
+                    <line x1="360" y1="440" x2="480" y2="220" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="440" x2="480" y2="280" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="440" x2="480" y2="340" stroke="#999" stroke-width="1"/>
+                    <line x1="360" y1="440" x2="480" y2="400" stroke="#999" stroke-width="1"/>
+                    
+                    <!-- Hidden 1 to Hidden 2 -->
+                    <line x1="520" y1="220" x2="640" y2="250" stroke="#999" stroke-width="1"/>
+                    <line x1="520" y1="220" x2="640" y2="310" stroke="#999" stroke-width="1"/>
+                    <line x1="520" y1="220" x2="640" y2="370" stroke="#999" stroke-width="1"/>
+                    
+                    <line x1="520" y1="280" x2="640" y2="250" stroke="#999" stroke-width="1"/>
+                    <line x1="520" y1="280" x2="640" y2="310" stroke="#999" stroke-width="1"/>
+                    <line x1="520" y1="280" x2="640" y2="370" stroke="#999" stroke-width="1"/>
+                    
+                    <line x1="520" y1="340" x2="640" y2="250" stroke="#999" stroke-width="1"/>
+                    <line x1="520" y1="340" x2="640" y2="310" stroke="#999" stroke-width="1"/>
+                    <line x1="520" y1="340" x2="640" y2="370" stroke="#999" stroke-width="1"/>
+                    
+                    <line x1="520" y1="400" x2="640" y2="250" stroke="#999" stroke-width="1"/>
+                    <line x1="520" y1="400" x2="640" y2="310" stroke="#999" stroke-width="1"/>
+                    <line x1="520" y1="400" x2="640" y2="370" stroke="#999" stroke-width="1"/>
+                    
+                    <!-- Hidden 2 to Output -->
+                    <line x1="680" y1="250" x2="800" y2="280" stroke="#999" stroke-width="1"/>
+                    <line x1="680" y1="250" x2="800" y2="340" stroke="#999" stroke-width="1"/>
+                    
+                    <line x1="680" y1="310" x2="800" y2="280" stroke="#999" stroke-width="1"/>
+                    <line x1="680" y1="310" x2="800" y2="340" stroke="#999" stroke-width="1"/>
+                    
+                    <line x1="680" y1="370" x2="800" y2="280" stroke="#999" stroke-width="1"/>
+                    <line x1="680" y1="370" x2="800" y2="340" stroke="#999" stroke-width="1"/>
+                </g>
+            </g>
+            
+            <!-- Output Probability -->
+            <g id="output-probability">
+                <!-- Softmax Arrow -->
+                <line x1="850" y1="310" x2="900" y2="310" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+                <text x="875" y="300" text-anchor="middle" font-size="12" fill="#666">Softmax</text>
+                
+                <!-- Probability Display -->
+                <rect x="920" y="200" width="240" height="200" fill="none" stroke="#ddd" stroke-width="2" rx="5"/>
+                <text x="1040" y="180" text-anchor="middle" font-size="14" fill="#666">Detection Probability</text>
+                
+                <!-- Bar chart -->
+                <rect x="960" y="280" width="60" height="80" fill="#4CAF50" opacity="0.8"/>
+                <rect x="1060" y="240" width="60" height="120" fill="#F44336" opacity="0.8"/>
+                
+                <text x="990" y="380" text-anchor="middle" font-size="12" fill="#666">Normal</text>
+                <text x="1090" y="380" text-anchor="middle" font-size="12" fill="#666">Earthquake</text>
+                
+                <text x="990" y="270" text-anchor="middle" font-size="14" fill="#333">0.25</text>
+                <text x="1090" y="230" text-anchor="middle" font-size="14" fill="#333">0.75</text>
+                
+                <!-- Threshold line -->
+                <line x1="940" y1="310" x2="1140" y2="310" stroke="#FF9800" stroke-width="2" stroke-dasharray="5,5"/>
+                <text x="1150" y="315" font-size="12" fill="#FF9800">θ=0.5</text>
+            </g>
+            
+            <!-- Feature Labels -->
+            <g id="feature-labels">
+                <text x="340" y="480" text-anchor="middle" font-size="11" fill="#999">Features:</text>
+                <text x="340" y="495" text-anchor="middle" font-size="10" fill="#999">f₁: Peak amplitude</text>
+                <text x="340" y="510" text-anchor="middle" font-size="10" fill="#999">f₂: Dominant frequency</text>
+                <text x="340" y="525" text-anchor="middle" font-size="10" fill="#999">f₃: Signal duration</text>
+                <text x="340" y="540" text-anchor="middle" font-size="10" fill="#999">f₄: Zero-crossing rate</text>
+                <text x="340" y="555" text-anchor="middle" font-size="10" fill="#999">f₅: Energy content</text>
+            </g>
+            
+            <!-- Output Labels -->
+            <g id="output-labels">
+                <text x="850" y="290" font-size="11" fill="#999">E: Earthquake</text>
+                <text x="850" y="350" font-size="11" fill="#999">N: Normal</text>
+            </g>
+            
+            <!-- Classification Result -->
+            <rect x="920" y="420" width="240" height="40" fill="#FFEBEE" stroke="#F44336" stroke-width="2" rx="5"/>
+            <text x="1040" y="445" text-anchor="middle" font-size="16" fill="#F44336" font-weight="bold">⚠ Earthquake Detected</text>
+        </svg>
+        
+        <!-- Advantages and Disadvantages -->
+        <div style="display: flex; gap: 40px; margin-top: 40px;">
+            <div style="flex: 1; background: #f0f9ff; border: 2px solid #0284c7; border-radius: 10px; padding: 20px;">
+                <h3 style="color: #0284c7; margin-top: 0; text-align: center;">Advantages</h3>
+                <ul style="color: #333; line-height: 1.8;">
+                    <li><strong>Automatic Feature Learning:</strong> Neural networks can automatically discover relevant patterns in seismic data without manual feature engineering</li>
+                    <li><strong>High Accuracy:</strong> Can achieve detection rates >95% with low false positive rates when properly trained</li>
+                    <li><strong>Real-time Processing:</strong> Once trained, can process incoming seismic data in milliseconds for rapid alerts</li>
+                    <li><strong>Noise Robustness:</strong> Can distinguish earthquake signals from various types of background noise (traffic, construction, etc.)</li>
+                    <li><strong>Multi-station Integration:</strong> Can process data from multiple seismic stations simultaneously for improved accuracy</li>
+                    <li><strong>Continuous Improvement:</strong> Performance improves as more labeled earthquake data becomes available for training</li>
+                    <li><strong>P/S Wave Discrimination:</strong> Can identify different wave types and estimate earthquake parameters</li>
+                </ul>
+            </div>
+            
+            <div style="flex: 1; background: #fef2f2; border: 2px solid #dc2626; border-radius: 10px; padding: 20px;">
+                <h3 style="color: #dc2626; margin-top: 0; text-align: center;">Disadvantages</h3>
+                <ul style="color: #333; line-height: 1.8;">
+                    <li><strong>Training Data Requirements:</strong> Needs large datasets of labeled earthquakes which may be limited for rare event types</li>
+                    <li><strong>Black Box Nature:</strong> Difficult to interpret why specific decisions are made, limiting scientific insight</li>
+                    <li><strong>Generalization Issues:</strong> May perform poorly on earthquake types or locations not well-represented in training data</li>
+                    <li><strong>Computational Resources:</strong> Training requires significant computational power and time</li>
+                    <li><strong>False Alarms:</strong> May trigger on unusual but non-earthquake events (explosions, mine blasts)</li>
+                    <li><strong>Hyperparameter Tuning:</strong> Requires expertise to optimize network architecture and training parameters</li>
+                    <li><strong>Overfitting Risk:</strong> May memorize training data rather than learning generalizable patterns</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px; padding: 20px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px;">
+            <p style="text-align: center; color: #666; margin: 0; line-height: 1.6;">
+                <strong>Key Consideration:</strong> Neural networks work best as part of a comprehensive earthquake detection system, 
+                combining their pattern recognition capabilities with traditional seismological methods and expert validation.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAST Recursive Cross-Correlation Detection</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .control-btn {
+            padding: 10px 20px;
+            background: #ffffff;
+            border: 2px solid #e0e0e0;
+            color: #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .control-btn:hover {
+            background: #f0f0f0;
+            border-color: #9b59b6;
+            transform: translateY(-2px);
+        }
+        .control-btn.active {
+            background: #9b59b6;
+            border-color: #9b59b6;
+            color: white;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider {
+            width: 150px;
+            -webkit-appearance: none;
+            height: 5px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #9b59b6;
+            cursor: pointer;
+        }
+        .value-display {
+            background: #f3e5ff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+            color: #9b59b6;
+        }
+        .chart-container {
+            position: relative;
+            height: 350px;
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .matrix-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .correlation-matrix {
+            display: inline-block;
+            border: 2px solid #333;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .matrix-cell {
+            width: 30px;
+            height: 30px;
+            display: inline-block;
+            border: 1px solid #ddd;
+            position: relative;
+            cursor: pointer;
+        }
+        .matrix-row {
+            display: flex;
+            margin: 0;
+        }
+        .matrix-label {
+            font-size: 10px;
+            text-align: center;
+            padding: 5px;
+        }
+        .colorbar {
+            display: inline-block;
+            vertical-align: top;
+            margin-left: 20px;
+            width: 30px;
+            height: 300px;
+            background: linear-gradient(to bottom, #9b59b6, #3498db, #2ecc71, #f1c40f, #e74c3c);
+            border-radius: 5px;
+            position: relative;
+        }
+        .colorbar-label {
+            position: absolute;
+            right: 40px;
+            font-size: 12px;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .info-card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        .info-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+        .highlight {
+            color: #9b59b6;
+            font-weight: bold;
+        }
+        .formula {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            text-align: center;
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+        }
+        .process-flow {
+            background: #f3e5ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #9b59b6;
+        }
+        .cluster-list {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .cluster-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+        .cluster-header {
+            font-weight: bold;
+            color: #9b59b6;
+        }
+        .detection-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #9b59b6;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        .fingerprint-display {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #9b59b6;
+        }
+        .fingerprint-title {
+            font-weight: bold;
+            color: #9b59b6;
+            margin-bottom: 5px;
+        }
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FAST Recursive Cross-Correlation Detection</h1>
+        <p class="subtitle">Fingerprint And Similarity Thresholding - detecting similar earthquakes by cross-correlating all events with each other</p>
+        
+        <div class="controls">
+            <button class="control-btn active" onclick="runFAST()">Run FAST Detection</button>
+            <button class="control-btn" onclick="showStep('fingerprint')">Show Fingerprinting</button>
+            <button class="control-btn" onclick="showStep('matrix')">Show Matrix Building</button>
+            <button class="control-btn" onclick="showStep('cluster')">Show Clustering</button>
+            <button class="control-btn" onclick="resetVisualization()">Reset</button>
+            <div class="control-group">
+                <label>Similarity Threshold:</label>
+                <input type="range" id="thresholdSlider" class="slider" min="0.3" max="0.9" step="0.05" value="0.6">
+                <span class="value-display" id="thresholdValue">0.60</span>
+            </div>
+            <div class="control-group">
+                <label>Window Size (s):</label>
+                <input type="range" id="windowSlider" class="slider" min="1" max="5" step="0.5" value="2">
+                <span class="value-display" id="windowValue">2.0s</span>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="signalChart"></canvas>
+        </div>
+
+        <div class="matrix-container">
+            <h3>Cross-Correlation Matrix</h3>
+            <div style="display: flex; justify-content: center; align-items: center;">
+                <div>
+                    <div class="matrix-label">Events →</div>
+                    <div style="display: flex;">
+                        <div style="writing-mode: vertical-rl; text-orientation: mixed;" class="matrix-label">Events →</div>
+                        <div id="correlationMatrix" class="correlation-matrix"></div>
+                    </div>
+                </div>
+                <div class="colorbar">
+                    <div class="colorbar-label" style="top: 0;">1.0</div>
+                    <div class="colorbar-label" style="top: 50%;">0.5</div>
+                    <div class="colorbar-label" style="bottom: 0;">0.0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="detection-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalEvents">0</div>
+                <div class="stat-label">Total Events</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="uniqueTemplates">0</div>
+                <div class="stat-label">Unique Templates</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalClusters">0</div>
+                <div class="stat-label">Event Clusters</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgSimilarity">0.00</div>
+                <div class="stat-label">Avg Similarity</div>
+            </div>
+        </div>
+
+        <div id="clusterResults" class="cluster-list" style="display: none;">
+            <h3>Detected Event Clusters</h3>
+            <div id="clusterList"></div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-card">
+                <h3>How FAST Works</h3>
+                <p>FAST automatically discovers similar earthquakes without pre-defined templates:</p>
+                <div class="process-flow">
+                    <strong>1. Fingerprinting:</strong> Create compact representations of all detected events<br>
+                    <strong>2. All-vs-All Correlation:</strong> Compare every event with every other event<br>
+                    <strong>3. Similarity Matrix:</strong> Build N×N matrix of correlation values<br>
+                    <strong>4. Clustering:</strong> Group events above similarity threshold<br>
+                    <strong>5. Template Selection:</strong> Choose best representative from each cluster
+                </div>
+                <div class="formula">
+                    Similarity(i,j) = max(xcorr(event_i, event_j))
+                </div>
+            </div>
+            
+            <div class="info-card">
+                <h3>Advantages of FAST</h3>
+                <ul style="font-size: 14px;">
+                    <li><span class="highlight">No prior templates needed</span> - discovers patterns automatically</li>
+                    <li><span class="highlight">Finds repeating sources</span> - identifies earthquake families</li>
+                    <li><span class="highlight">Robust clustering</span> - handles noise and variations</li>
+                    <li><span class="highlight">Scalable</span> - efficient fingerprinting reduces computation</li>
+                    <li><span class="highlight">Objective</span> - no manual template selection bias</li>
+                </ul>
+                <p style="margin-top: 15px; background: #f3e5ff; padding: 10px; border-radius: 5px;">
+                    <strong>Key Innovation:</strong> Discovers earthquake families without knowing what to look for!
+                </p>
+            </div>
+            
+            <div class="info-card">
+                <h3>Applications & Performance</h3>
+                <p><strong>Ideal for:</strong></p>
+                <ul style="font-size: 14px;">
+                    <li>Discovering repeating earthquake sources</li>
+                    <li>Identifying aftershock families</li>
+                    <li>Finding induced seismicity patterns</li>
+                    <li>Volcanic earthquake classification</li>
+                    <li>Building template catalogs automatically</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>Typical Performance:</strong></p>
+                <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                    <tr style="background: #f8f9fa;">
+                        <th style="padding: 8px; border: 1px solid #e0e0e0;">Metric</th>
+                        <th style="padding: 8px; border: 1px solid #e0e0e0;">Value</th>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">Processing Speed</td>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">~1000 events/hour</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">Minimum Similarity</td>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">0.6-0.8</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">Cluster Accuracy</td>
+                        <td style="padding: 8px; border: 1px solid #e0e0e0;">>90%</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div id="tooltip"></div>
+
+    <script>
+        // Chart instance
+        let signalChart;
+        let continuousData = [];
+        let detectedEvents = [];
+        let correlationMatrix = [];
+        let eventClusters = [];
+        let similarityThreshold = 0.6;
+        let windowSize = 2.0; // seconds
+        const samplingRate = 100; // Hz
+        
+        // Event types for creating diverse earthquake families
+        const eventTypes = [
+            { name: 'Type A', freq: 8, decay: 3, pAmp: 0.4 },
+            { name: 'Type B', freq: 5, decay: 2, pAmp: 0.3 },
+            { name: 'Type C', freq: 12, decay: 4, pAmp: 0.5 },
+            { name: 'Type D', freq: 6, decay: 2.5, pAmp: 0.35 }
+        ];
+        
+        // Generate earthquake signal
+        function generateEarthquake(type, amplitude = 1, variation = 0.1) {
+            const samples = windowSize * samplingRate;
+            const signal = [];
+            
+            for (let i = 0; i < samples; i++) {
+                const t = i / samplingRate / windowSize;
+                
+                // P-wave
+                let value = 0;
+                if (t < 0.3) {
+                    const pTime = t / 0.3;
+                    value += amplitude * type.pAmp * (1 + (Math.random() - 0.5) * variation) *
+                            Math.sin(2 * Math.PI * type.freq * pTime) * 
+                            Math.exp(-type.decay * pTime);
+                }
+                
+                // S-wave
+                if (t >= 0.2) {
+                    const sTime = (t - 0.2) / 0.8;
+                    value += amplitude * (1 + (Math.random() - 0.5) * variation) *
+                            Math.sin(2 * Math.PI * type.freq * 0.6 * sTime) * 
+                            Math.exp(-(type.decay * 0.7) * sTime) *
+                            Math.sin(Math.PI * sTime);
+                }
+                
+                signal.push(value);
+            }
+            
+            return signal;
+        }
+        
+        // Generate continuous data with multiple earthquake families
+        function generateData() {
+            continuousData = [];
+            detectedEvents = [];
+            const totalSamples = 5000; // 50 seconds
+            
+            // Background noise
+            for (let i = 0; i < totalSamples; i++) {
+                continuousData.push((Math.random() - 0.5) * 0.05);
+            }
+            
+            // Add earthquakes from different families
+            const eventPlan = [
+                { type: 0, time: 5, amp: 0.8 },   // Type A
+                { type: 1, time: 8, amp: 1.0 },   // Type B
+                { type: 0, time: 12, amp: 0.7 },  // Type A (similar to first)
+                { type: 2, time: 15, amp: 0.9 },  // Type C
+                { type: 0, time: 18, amp: 0.85 }, // Type A (another similar)
+                { type: 1, time: 22, amp: 0.95 }, // Type B (similar to second)
+                { type: 3, time: 25, amp: 0.6 },  // Type D
+                { type: 2, time: 28, amp: 0.85 }, // Type C (similar)
+                { type: 0, time: 32, amp: 0.75 }, // Type A (another)
+                { type: 1, time: 35, amp: 1.1 },  // Type B (another)
+                { type: 2, time: 38, amp: 0.95 }, // Type C (another)
+                { type: 3, time: 42, amp: 0.65 }, // Type D (similar)
+                { type: 0, time: 45, amp: 0.9 },  // Type A (another)
+            ];
+            
+            eventPlan.forEach((event, idx) => {
+                const startIdx = Math.floor(event.time * samplingRate);
+                const eventSignal = generateEarthquake(eventTypes[event.type], event.amp);
+                
+                // Add to continuous data
+                for (let i = 0; i < eventSignal.length && startIdx + i < continuousData.length; i++) {
+                    continuousData[startIdx + i] += eventSignal[i];
+                }
+                
+                // Store event info
+                detectedEvents.push({
+                    id: idx,
+                    startTime: event.time,
+                    startIdx: startIdx,
+                    typeIdx: event.type,
+                    typeName: eventTypes[event.type].name,
+                    amplitude: event.amp,
+                    waveform: eventSignal
+                });
+            });
+        }
+        
+        // Extract fingerprint features (simplified)
+        function extractFingerprint(waveform) {
+            // Simple fingerprint: max amplitude, dominant frequency, duration
+            const maxAmp = Math.max(...waveform.map(Math.abs));
+            
+            // Simple frequency estimation via zero crossings
+            let zeroCrossings = 0;
+            for (let i = 1; i < waveform.length; i++) {
+                if (waveform[i] * waveform[i-1] < 0) {
+                    zeroCrossings++;
+                }
+            }
+            const dominantFreq = zeroCrossings / 2 / (waveform.length / samplingRate);
+            
+            // Energy duration
+            const energy = waveform.map(x => x * x);
+            const totalEnergy = energy.reduce((a, b) => a + b, 0);
+            let cumulativeEnergy = 0;
+            let duration90 = 0;
+            for (let i = 0; i < energy.length; i++) {
+                cumulativeEnergy += energy[i];
+                if (cumulativeEnergy > 0.9 * totalEnergy) {
+                    duration90 = i / samplingRate;
+                    break;
+                }
+            }
+            
+            return { maxAmp, dominantFreq, duration90 };
+        }
+        
+        // Cross-correlate two waveforms
+        function crossCorrelate(waveform1, waveform2) {
+            // Normalize waveforms
+            const norm1 = normalizeWaveform(waveform1);
+            const norm2 = normalizeWaveform(waveform2);
+            
+            let maxCorr = 0;
+            const maxLag = Math.floor(waveform1.length * 0.1); // 10% max lag
+            
+            for (let lag = -maxLag; lag <= maxLag; lag++) {
+                let correlation = 0;
+                let count = 0;
+                
+                for (let i = 0; i < norm1.length; i++) {
+                    const j = i + lag;
+                    if (j >= 0 && j < norm2.length) {
+                        correlation += norm1[i] * norm2[j];
+                        count++;
+                    }
+                }
+                
+                if (count > 0) {
+                    correlation /= count;
+                    maxCorr = Math.max(maxCorr, Math.abs(correlation));
+                }
+            }
+            
+            return maxCorr;
+        }
+        
+        // Normalize waveform
+        function normalizeWaveform(waveform) {
+            const mean = waveform.reduce((a, b) => a + b, 0) / waveform.length;
+            const centered = waveform.map(x => x - mean);
+            const std = Math.sqrt(centered.reduce((a, b) => a + b * b, 0) / centered.length);
+            return std > 0 ? centered.map(x => x / std) : centered;
+        }
+        
+        // Build correlation matrix
+        function buildCorrelationMatrix() {
+            const n = detectedEvents.length;
+            correlationMatrix = Array(n).fill(null).map(() => Array(n).fill(0));
+            
+            for (let i = 0; i < n; i++) {
+                correlationMatrix[i][i] = 1.0; // Self-correlation
+                
+                for (let j = i + 1; j < n; j++) {
+                    const correlation = crossCorrelate(
+                        detectedEvents[i].waveform,
+                        detectedEvents[j].waveform
+                    );
+                    correlationMatrix[i][j] = correlation;
+                    correlationMatrix[j][i] = correlation; // Symmetric
+                }
+            }
+        }
+        
+        // Cluster events based on similarity
+        function clusterEvents() {
+            eventClusters = [];
+            const n = detectedEvents.length;
+            const assigned = Array(n).fill(false);
+            
+            for (let i = 0; i < n; i++) {
+                if (!assigned[i]) {
+                    const cluster = [i];
+                    assigned[i] = true;
+                    
+                    // Find all events similar to this one
+                    for (let j = i + 1; j < n; j++) {
+                        if (!assigned[j] && correlationMatrix[i][j] >= similarityThreshold) {
+                            cluster.push(j);
+                            assigned[j] = true;
+                            
+                            // Also check if j is similar to other cluster members
+                            for (let k = 0; k < cluster.length - 1; k++) {
+                                if (correlationMatrix[cluster[k]][j] < similarityThreshold) {
+                                    // Remove j if not similar to all cluster members
+                                    cluster.pop();
+                                    assigned[j] = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    eventClusters.push(cluster);
+                }
+            }
+        }
+        
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('signalChart').getContext('2d');
+            
+            signalChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array(continuousData.length).fill(0).map((_, i) => (i / samplingRate).toFixed(1)),
+                    datasets: [{
+                        label: 'Continuous Seismic Data',
+                        data: continuousData,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        tension: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Seismic Data with Multiple Event Families',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: { display: false },
+                        annotation: {
+                            annotations: {}
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Time (s)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: {
+                                callback: function(value, index) {
+                                    return index % 500 === 0 ? (index / samplingRate) : '';
+                                }
+                            }
+                        },
+                        y: {
+                            title: { display: true, text: 'Amplitude' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        }
+                    }
+                }
+            });
+            
+            // Add event annotations
+            updateEventAnnotations();
+        }
+        
+        // Update event annotations
+        function updateEventAnnotations() {
+            const annotations = {};
+            
+            detectedEvents.forEach((event, idx) => {
+                const color = getEventColor(event.typeIdx);
+                annotations[`event${idx}`] = {
+                    type: 'box',
+                    xMin: event.startTime,
+                    xMax: event.startTime + windowSize,
+                    backgroundColor: color + '20',
+                    borderColor: color,
+                    borderWidth: 2,
+                    label: {
+                        content: `E${idx + 1} (${event.typeName})`,
+                        enabled: true,
+                        position: 'start',
+                        backgroundColor: color,
+                        color: 'white',
+                        font: { size: 10 }
+                    }
+                };
+            });
+            
+            signalChart.options.plugins.annotation.annotations = annotations;
+            signalChart.update();
+        }
+        
+        // Get color for event type
+        function getEventColor(typeIdx) {
+            const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12'];
+            return colors[typeIdx % colors.length];
+        }
+        
+        // Display correlation matrix
+        function displayMatrix() {
+            const matrixDiv = document.getElementById('correlationMatrix');
+            matrixDiv.innerHTML = '';
+            
+            const n = correlationMatrix.length;
+            for (let i = 0; i < n; i++) {
+                const row = document.createElement('div');
+                row.className = 'matrix-row';
+                
+                for (let j = 0; j < n; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'matrix-cell';
+                    const value = correlationMatrix[i][j];
+                    
+                    // Color based on correlation value
+                    const hue = 280 - value * 280; // Purple to red
+                    cell.style.backgroundColor = `hsl(${hue}, 70%, ${50 + value * 20}%)`;
+                    
+                    // Add hover tooltip
+                    cell.onmouseover = (e) => showTooltip(e, i, j, value);
+                    cell.onmouseout = hideTooltip;
+                    
+                    row.appendChild(cell);
+                }
+                matrixDiv.appendChild(row);
+            }
+        }
+        
+        // Show tooltip
+        function showTooltip(event, i, j, value) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.innerHTML = `
+                Event ${i + 1} vs Event ${j + 1}<br>
+                Correlation: ${value.toFixed(3)}<br>
+                ${detectedEvents[i].typeName} vs ${detectedEvents[j].typeName}
+            `;
+            tooltip.style.left = event.pageX + 10 + 'px';
+            tooltip.style.top = event.pageY + 10 + 'px';
+            tooltip.style.opacity = 1;
+        }
+        
+        // Hide tooltip
+        function hideTooltip() {
+            document.getElementById('tooltip').style.opacity = 0;
+        }
+        
+        // Display clusters
+        function displayClusters() {
+            const clusterList = document.getElementById('clusterList');
+            clusterList.innerHTML = '';
+            
+            eventClusters.forEach((cluster, idx) => {
+                const clusterDiv = document.createElement('div');
+                clusterDiv.className = 'cluster-item';
+                
+                const avgCorr = calculateClusterCorrelation(cluster);
+                const templateEvent = detectedEvents[cluster[0]];
+                
+                clusterDiv.innerHTML = `
+                    <div class="cluster-header">Cluster ${idx + 1} - ${templateEvent.typeName}</div>
+                    <div>Events: ${cluster.map(i => `E${i + 1}`).join(', ')}</div>
+                    <div>Size: ${cluster.length} events</div>
+                    <div>Avg Similarity: ${avgCorr.toFixed(3)}</div>
+                    <div>Template: Event ${cluster[0] + 1}</div>
+                `;
+                
+                clusterList.appendChild(clusterDiv);
+            });
+            
+            document.getElementById('clusterResults').style.display = 'block';
+        }
+        
+        // Calculate average correlation within cluster
+        function calculateClusterCorrelation(cluster) {
+            if (cluster.length < 2) return 1.0;
+            
+            let sum = 0;
+            let count = 0;
+            
+            for (let i = 0; i < cluster.length; i++) {
+                for (let j = i + 1; j < cluster.length; j++) {
+                    sum += correlationMatrix[cluster[i]][cluster[j]];
+                    count++;
+                }
+            }
+            
+            return count > 0 ? sum / count : 0;
+        }
+        
+        // Update statistics
+        function updateStats() {
+            document.getElementById('totalEvents').textContent = detectedEvents.length;
+            document.getElementById('totalClusters').textContent = eventClusters.length;
+            
+            // Count unique templates (clusters)
+            const uniqueTemplates = eventClusters.filter(cluster => cluster.length > 0).length;
+            document.getElementById('uniqueTemplates').textContent = uniqueTemplates;
+            
+            // Calculate average similarity
+            let totalSim = 0;
+            let count = 0;
+            for (let i = 0; i < correlationMatrix.length; i++) {
+                for (let j = i + 1; j < correlationMatrix.length; j++) {
+                    totalSim += correlationMatrix[i][j];
+                    count++;
+                }
+            }
+            const avgSim = count > 0 ? totalSim / count : 0;
+            document.getElementById('avgSimilarity').textContent = avgSim.toFixed(2);
+        }
+        
+        // Run FAST algorithm
+        function runFAST() {
+            // Build correlation matrix
+            buildCorrelationMatrix();
+            displayMatrix();
+            
+            // Cluster events
+            clusterEvents();
+            displayClusters();
+            
+            // Update statistics
+            updateStats();
+            
+            // Highlight clusters on signal
+            highlightClusters();
+        }
+        
+        // Highlight clusters on signal chart
+        function highlightClusters() {
+            // Create datasets for each cluster
+            const datasets = [signalChart.data.datasets[0]]; // Keep original
+            
+            eventClusters.forEach((cluster, clusterIdx) => {
+                const color = getEventColor(detectedEvents[cluster[0]].typeIdx);
+                const clusterData = new Array(continuousData.length).fill(null);
+                
+                cluster.forEach(eventIdx => {
+                    const event = detectedEvents[eventIdx];
+                    for (let i = 0; i < event.waveform.length; i++) {
+                        if (event.startIdx + i < clusterData.length) {
+                            clusterData[event.startIdx + i] = continuousData[event.startIdx + i];
+                        }
+                    }
+                });
+                
+                datasets.push({
+                    label: `Cluster ${clusterIdx + 1}`,
+                    data: clusterData,
+                    borderColor: color,
+                    backgroundColor: color + '40',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    tension: 0,
+                    fill: false
+                });
+            });
+            
+            signalChart.data.datasets = datasets;
+            signalChart.update();
+        }
+        
+        // Show step-by-step process
+        function showStep(step) {
+            switch(step) {
+                case 'fingerprint':
+                    showFingerprints();
+                    break;
+                case 'matrix':
+                    showMatrixBuilding();
+                    break;
+                case 'cluster':
+                    showClusteringProcess();
+                    break;
+            }
+        }
+        
+        // Show fingerprints
+        function showFingerprints() {
+            const container = document.getElementById('clusterResults');
+            container.innerHTML = '<h3>Event Fingerprints</h3>';
+            container.style.display = 'block';
+            
+            detectedEvents.forEach((event, idx) => {
+                const fingerprint = extractFingerprint(event.waveform);
+                const div = document.createElement('div');
+                div.className = 'fingerprint-display';
+                div.innerHTML = `
+                    <div class="fingerprint-title">Event ${idx + 1} (${event.typeName})</div>
+                    <div>Max Amplitude: ${fingerprint.maxAmp.toFixed(3)}</div>
+                    <div>Dominant Freq: ${fingerprint.dominantFreq.toFixed(1)} Hz</div>
+                    <div>Duration (90%): ${fingerprint.duration90.toFixed(2)} s</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        // Show matrix building animation
+        function showMatrixBuilding() {
+            const n = detectedEvents.length;
+            correlationMatrix = Array(n).fill(null).map(() => Array(n).fill(0));
+            
+            let i = 0, j = 0;
+            
+            function buildNext() {
+                if (i < n) {
+                    if (i === j) {
+                        correlationMatrix[i][j] = 1.0;
+                    } else {
+                        const correlation = crossCorrelate(
+                            detectedEvents[i].waveform,
+                            detectedEvents[j].waveform
+                        );
+                        correlationMatrix[i][j] = correlation;
+                        correlationMatrix[j][i] = correlation;
+                    }
+                    
+                    displayMatrix();
+                    
+                    j++;
+                    if (j >= n) {
+                        i++;
+                        j = i;
+                    }
+                    
+                    if (i < n) {
+                        setTimeout(buildNext, 50);
+                    }
+                }
+            }
+            
+            buildNext();
+        }
+        
+        // Show clustering process
+        function showClusteringProcess() {
+            if (correlationMatrix.length === 0) {
+                buildCorrelationMatrix();
+            }
+            clusterEvents();
+            displayClusters();
+            highlightClusters();
+            updateStats();
+        }
+        
+        // Reset visualization
+        function resetVisualization() {
+            generateData();
+            initChart();
+            correlationMatrix = [];
+            eventClusters = [];
+            document.getElementById('correlationMatrix').innerHTML = '';
+            document.getElementById('clusterResults').style.display = 'none';
+            updateStats();
+        }
+        
+        // Control handlers
+        document.getElementById('thresholdSlider').addEventListener('input', (e) => {
+            similarityThreshold = parseFloat(e.target.value);
+            document.getElementById('thresholdValue').textContent = similarityThreshold.toFixed(2);
+        });
+        
+        document.getElementById('windowSlider').addEventListener('input', (e) => {
+            windowSize = parseFloat(e.target.value);
+            document.getElementById('windowValue').textContent = `${windowSize.toFixed(1)}s`;
+            resetVisualization();
+        });
+        
+        // Initialize
+        window.addEventListener('DOMContentLoaded', function() {
+            generateData();
+            initChart();
+            updateStats();
+        });
+    </script>
+</body>
+</html>

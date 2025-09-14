@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Signal Detection with Neural Networks</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(20, 20, 30, 0.9);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 0 2px 10px rgba(0, 200, 255, 0.3);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 40px;
+            background: rgba(10, 10, 20, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .neural-network {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 40px 0;
+            min-height: 400px;
+            position: relative;
+        }
+        
+        .layer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 60px;
+            position: relative;
+        }
+        
+        .neuron {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00c8ff, #0080ff);
+            margin: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 200, 255, 0.4);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .neuron::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .neuron:hover::before {
+            opacity: 1;
+        }
+        
+        .neuron.active {
+            animation: pulse 1s ease-in-out infinite;
+            background: linear-gradient(135deg, #ff0080, #ff00ff);
+            box-shadow: 0 4px 20px rgba(255, 0, 128, 0.6);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .layer-label {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #00c8ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9em;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 40px 0;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #00c8ff, #0080ff);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 200, 255, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 200, 255, 0.5);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .info-panel {
+            background: rgba(0, 200, 255, 0.1);
+            border: 1px solid rgba(0, 200, 255, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            backdrop-filter: blur(5px);
+        }
+        
+        .detection-result {
+            text-align: center;
+            font-size: 1.5em;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .detection-result.earthquake {
+            background: linear-gradient(135deg, rgba(255, 0, 80, 0.2), rgba(255, 0, 128, 0.1));
+            border: 2px solid #ff0080;
+            color: #ff80b0;
+            animation: alertPulse 1s ease-in-out infinite;
+        }
+        
+        .detection-result.normal {
+            background: linear-gradient(135deg, rgba(0, 255, 128, 0.2), rgba(0, 200, 100, 0.1));
+            border: 2px solid #00ff80;
+            color: #80ffb0;
+        }
+        
+        @keyframes alertPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 0, 128, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(255, 0, 128, 0.8); }
+        }
+        
+        .connection {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, #00c8ff, transparent);
+            height: 2px;
+            opacity: 0;
+            animation: connectionFlow 2s linear infinite;
+        }
+        
+        @keyframes connectionFlow {
+            0% { opacity: 0; transform: translateX(-100%); }
+            50% { opacity: 1; }
+            100% { opacity: 0; transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Earthquake Signal Detection</h1>
+        <p class="subtitle">Neural Network Analysis of Seismic Data</p>
+        
+        <div class="chart-container">
+            <canvas id="seismicChart"></canvas>
+        </div>
+        
+        <div class="controls">
+            <button onclick="generateNormalSignal()">Normal Activity</button>
+            <button onclick="generateEarthquakeSignal()">Earthquake Signal</button>
+            <button onclick="startRealTimeSimulation()">Real-Time Simulation</button>
+        </div>
+        
+        <div class="detection-result" id="detectionResult">
+            Waiting for signal...
+        </div>
+        
+        <div class="neural-network" id="neuralNetwork">
+            <div class="layer">
+                <div class="neuron">S1</div>
+                <div class="neuron">S2</div>
+                <div class="neuron">S3</div>
+                <div class="neuron">S4</div>
+                <div class="layer-label">Input Layer<br>(Seismic Features)</div>
+            </div>
+            
+            <div class="layer">
+                <div class="neuron">H1</div>
+                <div class="neuron">H2</div>
+                <div class="neuron">H3</div>
+                <div class="neuron">H4</div>
+                <div class="neuron">H5</div>
+                <div class="layer-label">Hidden Layer 1</div>
+            </div>
+            
+            <div class="layer">
+                <div class="neuron">H6</div>
+                <div class="neuron">H7</div>
+                <div class="neuron">H8</div>
+                <div class="layer-label">Hidden Layer 2</div>
+            </div>
+            
+            <div class="layer">
+                <div class="neuron">P</div>
+                <div class="neuron">S</div>
+                <div class="layer-label">Output Layer<br>(P-wave / S-wave)</div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>How it Works</h3>
+            <p>This neural network processes seismic waveform data to detect earthquake signals:</p>
+            <ul>
+                <li><strong>Input Layer:</strong> Receives features extracted from seismic data (amplitude, frequency, duration, etc.)</li>
+                <li><strong>Hidden Layers:</strong> Process and learn complex patterns in the seismic signals</li>
+                <li><strong>Output Layer:</strong> Classifies P-waves (primary) and S-waves (secondary) characteristic of earthquakes</li>
+            </ul>
+            <p>The network is trained on thousands of labeled seismic recordings to distinguish between normal ground noise and actual earthquake events.</p>
+        </div>
+    </div>
+    
+    <script>
+        let chart;
+        let animationInterval;
+        
+        // Initialize the chart
+        const ctx = document.getElementById('seismicChart').getContext('2d');
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Seismic Signal (μm/s)',
+                    data: [],
+                    borderColor: '#00c8ff',
+                    backgroundColor: 'rgba(0, 200, 255, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.1,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Time (seconds)',
+                            color: '#888'
+                        },
+                        ticks: { color: '#888' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    y: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Amplitude',
+                            color: '#888'
+                        },
+                        ticks: { color: '#888' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: '#e0e0e0' }
+                    }
+                }
+            }
+        });
+        
+        function generateNormalSignal() {
+            clearInterval(animationInterval);
+            const data = [];
+            const labels = [];
+            
+            for (let i = 0; i < 200; i++) {
+                labels.push((i * 0.05).toFixed(2));
+                data.push(Math.random() * 2 - 1 + Math.sin(i * 0.1) * 0.5);
+            }
+            
+            updateChart(labels, data);
+            animateNeuralNetwork(false);
+            updateDetectionResult(false);
+        }
+        
+        function generateEarthquakeSignal() {
+            clearInterval(animationInterval);
+            const data = [];
+            const labels = [];
+            
+            for (let i = 0; i < 200; i++) {
+                labels.push((i * 0.05).toFixed(2));
+                let value = Math.random() * 0.5 - 0.25;
+                
+                // P-wave arrival
+                if (i > 50 && i < 80) {
+                    value += Math.sin((i - 50) * 0.5) * (3 + Math.random());
+                }
+                
+                // S-wave arrival
+                if (i > 100 && i < 150) {
+                    value += Math.sin((i - 100) * 0.3) * (5 + Math.random() * 2);
+                }
+                
+                data.push(value);
+            }
+            
+            updateChart(labels, data);
+            animateNeuralNetwork(true);
+            updateDetectionResult(true);
+        }
+        
+        function startRealTimeSimulation() {
+            clearInterval(animationInterval);
+            let time = 0;
+            const data = [];
+            const labels = [];
+            let earthquakeTime = Math.random() * 100 + 50;
+            
+            animationInterval = setInterval(() => {
+                time++;
+                labels.push((time * 0.05).toFixed(2));
+                
+                let value = Math.random() * 0.5 - 0.25;
+                let isEarthquake = false;
+                
+                if (time > earthquakeTime && time < earthquakeTime + 50) {
+                    value += Math.sin((time - earthquakeTime) * 0.3) * (4 + Math.random() * 2);
+                    isEarthquake = true;
+                }
+                
+                data.push(value);
+                
+                if (data.length > 200) {
+                    data.shift();
+                    labels.shift();
+                }
+                
+                updateChart(labels, data);
+                animateNeuralNetwork(isEarthquake);
+                updateDetectionResult(isEarthquake);
+                
+                if (time > earthquakeTime + 100) {
+                    earthquakeTime = time + Math.random() * 100 + 50;
+                }
+            }, 50);
+        }
+        
+        function updateChart(labels, data) {
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = data;
+            chart.update();
+        }
+        
+        function animateNeuralNetwork(isEarthquake) {
+            const neurons = document.querySelectorAll('.neuron');
+            neurons.forEach((neuron, index) => {
+                setTimeout(() => {
+                    if (Math.random() > 0.3) {
+                        neuron.classList.add('active');
+                        setTimeout(() => neuron.classList.remove('active'), 500);
+                    }
+                }, index * 50);
+            });
+        }
+        
+        function updateDetectionResult(isEarthquake) {
+            const result = document.getElementById('detectionResult');
+            if (isEarthquake) {
+                result.textContent = '⚠️ EARTHQUAKE DETECTED ⚠️';
+                result.className = 'detection-result earthquake';
+            } else {
+                result.textContent = '✓ Normal Seismic Activity';
+                result.className = 'detection-result normal';
+            }
+        }
+        
+        // Start with normal signal
+        generateNormalSignal();
+    </script>
+</body>
+</html>

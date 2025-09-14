@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STA/LTA Earthquake Detection Method</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .control-btn {
+            padding: 10px 20px;
+            background: #ffffff;
+            border: 2px solid #e0e0e0;
+            color: #333;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .control-btn:hover {
+            background: #f0f0f0;
+            border-color: #3498db;
+            transform: translateY(-2px);
+        }
+        .control-btn.active {
+            background: #3498db;
+            border-color: #3498db;
+            color: white;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider {
+            width: 150px;
+            -webkit-appearance: none;
+            height: 5px;
+            border-radius: 5px;
+            background: #ddd;
+            outline: none;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+        }
+        .value-display {
+            background: #e8f4f8;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 80px;
+            text-align: center;
+            color: #3498db;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .detection-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+        .detection-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .info-card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        .info-card h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+        .highlight {
+            color: #3498db;
+            font-weight: bold;
+        }
+        .formula {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            text-align: center;
+            margin: 15px 0;
+            border: 1px solid #e0e0e0;
+        }
+        .window-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        .window-box {
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .sta-box {
+            background: #ffe5e5;
+            border: 2px solid #e74c3c;
+            color: #e74c3c;
+        }
+        .lta-box {
+            background: #e5f2ff;
+            border: 2px solid #3498db;
+            color: #3498db;
+        }
+        .advantages-list {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #3498db;
+        }
+        .disadvantages-list {
+            background: #ffe5e5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>STA/LTA Earthquake Detection</h1>
+        <p class="subtitle">Short-Term Average / Long-Term Average ratio method - an adaptive threshold approach that adjusts to changing noise conditions</p>
+        
+        <div class="controls">
+            <button class="control-btn active" onclick="runDetection()">Run Detection</button>
+            <button class="control-btn" onclick="runAnimation()">Animate Windows</button>
+            <button class="control-btn" onclick="resetData()">Reset</button>
+            <button class="control-btn" onclick="changeNoiseLevel()">Variable Noise</button>
+            <div class="control-group">
+                <label>STA Window (s):</label>
+                <input type="range" id="staSlider" class="slider" min="0.5" max="5" step="0.5" value="1">
+                <span class="value-display" id="staValue">1.0s</span>
+            </div>
+            <div class="control-group">
+                <label>LTA Window (s):</label>
+                <input type="range" id="ltaSlider" class="slider" min="5" max="30" step="1" value="10">
+                <span class="value-display" id="ltaValue">10s</span>
+            </div>
+            <div class="control-group">
+                <label>Trigger Ratio:</label>
+                <input type="range" id="ratioSlider" class="slider" min="2" max="6" step="0.5" value="3">
+                <span class="value-display" id="ratioValue">3.0</span>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="signalChart"></canvas>
+            <div class="detection-indicator" id="detectionStatus" style="background: #7f8c8d; color: white;">Ready</div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="staLtaChart"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="ratioChart"></canvas>
+        </div>
+
+        <div class="detection-stats" id="detectionStats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalDetections">0</div>
+                <div class="stat-label">Total Detections</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="truePositives" style="color: #27ae60;">0</div>
+                <div class="stat-label">True Positives</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="falsePositives" style="color: #e74c3c;">0</div>
+                <div class="stat-label">False Positives</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="missedEvents" style="color: #f39c12;">0</div>
+                <div class="stat-label">Missed Events</div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-card">
+                <h3>How STA/LTA Works</h3>
+                <p>STA/LTA uses two moving averages to create an adaptive detection threshold:</p>
+                <div class="formula">
+                    Ratio = STA / LTA<br>
+                    if Ratio > Threshold → Detection!
+                </div>
+                <div class="window-diagram">
+                    <div class="window-box sta-box">STA<br>1-5 sec</div>
+                    <span>÷</span>
+                    <div class="window-box lta-box">LTA<br>10-60 sec</div>
+                </div>
+                <p style="font-size: 14px; margin-top: 15px;">
+                    <strong>STA (Short-Term Average):</strong> Captures sudden amplitude changes<br>
+                    <strong>LTA (Long-Term Average):</strong> Tracks background noise level<br>
+                    <strong>Ratio:</strong> Spikes when signal emerges from noise
+                </p>
+            </div>
+            
+            <div class="info-card">
+                <h3>Advantages Over Simple Threshold</h3>
+                <div class="advantages-list">
+                    <strong>✓ Adaptive to noise conditions:</strong> LTA tracks changing background<br>
+                    <strong>✓ Better sensitivity:</strong> Can detect smaller events<br>
+                    <strong>✓ Automatic adjustment:</strong> Works in varying noise environments<br>
+                    <strong>✓ Reduced false triggers:</strong> Less sensitive to gradual changes<br>
+                    <strong>✓ Standard method:</strong> Widely used in seismic networks
+                </div>
+                <p style="margin-top: 15px;">The ratio approach means detection threshold automatically adjusts - high during noisy periods, low during quiet times.</p>
+            </div>
+            
+            <div class="info-card">
+                <h3>Limitations & Challenges</h3>
+                <div class="disadvantages-list">
+                    <strong>✗ Parameter tuning:</strong> STA, LTA, and ratio need optimization<br>
+                    <strong>✗ Still amplitude-based:</strong> Can't distinguish event types<br>
+                    <strong>✗ Delayed detection:</strong> LTA needs time to stabilize<br>
+                    <strong>✗ Aftershock problems:</strong> LTA elevated after large events<br>
+                    <strong>✗ Computational cost:</strong> Continuous averaging required
+                </div>
+                <p style="margin-top: 15px; font-size: 14px;">
+                    <strong>Common Issues:</strong><br>
+                    • Cultural noise can still trigger if sustained<br>
+                    • Multiple events can merge if too close<br>
+                    • Requires careful window size selection
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart instances
+        let signalChart, staLtaChart, ratioChart;
+        let continuousData = [];
+        let staData = [];
+        let ltaData = [];
+        let ratioData = [];
+        let detectedData = [];
+        
+        // Parameters
+        let staWindow = 1.0; // seconds
+        let ltaWindow = 10.0; // seconds
+        let triggerRatio = 3.0;
+        let samplingRate = 100; // Hz
+        let variableNoise = false;
+        
+        // Animation variables
+        let animationId = null;
+        let animationPosition = 0;
+        let isAnimating = false;
+        
+        // Known earthquake positions
+        const earthquakeEvents = [
+            { start: 500, end: 800, name: 'Event A', amplitude: 0.8 },
+            { start: 1500, end: 1800, name: 'Event B', amplitude: 1.2 },
+            { start: 2500, end: 2800, name: 'Event C', amplitude: 0.5 },
+            { start: 3500, end: 3800, name: 'Event D', amplitude: 0.9 },
+            { start: 4500, end: 4800, name: 'Event E', amplitude: 0.3 }
+        ];
+        
+        // Generate synthetic data
+        function generateData() {
+            continuousData = [];
+            const totalSamples = 6000; // 60 seconds
+            
+            // Generate base noise
+            for (let i = 0; i < totalSamples; i++) {
+                let noiseLevel = 0.1;
+                if (variableNoise) {
+                    // Variable noise conditions
+                    if (i > 1000 && i < 2000) noiseLevel = 0.25; // Higher noise period
+                    if (i > 3000 && i < 4000) noiseLevel = 0.05; // Quiet period
+                    if (i > 5000) noiseLevel = 0.15; // Medium noise
+                }
+                continuousData.push((Math.random() - 0.5) * noiseLevel);
+            }
+            
+            // Add earthquakes with realistic waveforms
+            earthquakeEvents.forEach(event => {
+                for (let i = event.start; i < event.end && i < continuousData.length; i++) {
+                    const t = (i - event.start) / (event.end - event.start);
+                    
+                    // P-wave
+                    if (t < 0.3) {
+                        const pTime = t / 0.3;
+                        const pEnvelope = Math.sin(Math.PI * pTime) * Math.exp(-3 * pTime);
+                        continuousData[i] += event.amplitude * 0.4 * pEnvelope * 
+                                           Math.sin(2 * Math.PI * 10 * pTime);
+                    }
+                    
+                    // S-wave
+                    if (t >= 0.2) {
+                        const sTime = (t - 0.2) / 0.8;
+                        const sEnvelope = Math.sin(Math.PI * sTime) * Math.exp(-2 * sTime);
+                        continuousData[i] += event.amplitude * sEnvelope * 
+                                           Math.sin(2 * Math.PI * 5 * sTime);
+                    }
+                }
+            });
+            
+            // Add some problematic signals
+            // Gradual increase (equipment drift)
+            for (let i = 2000; i < 2300; i++) {
+                continuousData[i] += 0.3 * (i - 2000) / 300;
+            }
+            
+            // Sustained vibration (machinery)
+            for (let i = 4000; i < 4200; i++) {
+                continuousData[i] += 0.4 * Math.sin(2 * Math.PI * 3 * i / samplingRate);
+            }
+            
+            // Spike (electrical noise)
+            continuousData[3200] += 1.5;
+            continuousData[3201] += 1.2;
+            continuousData[3202] += 0.8;
+        }
+        
+        // Calculate moving average
+        function movingAverage(data, windowSize) {
+            const result = [];
+            const halfWindow = Math.floor(windowSize / 2);
+            
+            for (let i = 0; i < data.length; i++) {
+                let sum = 0;
+                let count = 0;
+                
+                for (let j = Math.max(0, i - halfWindow); j <= Math.min(data.length - 1, i + halfWindow); j++) {
+                    sum += Math.abs(data[j]);
+                    count++;
+                }
+                
+                result.push(sum / count);
+            }
+            
+            return result;
+        }
+        
+        // Calculate STA/LTA
+        function calculateStaLta() {
+            const staSamples = Math.floor(staWindow * samplingRate);
+            const ltaSamples = Math.floor(ltaWindow * samplingRate);
+            
+            staData = movingAverage(continuousData, staSamples);
+            ltaData = movingAverage(continuousData, ltaSamples);
+            
+            ratioData = [];
+            for (let i = 0; i < staData.length; i++) {
+                if (ltaData[i] > 0) {
+                    ratioData.push(staData[i] / ltaData[i]);
+                } else {
+                    ratioData.push(1);
+                }
+            }
+        }
+        
+        // Create time labels
+        function createTimeLabels(length) {
+            const labels = [];
+            for (let i = 0; i < length; i++) {
+                labels.push((i / samplingRate).toFixed(1));
+            }
+            return labels;
+        }
+        
+        // Initialize charts
+        function initCharts() {
+            // Signal chart
+            const signalCtx = document.getElementById('signalChart').getContext('2d');
+            signalChart = new Chart(signalCtx, {
+                type: 'line',
+                data: {
+                    labels: createTimeLabels(continuousData.length),
+                    datasets: [{
+                        label: 'Seismic Signal',
+                        data: continuousData,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        tension: 0
+                    }, {
+                        label: 'Detected Events',
+                        data: new Array(continuousData.length).fill(null),
+                        borderColor: '#27ae60',
+                        backgroundColor: 'rgba(39, 174, 96, 0.2)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        tension: 0,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Raw Seismic Signal',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: { display: true }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Time (s)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: {
+                                callback: function(value, index) {
+                                    return index % 500 === 0 ? (index / samplingRate) : '';
+                                }
+                            }
+                        },
+                        y: {
+                            title: { display: true, text: 'Amplitude' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        }
+                    }
+                }
+            });
+            
+            // STA/LTA chart
+            const staLtaCtx = document.getElementById('staLtaChart').getContext('2d');
+            staLtaChart = new Chart(staLtaCtx, {
+                type: 'line',
+                data: {
+                    labels: createTimeLabels(continuousData.length),
+                    datasets: [{
+                        label: 'STA (Short-Term Average)',
+                        data: staData,
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.1
+                    }, {
+                        label: 'LTA (Long-Term Average)',
+                        data: ltaData,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Short-Term and Long-Term Averages',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: { display: true }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Time (s)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: {
+                                callback: function(value, index) {
+                                    return index % 500 === 0 ? (index / samplingRate) : '';
+                                }
+                            }
+                        },
+                        y: {
+                            title: { display: true, text: 'Average Amplitude' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                        }
+                    }
+                }
+            });
+            
+            // Ratio chart
+            const ratioCtx = document.getElementById('ratioChart').getContext('2d');
+            ratioChart = new Chart(ratioCtx, {
+                type: 'line',
+                data: {
+                    labels: createTimeLabels(continuousData.length),
+                    datasets: [{
+                        label: 'STA/LTA Ratio',
+                        data: ratioData,
+                        borderColor: '#f39c12',
+                        backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'STA/LTA Ratio',
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        legend: { display: false },
+                        annotation: {
+                            annotations: {
+                                threshold: {
+                                    type: 'line',
+                                    yMin: triggerRatio,
+                                    yMax: triggerRatio,
+                                    borderColor: '#27ae60',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        content: `Trigger: ${triggerRatio}`,
+                                        enabled: true,
+                                        position: 'end',
+                                        backgroundColor: '#27ae60',
+                                        color: 'white',
+                                        font: { size: 12 }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Time (s)' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            ticks: {
+                                callback: function(value, index) {
+                                    return index % 500 === 0 ? (index / samplingRate) : '';
+                                }
+                            }
+                        },
+                        y: {
+                            title: { display: true, text: 'Ratio' },
+                            grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                            min: 0,
+                            max: 10
+                        }
+                    }
+                }
+            });
+            
+            // Add event annotations
+            addEventAnnotations();
+        }
+        
+        // Add event annotations to signal chart
+        function addEventAnnotations() {
+            const annotations = {};
+            earthquakeEvents.forEach((event, idx) => {
+                annotations[`event${idx}`] = {
+                    type: 'box',
+                    xMin: event.start / samplingRate,
+                    xMax: event.end / samplingRate,
+                    backgroundColor: 'rgba(52, 152, 219, 0.05)',
+                    borderColor: '#3498db',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    label: {
+                        content: event.name,
+                        enabled: true,
+                        position: 'start',
+                        font: { size: 11 }
+                    }
+                };
+            });
+            
+            signalChart.options.plugins.annotation = { annotations };
+            signalChart.update();
+        }
+        
+        // Run detection
+        function runDetection() {
+            calculateStaLta();
+            
+            // Update charts with new data
+            staLtaChart.data.datasets[0].data = staData;
+            staLtaChart.data.datasets[1].data = ltaData;
+            ratioChart.data.datasets[0].data = ratioData;
+            
+            // Detect events
+            const detections = [];
+            detectedData = new Array(continuousData.length).fill(null);
+            let inDetection = false;
+            let detectionStart = 0;
+            
+            for (let i = 0; i < ratioData.length; i++) {
+                if (ratioData[i] > triggerRatio) {
+                    if (!inDetection) {
+                        inDetection = true;
+                        detectionStart = i;
+                    }
+                    detectedData[i] = continuousData[i];
+                } else if (inDetection && ratioData[i] < triggerRatio * 0.8) {
+                    // End detection when ratio drops below 80% of trigger
+                    detections.push({
+                        start: detectionStart,
+                        end: i
+                    });
+                    inDetection = false;
+                }
+            }
+            
+            // Update detected events on signal chart
+            signalChart.data.datasets[1].data = detectedData;
+            
+            // Calculate statistics
+            let truePositives = 0;
+            let falsePositives = 0;
+            let missedEvents = 0;
+            
+            // Check detections
+            detections.forEach(detection => {
+                let isRealEvent = false;
+                for (const event of earthquakeEvents) {
+                    if ((detection.start >= event.start && detection.start <= event.end) ||
+                        (detection.end >= event.start && detection.end <= event.end)) {
+                        isRealEvent = true;
+                        break;
+                    }
+                }
+                if (isRealEvent) {
+                    truePositives++;
+                } else {
+                    falsePositives++;
+                }
+            });
+            
+            // Check for missed events
+            earthquakeEvents.forEach(event => {
+                let wasDetected = false;
+                for (const detection of detections) {
+                    if ((detection.start >= event.start && detection.start <= event.end) ||
+                        (detection.end >= event.start && detection.end <= event.end)) {
+                        wasDetected = true;
+                        break;
+                    }
+                }
+                if (!wasDetected) {
+                    missedEvents++;
+                }
+            });
+            
+            // Update statistics
+            document.getElementById('totalDetections').textContent = detections.length;
+            document.getElementById('truePositives').textContent = truePositives;
+            document.getElementById('falsePositives').textContent = falsePositives;
+            document.getElementById('missedEvents').textContent = missedEvents;
+            
+            // Update status
+            const statusEl = document.getElementById('detectionStatus');
+            if (detections.length > 0) {
+                statusEl.textContent = `${detections.length} Detections`;
+                statusEl.style.background = '#27ae60';
+            } else {
+                statusEl.textContent = 'No Detections';
+                statusEl.style.background = '#f39c12';
+            }
+            
+            // Update all charts
+            signalChart.update();
+            staLtaChart.update();
+            ratioChart.update();
+        }
+        
+        // Simple animation function
+        function runAnimation() {
+            // Reset data
+            staData = new Array(continuousData.length).fill(0);
+            ltaData = new Array(continuousData.length).fill(0);
+            ratioData = new Array(continuousData.length).fill(0);
+            
+            // Calculate all data at once
+            const staSamples = Math.floor(staWindow * samplingRate);
+            const ltaSamples = Math.floor(ltaWindow * samplingRate);
+            
+            // Show progress
+            let progress = 0;
+            const totalSteps = Math.floor(continuousData.length / 50);
+            
+            function processNextChunk() {
+                // Process 50 samples at a time
+                const startIdx = progress * 50;
+                const endIdx = Math.min((progress + 1) * 50, continuousData.length);
+                
+                for (let i = startIdx; i < endIdx; i++) {
+                    // Calculate STA
+                    let staSum = 0;
+                    let staCount = 0;
+                    for (let j = Math.max(0, i - Math.floor(staSamples / 2)); 
+                         j <= Math.min(continuousData.length - 1, i + Math.floor(staSamples / 2)); j++) {
+                        staSum += Math.abs(continuousData[j]);
+                        staCount++;
+                    }
+                    if (staCount > 0) {
+                        staData[i] = staSum / staCount;
+                    }
+                    
+                    // Calculate LTA
+                    let ltaSum = 0;
+                    let ltaCount = 0;
+                    for (let j = Math.max(0, i - Math.floor(ltaSamples / 2)); 
+                         j <= Math.min(continuousData.length - 1, i + Math.floor(ltaSamples / 2)); j++) {
+                        ltaSum += Math.abs(continuousData[j]);
+                        ltaCount++;
+                    }
+                    if (ltaCount > 0) {
+                        ltaData[i] = ltaSum / ltaCount;
+                    }
+                    
+                    // Calculate ratio
+                    if (ltaData[i] > 0) {
+                        ratioData[i] = staData[i] / ltaData[i];
+                    } else {
+                        ratioData[i] = 1;
+                    }
+                }
+                
+                // Update charts
+                staLtaChart.data.datasets[0].data = staData.slice(0, endIdx);
+                staLtaChart.data.datasets[1].data = ltaData.slice(0, endIdx);
+                ratioChart.data.datasets[0].data = ratioData.slice(0, endIdx);
+                
+                staLtaChart.update('none');
+                ratioChart.update('none');
+                
+                progress++;
+                
+                // Continue or finish
+                if (progress < totalSteps) {
+                    setTimeout(processNextChunk, 50);
+                } else {
+                    // Final update
+                    staLtaChart.data.datasets[0].data = staData;
+                    staLtaChart.data.datasets[1].data = ltaData;
+                    ratioChart.data.datasets[0].data = ratioData;
+                    staLtaChart.update();
+                    ratioChart.update();
+                    
+                    // Run detection
+                    runDetection();
+                }
+            }
+            
+            // Start processing
+            processNextChunk();
+        }
+        
+        // Control functions
+        function resetData() {
+            stopAnimation();
+            generateData();
+            signalChart.data.datasets[0].data = continuousData;
+            signalChart.data.datasets[1].data = new Array(continuousData.length).fill(null);
+            staData = [];
+            ltaData = [];
+            ratioData = [];
+            staLtaChart.data.datasets[0].data = staData;
+            staLtaChart.data.datasets[1].data = ltaData;
+            ratioChart.data.datasets[0].data = ratioData;
+            signalChart.update();
+            staLtaChart.update();
+            ratioChart.update();
+            
+            // Reset statistics
+            document.getElementById('totalDetections').textContent = '0';
+            document.getElementById('truePositives').textContent = '0';
+            document.getElementById('falsePositives').textContent = '0';
+            document.getElementById('missedEvents').textContent = '0';
+            document.getElementById('detectionStatus').textContent = 'Ready';
+            document.getElementById('detectionStatus').style.background = '#7f8c8d';
+        }
+        
+        function changeNoiseLevel() {
+            variableNoise = !variableNoise;
+            event.target.classList.toggle('active');
+            resetData();
+        }
+        
+        // Parameter sliders
+        document.getElementById('staSlider').addEventListener('input', (e) => {
+            staWindow = parseFloat(e.target.value);
+            document.getElementById('staValue').textContent = `${staWindow.toFixed(1)}s`;
+        });
+        
+        document.getElementById('ltaSlider').addEventListener('input', (e) => {
+            ltaWindow = parseFloat(e.target.value);
+            document.getElementById('ltaValue').textContent = `${ltaWindow}s`;
+        });
+        
+        document.getElementById('ratioSlider').addEventListener('input', (e) => {
+            triggerRatio = parseFloat(e.target.value);
+            document.getElementById('ratioValue').textContent = triggerRatio.toFixed(1);
+            
+            // Update threshold line
+            ratioChart.options.plugins.annotation.annotations.threshold.yMin = triggerRatio;
+            ratioChart.options.plugins.annotation.annotations.threshold.yMax = triggerRatio;
+            ratioChart.options.plugins.annotation.annotations.threshold.label.content = `Trigger: ${triggerRatio}`;
+            ratioChart.update();
+        });
+        
+        // Initialize
+        window.addEventListener('DOMContentLoaded', function() {
+            generateData();
+            initCharts();
+        });
+    </script>
+</body>
+</html>

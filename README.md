@@ -475,4 +475,33 @@ Understand the physics - why normal stress increases shear resistance
     </td>
   </tr>
 </table>
+
 ---------------------------------------------------------
+
+## Lecture 16: Seismic Attenuation
+
+<table>
+  <tr align="center">
+    <th>Interactive Coda-Q Simulator!</th>
+    <th>East-Coast vs West-Coast Attenuation!</th>
+    <th>Seismic Wave Attenuation Simulator!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l16_coda_q_simulator.html">
+        <img src="interactive_visualizations/viz__l16_coda_q_simulator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l16_east_vest_attenuation.html">
+        <img src="interactive_visualizations/viz__l16_east_vest_attenuation.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l16_eismic_attenuation_simulator.html">
+        <img src="interactive_visualizations/viz__l16_eismic_attenuation_simulator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>

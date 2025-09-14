@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Magnitude Scale Comparison Tool</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a2332 25%, #2d4059 50%, #1a2332 75%, #0f1419 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .left-panel, .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .panel-title {
+            color: #4ecdc4;
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .magnitude-control {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .magnitude-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #2ecc71, #f39c12, #e74c3c, #8e44ad);
+            outline: none;
+            -webkit-appearance: none;
+            margin: 20px 0;
+        }
+        
+        .magnitude-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            border: 3px solid #4ecdc4;
+        }
+        
+        .magnitude-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: 3px solid #4ecdc4;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        
+        .magnitude-display {
+            font-size: 3em;
+            font-weight: bold;
+            color: #4ecdc4;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin: 20px 0;
+        }
+        
+        .earthquake-type {
+            font-size: 1.1em;
+            color: #ccc;
+            font-style: italic;
+        }
+        
+        .meters-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .magnitude-meter {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .magnitude-meter.saturated {
+            border-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+            animation: saturate-pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes saturate-pulse {
+            0%, 100% { border-color: #e74c3c; }
+            50% { border-color: #ff6b6b; }
+        }
+        
+        .meter-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #4ecdc4;
+        }
+        
+        .meter-value {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin: 10px 0;
+            transition: color 0.3s ease;
+        }
+        
+        .meter-description {
+            font-size: 11px;
+            color: #ccc;
+            line-height: 1.3;
+        }
+        
+        .saturation-warning {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 8px;
+            font-size: 10px;
+            color: #ff6b6b;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .magnitude-meter.saturated .saturation-warning {
+            display: block;
+        }
+        
+        .seismogram-container {
+            background: #000;
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .component-label {
+            color: #4ecdc4;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        
+        canvas {
+            width: 100%;
+            background: #000;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .wave-legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .amplitude-visualizer {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .viz-title {
+            color: #4ecdc4;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .amplitude-bars {
+            display: flex;
+            align-items: end;
+            justify-content: space-around;
+            height: 100px;
+            margin: 15px 0;
+        }
+        
+        .amplitude-bar {
+            background: linear-gradient(to top, #4ecdc4, #45b7d1);
+            width: 20px;
+            border-radius: 2px;
+            position: relative;
+            transition: height 0.5s ease;
+        }
+        
+        .bar-label {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #ccc;
+        }
+        
+        .energy-comparison {
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid #ffa500;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .energy-title {
+            color: #ffa500;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .energy-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffa500;
+            margin: 8px 0;
+        }
+        
+        .explanation {
+            background: rgba(52, 152, 219, 0.2);
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #87CEEB;
+        }
+        
+        .saturation-explanation {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .explanation-title {
+            color: #e74c3c;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .saturation-info {
+            font-size: 12px;
+            line-height: 1.4;
+            color: #ff6b6b;
+        }
+        
+        .scale-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .scale-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .scale-name {
+            font-size: 11px;
+            color: #ccc;
+            margin-bottom: 5px;
+        }
+        
+        .scale-purpose {
+            font-size: 10px;
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .meters-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Interactive Magnitude Scale Comparison</h1>
+        <div class="subtitle">Explore how different magnitude scales respond to earthquakes of varying sizes</div>
+        
+        <div class="main-grid">
+            <div class="left-panel">
+                <div class="panel">
+                    <div class="panel-title">
+                        🎛️ Earthquake Generator
+                    </div>
+                    
+                    <div class="magnitude-control">
+                        <input type="range" class="magnitude-slider" id="magnitudeSlider" 
+                               min="3.0" max="9.5" value="6.0" step="0.1">
+                        
+                        <div class="magnitude-display" id="magnitudeDisplay">M 6.0</div>
+                        <div class="earthquake-type" id="earthquakeType">Strong Earthquake</div>
+                        
+                        <div class="explanation">
+                            <strong>Adjust the slider</strong> to generate earthquakes of different magnitudes. 
+                            Watch how various magnitude scales respond - notice the saturation effects!
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <div class="panel-title">
+                        📈 Magnitude Scale Meters
+                    </div>
+                    
+                    <div class="meters-grid">
+                        <div class="magnitude-meter" id="mlMeter">
+                            <div class="meter-title">Local Magnitude (ML)</div>
+                            <div class="meter-value" id="mlValue">6.0</div>
+                            <div class="meter-description">Wood-Anderson seismometer response</div>
+                            <div class="saturation-warning">⚠️ SATURATED - No longer reliable!</div>
+                        </div>
+                        
+                        <div class="magnitude-meter" id="mbMeter">
+                            <div class="meter-title">Body Wave (mb)</div>
+                            <div class="meter-value" id="mbValue">6.0</div>
+                            <div class="meter-description">P-wave amplitudes (1-5 Hz)</div>
+                            <div class="saturation-warning">⚠️ SATURATED at ~M6.5!</div>
+                        </div>
+                        
+                        <div class="magnitude-meter" id="msMeter">
+                            <div class="meter-title">Surface Wave (Ms)</div>
+                            <div class="meter-value" id="msValue">6.0</div>
+                            <div class="meter-description">Surface waves (~20s period)</div>
+                            <div class="saturation-warning">⚠️ SATURATED at ~M8.2!</div>
+                        </div>
+                        
+                        <div class="magnitude-meter" id="mwMeter">
+                            <div class="meter-title">Moment Magnitude (Mw)</div>
+                            <div class="meter-value" id="mwValue">6.0</div>
+                            <div class="meter-description">Seismic moment-based (no saturation)</div>
+                            <div class="saturation-warning">Never saturates!</div>
+                        </div>
+                    </div>
+                    
+                    <div class="scale-comparison">
+                        <div class="scale-item">
+                            <div class="scale-name">ML/mb - High Frequency</div>
+                            <div class="scale-purpose">Local & Teleseismic</div>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-name">Ms - Long Period</div>
+                            <div class="scale-purpose">Large Events</div>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-name">Mw - Physical</div>
+                            <div class="scale-purpose">All Sizes</div>
+                        </div>
+                        <div class="scale-item">
+                            <div class="scale-name">Modern Standard</div>
+                            <div class="scale-purpose">No Saturation</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="amplitude-visualizer">
+                    <div class="viz-title">📏 Amplitude & Energy Scaling</div>
+                    
+                    <div class="amplitude-bars" id="amplitudeBars">
+                        <div class="amplitude-bar" style="height: 10px;">
+                            <div class="bar-label">M5</div>
+                        </div>
+                        <div class="amplitude-bar" style="height: 32px;">
+                            <div class="bar-label">M6</div>
+                        </div>
+                        <div class="amplitude-bar" style="height: 100px;">
+                            <div class="bar-label">M7</div>
+                        </div>
+                    </div>
+                    
+                    <div style="font-size: 11px; color: #ccc; text-align: center;">
+                        Amplitude increases 10x per magnitude unit<br>
+                        Energy increases 32x per magnitude unit
+                    </div>
+                    
+                    <div class="energy-comparison">
+                        <div class="energy-title">Energy Comparison</div>
+                        <div class="energy-value" id="energyValue">2.0 × 10¹⁵ J</div>
+                        <div style="font-size: 11px; color: #ccc;">
+                            Equivalent to <span id="energyComparison">63 tons TNT</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="panel">
+                    <div class="panel-title">
+                        📊 3-Component Seismogram
+                    </div>
+                    
+                    <div class="seismogram-container">
+                        <div class="component-label">Vertical (Z) Component</div>
+                        <canvas id="verticalCanvas" width="600" height="80"></canvas>
+                        
+                        <div class="component-label">North-South (N) Component</div>
+                        <canvas id="northSouthCanvas" width="600" height="80"></canvas>
+                        
+                        <div class="component-label">East-West (E) Component</div>
+                        <canvas id="eastWestCanvas" width="600" height="80"></canvas>
+                        
+                        <div class="wave-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #ff6b6b;"></div>
+                                <span>P-waves (Primary)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #4ecdc4;"></div>
+                                <span>S-waves (Secondary)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #feca57;"></div>
+                                <span>Surface waves</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #45b7d1;"></div>
+                                <span>Coda</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="saturation-explanation">
+                    <div class="explanation-title">🚨 Understanding Magnitude Saturation</div>
+                    <div class="saturation-info">
+                        <strong>Why scales saturate:</strong><br>
+                        • <strong>ML & mb:</strong> High-frequency waves don't grow proportionally with very large earthquakes<br>
+                        • <strong>Ms:</strong> Surface waves saturate for events larger than ~M8.2<br>
+                        • <strong>Mw:</strong> Based on total seismic moment - never saturates<br><br>
+                        
+                        <strong>Historical impact:</strong><br>
+                        The 1960 Chilean earthquake (Mw 9.5) was initially underestimated using Ms (~8.5), 
+                        leading to the development of moment magnitude scale.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px; padding: 20px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; border-top: 2px solid #4ecdc4;">
+            <div style="color: #4ecdc4; font-weight: bold; font-size: 14px;">Harvard EPS55</div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentMagnitude = 6.0;
+        let canvases = {};
+        let contexts = {};
+        
+        // Magnitude scale saturation limits
+        const saturationLimits = {
+            ml: 7.0,    // Local magnitude saturates around M7
+            mb: 6.5,    // Body wave magnitude saturates around M6.5
+            ms: 8.2,    // Surface wave magnitude saturates around M8.2
+            mw: Infinity // Moment magnitude doesn't saturate
+        };
+        
+        function init() {
+            setupCanvases();
+            setupEventListeners();
+            updateAll();
+        }
+        
+        function setupCanvases() {
+            const canvasIds = ['verticalCanvas', 'northSouthCanvas', 'eastWestCanvas'];
+            
+            canvasIds.forEach(id => {
+                canvases[id] = document.getElementById(id);
+                contexts[id] = canvases[id].getContext('2d');
+                
+                const rect = canvases[id].getBoundingClientRect();
+                canvases[id].width = rect.width * window.devicePixelRatio;
+                canvases[id].height = rect.height * window.devicePixelRatio;
+                contexts[id].scale(window.devicePixelRatio, window.devicePixelRatio);
+            });
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('magnitudeSlider').addEventListener('input', (e) => {
+                currentMagnitude = parseFloat(e.target.value);
+                updateAll();
+            });
+            
+            window.addEventListener('resize', setupCanvases);
+        }
+        
+        function updateAll() {
+            updateMagnitudeDisplay();
+            updateMagnitudeMeters();
+            updateSeismograms();
+            updateAmplitudeVisualization();
+            updateEnergyComparison();
+        }
+        
+        function updateMagnitudeDisplay() {
+            document.getElementById('magnitudeDisplay').textContent = `M ${currentMagnitude.toFixed(1)}`;
+            
+            let earthquakeType;
+            if (currentMagnitude < 4) earthquakeType = 'Light Earthquake';
+            else if (currentMagnitude < 5) earthquakeType = 'Moderate Earthquake';
+            else if (currentMagnitude < 6) earthquakeType = 'Strong Earthquake';
+            else if (currentMagnitude < 7) earthquakeType = 'Major Earthquake';
+            else if (currentMagnitude < 8) earthquakeType = 'Great Earthquake';
+            else earthquakeType = 'Massive Earthquake';
+            
+            document.getElementById('earthquakeType').textContent = earthquakeType;
+        }
+        
+        function updateMagnitudeMeters() {
+            // Calculate each magnitude scale
+            const ml = calculateML(currentMagnitude);
+            const mb = calculateMb(currentMagnitude);
+            const ms = calculateMs(currentMagnitude);
+            const mw = currentMagnitude; // Mw is our reference
+            
+            // Update meter values
+            document.getElementById('mlValue').textContent = ml.toFixed(1);
+            document.getElementById('mbValue').textContent = mb.toFixed(1);
+            document.getElementById('msValue').textContent = ms.toFixed(1);
+            document.getElementById('mwValue').textContent = mw.toFixed(1);
+            
+            // Update meter colors and saturation indicators
+            updateMeterSaturation('mlMeter', ml, saturationLimits.ml);
+            updateMeterSaturation('mbMeter', mb, saturationLimits.mb);
+            updateMeterSaturation('msMeter', ms, saturationLimits.ms);
+            updateMeterSaturation('mwMeter', mw, saturationLimits.mw);
+        }
+        
+        function calculateML(mw) {
+            // ML saturates around M7 due to Wood-Anderson response
+            if (mw <= saturationLimits.ml) {
+                return mw * 0.95 + 0.1; // Slight adjustment for realism
+            } else {
+                // Saturation curve
+                return saturationLimits.ml + 0.1 * Math.log10(mw - saturationLimits.ml + 1);
+            }
+        }
+        
+        function calculateMb(mw) {
+            // mb saturates around M6.5 due to high-frequency limitation
+            if (mw <= saturationLimits.mb) {
+                return mw * 0.98 + 0.05;
+            } else {
+                // Saturation curve
+                return saturationLimits.mb + 0.05 * Math.log10(mw - saturationLimits.mb + 1);
+            }
+        }
+        
+        function calculateMs(mw) {
+            // Ms saturates around M8.2 due to surface wave limitations
+            if (mw <= saturationLimits.ms) {
+                return mw * 0.96 + 0.15;
+            } else {
+                // Saturation curve
+                return saturationLimits.ms + 0.1 * Math.log10(mw - saturationLimits.ms + 1);
+            }
+        }
+        
+        function updateMeterSaturation(meterId, value, limit) {
+            const meter = document.getElementById(meterId);
+            const valueElement = meter.querySelector('.meter-value');
+            
+            if (currentMagnitude > limit && limit !== Infinity) {
+                meter.classList.add('saturated');
+                valueElement.style.color = '#e74c3c';
+            } else {
+                meter.classList.remove('saturated');
+                valueElement.style.color = '#4ecdc4';
+            }
+        }
+        
+        function updateSeismograms() {
+            // Draw seismograms for each component
+            drawSeismogram('verticalCanvas', 'vertical');
+            drawSeismogram('northSouthCanvas', 'northSouth');
+            drawSeismogram('eastWestCanvas', 'eastWest');
+        }
+        
+        function drawSeismogram(canvasId, component) {
+            const canvas = canvases[canvasId];
+            const ctx = contexts[canvasId];
+            const rect = canvas.getBoundingClientRect();
+            
+            ctx.clearRect(0, 0, rect.width, rect.height);
+            
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const y = (i / 5) * rect.height;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(rect.width, y);
+                ctx.stroke();
+            }
+            
+            // Calculate amplitude scaling based on magnitude
+            const amplitudeScale = Math.pow(10, (currentMagnitude - 3) / 2);
+            const maxAmplitude = Math.min(amplitudeScale / 10, rect.height * 0.4);
+            
+            // Time parameters
+            const totalTime = rect.width;
+            const pArrival = totalTime * 0.2;
+            const sArrival = totalTime * 0.35;
+            const surfaceArrival = totalTime * 0.5;
+            
+            // Draw P-waves
+            drawWavePhase(ctx, rect, pArrival, pArrival + 50, maxAmplitude * 0.6, '#ff6b6b', 15, component);
+            
+            // Draw S-waves
+            drawWavePhase(ctx, rect, sArrival, sArrival + 80, maxAmplitude * 0.8, '#4ecdc4', 8, component);
+            
+            // Draw surface waves (more prominent for larger magnitudes)
+            const surfaceAmplitude = maxAmplitude * (0.5 + (currentMagnitude - 3) * 0.1);
+            const surfaceDuration = 100 + (currentMagnitude - 3) * 20;
+            drawWavePhase(ctx, rect, surfaceArrival, surfaceArrival + surfaceDuration, surfaceAmplitude, '#feca57', 3, component);
+            
+            // Draw coda
+            drawCoda(ctx, rect, surfaceArrival + surfaceDuration, totalTime, maxAmplitude * 0.3, '#45b7d1');
+            
+            // Add phase labels
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '12px Arial';
+            ctx.fillText('P', pArrival, 15);
+            ctx.fillText('S', sArrival, 15);
+            ctx.fillText('Surface', surfaceArrival, 15);
+        }
+        
+        function drawWavePhase(ctx, rect, startTime, endTime, amplitude, color, frequency, component) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            const midY = rect.height / 2;
+            let started = false;
+            
+            for (let x = startTime; x <= endTime && x <= rect.width; x += 1) {
+                const progress = (x - startTime) / (endTime - startTime);
+                const envelope = Math.exp(-progress * 3) * (1 - Math.exp(-progress * 10));
+                
+                // Component-specific amplitude modulation
+                let componentModulation = 1;
+                if (component === 'vertical') {
+                    componentModulation = frequency > 10 ? 1.2 : 0.8; // P-waves stronger on vertical
+                } else {
+                    componentModulation = frequency < 10 ? 1.2 : 0.8; // S and surface waves stronger on horizontal
+                }
+                
+                const y = midY + Math.sin(x * frequency * 0.1) * amplitude * envelope * componentModulation;
+                
+                if (!started) {
+                    ctx.moveTo(x, y);
+                    started = true;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+        }
+        
+        function drawCoda(ctx, rect, startTime, endTime, amplitude, color) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            const midY = rect.height / 2;
+            let started = false;
+            
+            for (let x = startTime; x <= endTime; x += 2) {
+                const progress = (x - startTime) / (endTime - startTime);
+                const envelope = Math.exp(-progress * 2);
+                const noise = (Math.random() - 0.5) * 2;
+                
+                const y = midY + noise * amplitude * envelope;
+                
+                if (!started) {
+                    ctx.moveTo(x, y);
+                    started = true;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+        }
+        
+        function updateAmplitudeVisualization() {
+            const bars = document.querySelectorAll('.amplitude-bar');
+            const magnitudes = [5, 6, 7];
+            
+            bars.forEach((bar, index) => {
+                const mag = magnitudes[index];
+                const relativeAmplitude = Math.pow(10, mag - 5); // Relative to M5
+                const height = Math.min(relativeAmplitude * 10, 100);
+                bar.style.height = height + 'px';
+                
+                // Highlight current magnitude
+                if (Math.abs(mag - currentMagnitude) < 0.5) {
+                    bar.style.background = 'linear-gradient(to top, #ff6b6b, #e74c3c)';
+                } else {
+                    bar.style.background = 'linear-gradient(to top, #4ecdc4, #45b7d1)';
+                }
+            });
+        }
+        
+        function updateEnergyComparison() {
+            // Calculate energy: log E = 1.5 * Mw + 4.8 (in Joules)
+            const logEnergy = 1.5 * currentMagnitude + 4.8;
+            const energy = Math.pow(10, logEnergy);
+            
+            // Format energy in scientific notation
+            const exponent = Math.floor(Math.log10(energy));
+            const mantissa = energy / Math.pow(10, exponent);
+            
+            document.getElementById('energyValue').textContent = 
+                `${mantissa.toFixed(1)} × 10${getSuperscript(exponent)} J`;
+            
+            // Energy comparisons
+            let comparison;
+            if (currentMagnitude < 4) {
+                comparison = '< 1 ton TNT';
+            } else if (currentMagnitude < 5) {
+                comparison = '1-32 tons TNT';
+            } else if (currentMagnitude < 6) {
+                comparison = '1,000 tons TNT';
+            } else if (currentMagnitude < 7) {
+                comparison = '32,000 tons TNT';
+            } else if (currentMagnitude < 8) {
+                comparison = '1 megaton TNT';
+            } else {
+                comparison = '> 32 megatons TNT';
+            }
+            
+            document.getElementById('energyComparison').textContent = comparison;
+        }
+        
+        function getSuperscript(num) {
+            const superscripts = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+            return num.toString().split('').map(digit => superscripts[parseInt(digit)]).join('');
+        }
+        
+        // Initialize the application
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

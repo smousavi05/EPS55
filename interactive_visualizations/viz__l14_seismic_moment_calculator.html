@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 3D Seismic Moment Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a2332 25%, #2d4059 50%, #1a2332 75%, #0f1419 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: fit-content;
+        }
+        
+        .visualization-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border-left: 4px solid #4ecdc4;
+        }
+        
+        .section-title {
+            color: #4ecdc4;
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .slider-group {
+            margin-bottom: 15px;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .slider-value {
+            background: #4ecdc4;
+            color: #000;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+            font-size: 12px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        .rock-type-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .rock-btn {
+            padding: 10px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid transparent;
+        }
+        
+        .rock-btn.active {
+            background: #4ecdc4;
+            color: #000;
+            border-color: #4ecdc4;
+        }
+        
+        .results-display {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #4ecdc4;
+        }
+        
+        .result-title {
+            color: #4ecdc4;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .moment-display {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .moment-value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #ff6b6b;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .moment-unit {
+            font-size: 0.8em;
+            color: #ccc;
+            margin-top: 5px;
+        }
+        
+        .magnitude-display {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 107, 107, 0.2);
+            border-radius: 8px;
+            border: 1px solid #ff6b6b;
+        }
+        
+        .magnitude-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #ff6b6b;
+            margin-bottom: 5px;
+        }
+        
+        .magnitude-label {
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .formula-display {
+            background: rgba(78, 205, 196, 0.1);
+            border: 1px solid #4ecdc4;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .formula {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #4ecdc4;
+            margin-bottom: 10px;
+        }
+        
+        .formula-explanation {
+            font-size: 11px;
+            color: #ccc;
+            line-height: 1.4;
+        }
+        
+        .3d-container {
+            background: #000;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            height: 400px;
+        }
+        
+        .container-title {
+            color: #4ecdc4;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        #threejs-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 5px;
+        }
+        
+        .analogy-section {
+            background: rgba(255, 165, 0, 0.1);
+            border: 1px solid #ffa500;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .analogy-title {
+            color: #ffa500;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .analogy-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .analogy-visual {
+            width: 60px;
+            height: 60px;
+            background: #ffa500;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            animation: rotate 3s ease-in-out infinite;
+        }
+        
+        @keyframes rotate {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(15deg); }
+        }
+        
+        .analogy-text {
+            font-size: 12px;
+            line-height: 1.4;
+            color: #ccc;
+        }
+        
+        .scaling-comparison {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .comparison-title {
+            color: #4ecdc4;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .comparison-scale {
+            position: relative;
+            height: 30px;
+            background: linear-gradient(90deg, #2ecc71, #f39c12, #e74c3c, #8e44ad);
+            border-radius: 15px;
+            margin: 10px 0;
+        }
+        
+        .scale-marker {
+            position: absolute;
+            top: -5px;
+            width: 3px;
+            height: 40px;
+            background: white;
+            border-radius: 2px;
+            transform: translateX(-50%);
+        }
+        
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #ccc;
+            margin-top: 5px;
+        }
+        
+        .parameter-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .param-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .param-label {
+            font-size: 11px;
+            color: #ccc;
+            margin-bottom: 5px;
+        }
+        
+        .param-value {
+            font-weight: bold;
+            color: #4ecdc4;
+            font-size: 13px;
+        }
+        
+        .controls-hint {
+            background: rgba(52, 152, 219, 0.2);
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #87CEEB;
+            text-align: center;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .parameter-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Interactive 3D Seismic Moment Calculator</h1>
+        <div class="subtitle">Explore the relationship between fault parameters and earthquake magnitude</div>
+        
+        <div class="main-grid">
+            <div class="controls-panel">
+                <div class="control-section">
+                    <div class="section-title">
+                        📏 Fault Geometry
+                    </div>
+                    
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Fault Length (km):</span>
+                            <span class="slider-value" id="lengthValue">10.0</span>
+                        </div>
+                        <input type="range" id="lengthSlider" min="1" max="500" value="10" step="1">
+                    </div>
+                    
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Fault Width (km):</span>
+                            <span class="slider-value" id="widthValue">8.0</span>
+                        </div>
+                        <input type="range" id="widthSlider" min="1" max="100" value="8" step="1">
+                    </div>
+                    
+                    <div class="parameter-info">
+                        <div class="param-item">
+                            <div class="param-label">Rupture Area</div>
+                            <div class="param-value" id="areaValue">80 km²</div>
+                        </div>
+                        <div class="param-item">
+                            <div class="param-label">Aspect Ratio</div>
+                            <div class="param-value" id="aspectValue">1.25</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <div class="section-title">
+                        📐 Displacement & Material
+                    </div>
+                    
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Average Slip (m):</span>
+                            <span class="slider-value" id="slipValue">1.0</span>
+                        </div>
+                        <input type="range" id="slipSlider" min="0.01" max="50" value="1" step="0.01">
+                    </div>
+                    
+                    <div class="slider-label" style="margin-bottom: 8px;">
+                        <span>Rock Type (Rigidity):</span>
+                    </div>
+                    <div class="rock-type-selector">
+                        <button class="rock-btn" onclick="setRockType('sediment')" id="sedimentBtn">
+                            🏔️ Sediment<br><small>10 GPa</small>
+                        </button>
+                        <button class="rock-btn active" onclick="setRockType('crustal')" id="crustalBtn">
+                            🗿 Crustal Rock<br><small>30 GPa</small>
+                        </button>
+                        <button class="rock-btn" onclick="setRockType('crystalline')" id="crystallineBtn">
+                            💎 Crystalline<br><small>50 GPa</small>
+                        </button>
+                        <button class="rock-btn" onclick="setRockType('mantle')" id="mantleBtn">
+                            🔥 Mantle<br><small>80 GPa</small>
+                        </button>
+                    </div>
+                    
+                    <div class="parameter-info">
+                        <div class="param-item">
+                            <div class="param-label">Rigidity (μ)</div>
+                            <div class="param-value" id="rigidityValue">30 GPa</div>
+                        </div>
+                        <div class="param-item">
+                            <div class="param-label">Stress Drop</div>
+                            <div class="param-value" id="stressValue">3.0 MPa</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="results-display">
+                    <div class="result-title">🧮 Calculated Results</div>
+                    
+                    <div class="moment-display">
+                        <div class="moment-value" id="momentValue">2.4 × 10¹⁶</div>
+                        <div class="moment-unit">N·m (Seismic Moment)</div>
+                    </div>
+                    
+                    <div class="magnitude-display">
+                        <div class="magnitude-value" id="magnitudeValue">M 6.2</div>
+                        <div class="magnitude-label">Moment Magnitude (Mw)</div>
+                    </div>
+                </div>
+                
+                <div class="formula-display">
+                    <div class="formula">M₀ = μ × A × D</div>
+                    <div class="formula-explanation">
+                        <strong>M₀</strong> = Seismic Moment<br>
+                        <strong>μ</strong> = Rigidity (rock stiffness)<br>
+                        <strong>A</strong> = Rupture Area<br>
+                        <strong>D</strong> = Average Slip
+                    </div>
+                </div>
+                
+                <div class="analogy-section">
+                    <div class="analogy-title">💡 Moment Analogy</div>
+                    <div class="analogy-content">
+                        <div class="analogy-visual">🔧</div>
+                        <div class="analogy-text">
+                            <strong>Seismic moment</strong> is like the "turning force" when using a wrench. 
+                            Larger force (μ), longer wrench (A), and more rotation (D) create more moment!
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="visualization-panel">
+                <div class="3d-container">
+                    <div class="container-title">🌋 3D Fault Model</div>
+                    <div id="threejs-container"></div>
+                </div>
+                
+                <div class="scaling-comparison">
+                    <div class="comparison-title">📊 Magnitude Scale Comparison</div>
+                    <div class="comparison-scale">
+                        <div class="scale-marker" id="currentMarker"></div>
+                    </div>
+                    <div class="scale-labels">
+                        <span>M 1-3<br>Micro</span>
+                        <span>M 4-5<br>Light</span>
+                        <span>M 6-7<br>Strong</span>
+                        <span>M 8-9<br>Great</span>
+                    </div>
+                    
+                    <div style="margin-top: 15px; font-size: 12px; color: #ccc;">
+                        <div>📍 <strong>Your earthquake:</strong> <span id="earthquakeComparison">Moderate - felt regionally</span></div>
+                        <div style="margin-top: 8px;">
+                            <strong>Moment range:</strong> <span id="momentRange">10¹² to 10²² N·m</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="controls-hint">
+                    <strong>🎮 Interactive Controls:</strong><br>
+                    • Drag to rotate the 3D model<br>
+                    • Scroll to zoom in/out<br>
+                    • Adjust sliders to see real-time fault changes<br>
+                    • Try different rock types to see rigidity effects
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let scene, camera, renderer, controls;
+        let faultPlane, crustBlock, slipIndicator;
+        let currentLength = 10;
+        let currentWidth = 8;
+        let currentSlip = 1.0;
+        let currentRigidity = 30e9; // Pa
+        let currentRockType = 'crustal';
+        
+        // Rock type properties
+        const rockTypes = {
+            sediment: { rigidity: 10e9, color: 0x8B4513, name: 'Soft Sediment' },
+            crustal: { rigidity: 30e9, color: 0x708090, name: 'Crustal Rock' },
+            crystalline: { rigidity: 50e9, color: 0x2F4F4F, name: 'Crystalline Rock' },
+            mantle: { rigidity: 80e9, color: 0x8B0000, name: 'Mantle Rock' }
+        };
+        
+        function init() {
+            setupThreeJS();
+            setupEventListeners();
+            updateCalculations();
+            updateScaleMarker();
+        }
+        
+        function setupThreeJS() {
+            const container = document.getElementById('threejs-container');
+            
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a0a);
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(20, 15, 20);
+            
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 50, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            // Create crustal block
+            createCrustalBlock();
+            
+            // Create fault plane
+            createFaultPlane();
+            
+            // Create slip indicator
+            createSlipIndicator();
+            
+            // Simple orbit controls (mouse interaction)
+            setupControls();
+            
+            // Start render loop
+            animate();
+        }
+        
+        function createCrustalBlock() {
+            const geometry = new THREE.BoxGeometry(30, 20, 25);
+            const material = new THREE.MeshLambertMaterial({ 
+                color: rockTypes[currentRockType].color,
+                transparent: true,
+                opacity: 0.7
+            });
+            
+            crustBlock = new THREE.Mesh(geometry, material);
+            crustBlock.position.set(0, -5, 0);
+            crustBlock.receiveShadow = true;
+            scene.add(crustBlock);
+            
+            // Add wireframe outline
+            const wireframe = new THREE.WireframeGeometry(geometry);
+            const line = new THREE.LineSegments(wireframe, new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3 }));
+            line.position.copy(crustBlock.position);
+            scene.add(line);
+        }
+        
+        function createFaultPlane() {
+            const geometry = new THREE.PlaneGeometry(currentLength, currentWidth);
+            const material = new THREE.MeshLambertMaterial({ 
+                color: 0xff6b6b,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            faultPlane = new THREE.Mesh(geometry, material);
+            faultPlane.rotation.x = Math.PI / 2;
+            faultPlane.rotation.z = Math.PI / 6; // Dip angle
+            faultPlane.position.set(0, 0, 0);
+            faultPlane.castShadow = true;
+            scene.add(faultPlane);
+            
+            // Add fault plane outline
+            const edges = new THREE.EdgesGeometry(geometry);
+            const outline = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
+            outline.rotation.copy(faultPlane.rotation);
+            outline.position.copy(faultPlane.position);
+            scene.add(outline);
+        }
+        
+        function createSlipIndicator() {
+            // Create arrows showing slip direction
+            const arrowGeometry = new THREE.ConeGeometry(0.5, 2, 8);
+            const arrowMaterial = new THREE.MeshLambertMaterial({ color: 0x4ecdc4 });
+            
+            slipIndicator = new THREE.Group();
+            
+            // Create multiple arrows along the fault
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+                    arrow.position.set(i * 3, 1, j * 2);
+                    arrow.rotation.x = Math.PI / 2;
+                    slipIndicator.add(arrow);
+                }
+            }
+            
+            scene.add(slipIndicator);
+            updateSlipIndicator();
+        }
+        
+        function setupControls() {
+            let isMouseDown = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            renderer.domElement.addEventListener('mousedown', (event) => {
+                isMouseDown = true;
+                previousMousePosition.x = event.clientX;
+                previousMousePosition.y = event.clientY;
+            });
+            
+            renderer.domElement.addEventListener('mouseup', () => {
+                isMouseDown = false;
+            });
+            
+            renderer.domElement.addEventListener('mousemove', (event) => {
+                if (!isMouseDown) return;
+                
+                const deltaMove = {
+                    x: event.clientX - previousMousePosition.x,
+                    y: event.clientY - previousMousePosition.y
+                };
+                
+                const spherical = new THREE.Spherical();
+                spherical.setFromVector3(camera.position);
+                
+                spherical.theta -= deltaMove.x * 0.01;
+                spherical.phi += deltaMove.y * 0.01;
+                spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+                
+                camera.position.setFromSpherical(spherical);
+                camera.lookAt(0, 0, 0);
+                
+                previousMousePosition.x = event.clientX;
+                previousMousePosition.y = event.clientY;
+            });
+            
+            renderer.domElement.addEventListener('wheel', (event) => {
+                const distance = camera.position.length();
+                const newDistance = distance + event.deltaY * 0.01;
+                
+                camera.position.normalize().multiplyScalar(Math.max(10, Math.min(100, newDistance)));
+            });
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('lengthSlider').addEventListener('input', (e) => {
+                currentLength = parseFloat(e.target.value);
+                document.getElementById('lengthValue').textContent = currentLength.toFixed(1);
+                updateFaultGeometry();
+                updateCalculations();
+            });
+            
+            document.getElementById('widthSlider').addEventListener('input', (e) => {
+                currentWidth = parseFloat(e.target.value);
+                document.getElementById('widthValue').textContent = currentWidth.toFixed(1);
+                updateFaultGeometry();
+                updateCalculations();
+            });
+            
+            document.getElementById('slipSlider').addEventListener('input', (e) => {
+                currentSlip = parseFloat(e.target.value);
+                document.getElementById('slipValue').textContent = currentSlip.toFixed(2);
+                updateSlipIndicator();
+                updateCalculations();
+            });
+            
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        function updateFaultGeometry() {
+            // Remove old fault plane
+            scene.remove(faultPlane);
+            
+            // Create new fault plane with updated dimensions
+            const geometry = new THREE.PlaneGeometry(currentLength, currentWidth);
+            const material = new THREE.MeshLambertMaterial({ 
+                color: 0xff6b6b,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            faultPlane = new THREE.Mesh(geometry, material);
+            faultPlane.rotation.x = Math.PI / 2;
+            faultPlane.rotation.z = Math.PI / 6;
+            faultPlane.position.set(0, 0, 0);
+            faultPlane.castShadow = true;
+            scene.add(faultPlane);
+            
+            // Update area and aspect ratio displays
+            const area = currentLength * currentWidth;
+            const aspectRatio = currentLength / currentWidth;
+            
+            document.getElementById('areaValue').textContent = area.toFixed(0) + ' km²';
+            document.getElementById('aspectValue').textContent = aspectRatio.toFixed(2);
+        }
+        
+        function updateSlipIndicator() {
+            // Update arrow positions to show slip amount
+            slipIndicator.children.forEach((arrow, index) => {
+                const basePosition = arrow.userData.basePosition || arrow.position.clone();
+                arrow.userData.basePosition = basePosition.clone();
+                
+                // Move arrows based on slip amount
+                const slipOffset = currentSlip * 0.5; // Scale for visualization
+                arrow.position.x = basePosition.x + slipOffset * Math.sin(index * 0.5);
+                arrow.position.z = basePosition.z + slipOffset * Math.cos(index * 0.5);
+            });
+            
+            // Update stress drop estimate
+            const stressDrop = (currentRigidity * currentSlip) / (currentLength * 1000) / 1e6; // Convert to MPa
+            document.getElementById('stressValue').textContent = stressDrop.toFixed(1) + ' MPa';
+        }
+        
+        function setRockType(type) {
+            currentRockType = type;
+            currentRigidity = rockTypes[type].rigidity;
+            
+            // Update button states
+            document.querySelectorAll('.rock-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(type + 'Btn').classList.add('active');
+            
+            // Update crustal block color
+            crustBlock.material.color.setHex(rockTypes[type].color);
+            
+            // Update rigidity display
+            document.getElementById('rigidityValue').textContent = (currentRigidity / 1e9).toFixed(0) + ' GPa';
+            
+            updateCalculations();
+        }
+        
+        function updateCalculations() {
+            // Calculate seismic moment: M₀ = μ × A × D
+            const area = currentLength * currentWidth * 1e6; // Convert km² to m²
+            const slip = currentSlip; // Already in meters
+            const moment = currentRigidity * area * slip;
+            
+            // Calculate moment magnitude: Mw = (2/3) × log₁₀(M₀) - 6.0
+            const magnitude = (2/3) * Math.log10(moment) - 6.0;
+            
+            // Display results
+            displayMoment(moment);
+            displayMagnitude(magnitude);
+            updateScaleMarker();
+            updateEarthquakeComparison(magnitude);
+        }
+        
+        function displayMoment(moment) {
+            // Format in scientific notation
+            const exponent = Math.floor(Math.log10(moment));
+            const mantissa = moment / Math.pow(10, exponent);
+            
+            document.getElementById('momentValue').textContent = 
+                `${mantissa.toFixed(1)} × 10${getSuperscript(exponent)}`;
+        }
+        
+        function displayMagnitude(magnitude) {
+            document.getElementById('magnitudeValue').textContent = `M ${magnitude.toFixed(1)}`;
+        }
+        
+        function updateScaleMarker() {
+            const magnitude = parseFloat(document.getElementById('magnitudeValue').textContent.replace('M ', ''));
+            const position = Math.max(0, Math.min(100, ((magnitude - 1) / 8) * 100));
+            
+            document.getElementById('currentMarker').style.left = position + '%';
+        }
+        
+        function updateEarthquakeComparison(magnitude) {
+            let description, momentRange;
+            
+            if (magnitude < 3) {
+                description = 'Micro earthquake - rarely felt';
+                momentRange = '10¹¹ to 10¹⁴ N·m';
+            } else if (magnitude < 5) {
+                description = 'Light earthquake - often felt';
+                momentRange = '10¹⁴ to 10¹⁶ N·m';
+            } else if (magnitude < 6) {
+                description = 'Moderate earthquake - widely felt';
+                momentRange = '10¹⁶ to 10¹⁸ N·m';
+            } else if (magnitude < 7) {
+                description = 'Strong earthquake - regional damage';
+                momentRange = '10¹⁸ to 10²⁰ N·m';
+            } else if (magnitude < 8) {
+                description = 'Major earthquake - serious damage';
+                momentRange = '10²⁰ to 10²¹ N·m';
+            } else {
+                description = 'Great earthquake - catastrophic';
+                momentRange = '10²¹ to 10²² N·m';
+            }
+            
+            document.getElementById('earthquakeComparison').textContent = description;
+            document.getElementById('momentRange').textContent = momentRange;
+        }
+        
+        function getSuperscript(num) {
+            const superscripts = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+            return num.toString().split('').map(digit => superscripts[parseInt(digit)]).join('');
+        }
+        
+        function onWindowResize() {
+            const container = document.getElementById('threejs-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Subtle rotation animation for the slip indicator
+            if (slipIndicator) {
+                slipIndicator.rotation.y += 0.005;
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        // Initialize the application
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

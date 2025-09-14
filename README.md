@@ -17,24 +17,32 @@
 ---------------------------------------------------------
 ## Lecture 2: Geological Faults
 
-#### Fault types!
+  <tr align="center">
+    <th>Fault types!</th>
+    <th>Fault orientations (Strike, Dip, and Rake angles)!</th>
+    <th>Mohr-Coulomb Failure!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l02_fault_types.html">
+        <img src="interactive_visualizations/viz__l02_fault_types.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l02_fault_strik_dip_rake.html">
+        <img src="interactive_visualizations/viz__l02_fault_strik_dip_rake.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l02_coulomb_criterion.html">
+        <img src="interactive_visualizations/viz__l02_coulomb_criterion.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
 
-<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l02_fault_types.html">
-  <img src="interactive_visualizations/viz__l02_fault_types.png" alt="Interactive Figure Preview" width="200">
-</a>
-
-#### Fault orientations (Strike, Dip, and Rake angles)!
-<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l02_fault_strik_dip_rake.html">
-  <img src="interactive_visualizations/viz__l02_fault_strik_dip_rake.png" alt="Interactive Figure Preview" width="200">
-</a>
-
-#### Mohr-Coulomb Failure!
-
-<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l02_coulomb_criterion.html">
-  <img src="interactive_visualizations/viz__l02_coulomb_criterion.png" alt="Interactive Figure Preview" width="200">
-</a>
-
-Increase principal stresses - try adjusting the sliders so the blue Mohr circle clearly crosses the red failure envelope. Watch the Mohr circle grow until it touches the failure line. You’ll see:
+<br> Increase principal stresses - try adjusting the sliders so the blue Mohr circle clearly crosses the red failure envelope. Watch the Mohr circle grow until it touches the failure line. You’ll see:
 
 Change material properties - see how stronger materials (higher c, φ) resist failure
 

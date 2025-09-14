@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modified Omori Law Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            height: fit-content;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-section h3 {
+            margin-bottom: 15px;
+            color: #ffd700;
+            font-size: 1.2em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .slider-container {
+            margin: 20px 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1em;
+            font-weight: bold;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .equation-display {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            margin: 15px 0;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .mainshock-button {
+            background: linear-gradient(145deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        .mainshock-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .mainshock-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .toggle-button {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin: 8px 0;
+        }
+
+        .toggle-button.active {
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            border-color: #fff;
+        }
+
+        .visualization-area {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .timeline-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            height: 120px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline {
+            position: absolute;
+            bottom: 60px;
+            left: 60px;
+            right: 20px;
+            height: 3px;
+            background: #fff;
+        }
+
+        .mainshock-marker {
+            position: absolute;
+            left: 60px;
+            bottom: 45px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 20px solid #ff4444;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .mainshock-marker.active {
+            opacity: 1;
+            animation: mainshock-pulse 1s ease-out;
+        }
+
+        @keyframes mainshock-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+            100% { transform: scale(1); }
+        }
+
+        .aftershock {
+            position: absolute;
+            bottom: 55px;
+            width: 6px;
+            height: 6px;
+            background: #4ecdc4;
+            border-radius: 50%;
+            opacity: 0;
+            animation: aftershock-flash 0.3s ease-out;
+        }
+
+        @keyframes aftershock-flash {
+            0% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .time-labels {
+            position: absolute;
+            bottom: 20px;
+            left: 60px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .plot-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            height: 400px;
+            position: relative;
+        }
+
+        .plot-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .stress-animation {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            height: 200px;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .stress-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 2px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .stress-patch {
+            background: #2c3e50;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .stress-patch.stressed {
+            background: linear-gradient(45deg, #ff4757 0%, #ff3838 100%);
+            box-shadow: 0 0 10px rgba(255, 71, 87, 0.6);
+            animation: stress-pulse 2s ease-in-out infinite;
+        }
+
+        .stress-patch.released {
+            background: linear-gradient(45deg, #2ecc71 0%, #27ae60 100%);
+            animation: release-fade 1s ease-out;
+        }
+
+        @keyframes stress-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        @keyframes release-fade {
+            0% { background: linear-gradient(45deg, #ff4757 0%, #ff3838 100%); }
+            100% { background: linear-gradient(45deg, #2ecc71 0%, #27ae60 100%); }
+        }
+
+        .perception-comparison {
+            background: rgba(255, 193, 7, 0.1);
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .perception-comparison h4 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .info-panel h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+
+        .parameter-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .param-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .param-box h4 {
+            color: #4ecdc4;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .param-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .param-description {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .parameter-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏰ Modified Omori Law Simulator</h1>
+        <p class="subtitle">Explore aftershock decay patterns and stress release mechanisms</p>
+        
+        <div class="main-layout">
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h3>🎯 Mainshock Trigger</h3>
+                    <button class="mainshock-button" id="trigger-mainshock">
+                        🌋 TRIGGER MAINSHOCK
+                    </button>
+                    <p style="font-size: 0.9em; opacity: 0.8; margin-top: 10px;">
+                        Initiates aftershock sequence at t=0
+                    </p>
+                </div>
+                
+                <div class="control-section">
+                    <h3>⚙️ Omori Parameters</h3>
+                    
+                    <div class="equation-display">
+                        n(t) = K / (t + c)^p
+                    </div>
+                    
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>K (Productivity):</span>
+                            <span id="k-value">100</span>
+                        </div>
+                        <input type="range" class="slider" id="k-slider" min="10" max="1000" value="100" step="10">
+                        <small style="opacity: 0.8;">Total aftershock productivity</small>
+                    </div>
+                    
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>c (Initial Delay):</span>
+                            <span id="c-value">0.1</span>
+                        </div>
+                        <input type="range" class="slider" id="c-slider" min="0.01" max="1.0" value="0.1" step="0.01">
+                        <small style="opacity: 0.8;">Smooths initial peak</small>
+                    </div>
+                    
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>p (Decay Exponent):</span>
+                            <span id="p-value">1.0</span>
+                        </div>
+                        <input type="range" class="slider" id="p-slider" min="0.5" max="2.0" value="1.0" step="0.05">
+                        <small style="opacity: 0.8;">Decay steepness</small>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>📊 Display Options</h3>
+                    <button class="toggle-button active" id="toggle-perception">
+                        Show Public vs Reality
+                    </button>
+                    <button class="toggle-button" id="toggle-stress">
+                        Stress Release Animation
+                    </button>
+                    <button class="toggle-button" id="reset-simulation">
+                        🔄 Reset Simulation
+                    </button>
+                </div>
+                
+                <div class="parameter-info">
+                    <div class="param-box">
+                        <h4>K Parameter</h4>
+                        <div class="param-value" id="k-display">100</div>
+                        <div class="param-description">Total productivity</div>
+                    </div>
+                    <div class="param-box">
+                        <h4>c Parameter</h4>
+                        <div class="param-value" id="c-display">0.1</div>
+                        <div class="param-description">Initial delay</div>
+                    </div>
+                    <div class="param-box">
+                        <h4>p Parameter</h4>
+                        <div class="param-value" id="p-display">1.0</div>
+                        <div class="param-description">Decay rate</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="visualization-area">
+                <div class="timeline-container">
+                    <h4 style="margin-bottom: 10px;">Aftershock Timeline</h4>
+                    <div class="timeline"></div>
+                    <div class="mainshock-marker" id="mainshock-marker"></div>
+                    <div class="time-labels">
+                        <span>0 hrs</span>
+                        <span>6 hrs</span>
+                        <span>12 hrs</span>
+                        <span>1 day</span>
+                        <span>1 week</span>
+                        <span>1 month</span>
+                        <span>1 year</span>
+                    </div>
+                </div>
+                
+                <div class="plot-container">
+                    <canvas class="plot-canvas" id="omori-plot"></canvas>
+                </div>
+                
+                <div class="stress-animation" id="stress-animation">
+                    <h4 style="margin-bottom: 15px;">Stress Release Mechanism</h4>
+                    <div class="stress-grid" id="stress-grid"></div>
+                </div>
+                
+                <div class="perception-comparison" id="perception-panel">
+                    <h4>📊 Public Perception vs. Scientific Reality</h4>
+                    <p><strong>Public expectation:</strong> Aftershocks should quickly diminish and stop within days.</p>
+                    <p><strong>Scientific reality:</strong> Omori's Law shows power-law decay - significant aftershocks can occur weeks to years later, with the "late large aftershock" phenomenon being a major public safety concern.</p>
+                </div>
+                
+                <div class="info-panel">
+                    <h3>🔬 Current Interpretation</h3>
+                    <div id="interpretation-text">
+                        Parameters set to typical values. K controls the total number of aftershocks, c smooths the initial rate peak, and p determines how quickly the rate decays over time.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class OmoriLawSimulator {
+            constructor() {
+                this.K = 100;
+                this.c = 0.1;
+                this.p = 1.0;
+                
+                this.isRunning = false;
+                this.startTime = null;
+                this.aftershocks = [];
+                this.stressPatches = [];
+                this.showPerception = true;
+                this.showStressAnimation = false;
+                
+                this.canvas = document.getElementById('omori-plot');
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.initializeCanvas();
+                this.initializeStressGrid();
+                this.bindEvents();
+                this.updateDisplay();
+                this.drawPlot();
+            }
+            
+            initializeCanvas() {
+                const rect = this.canvas.getBoundingClientRect();
+                this.canvas.width = rect.width * window.devicePixelRatio;
+                this.canvas.height = rect.height * window.devicePixelRatio;
+                this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                this.canvas.style.width = rect.width + 'px';
+                this.canvas.style.height = rect.height + 'px';
+                
+                this.plotWidth = rect.width - 80;
+                this.plotHeight = rect.height - 80;
+                this.plotX = 60;
+                this.plotY = 20;
+            }
+            
+            initializeStressGrid() {
+                const grid = document.getElementById('stress-grid');
+                grid.innerHTML = '';
+                
+                for (let i = 0; i < 50; i++) {
+                    const patch = document.createElement('div');
+                    patch.className = 'stress-patch';
+                    patch.dataset.index = i;
+                    
+                    // Randomly assign initial stress levels
+                    const stressLevel = Math.random();
+                    this.stressPatches.push({
+                        element: patch,
+                        stress: stressLevel,
+                        released: false,
+                        releaseTime: null
+                    });
+                    
+                    if (stressLevel > 0.7) {
+                        patch.classList.add('stressed');
+                    }
+                    
+                    grid.appendChild(patch);
+                }
+            }
+            
+            bindEvents() {
+                // Parameter sliders
+                document.getElementById('k-slider').addEventListener('input', (e) => {
+                    this.K = parseInt(e.target.value);
+                    this.updateDisplay();
+                    this.drawPlot();
+                });
+                
+                document.getElementById('c-slider').addEventListener('input', (e) => {
+                    this.c = parseFloat(e.target.value);
+                    this.updateDisplay();
+                    this.drawPlot();
+                });
+                
+                document.getElementById('p-slider').addEventListener('input', (e) => {
+                    this.p = parseFloat(e.target.value);
+                    this.updateDisplay();
+                    this.drawPlot();
+                });
+                
+                // Control buttons
+                document.getElementById('trigger-mainshock').addEventListener('click', () => {
+                    this.triggerMainshock();
+                });
+                
+                document.getElementById('toggle-perception').addEventListener('click', (e) => {
+                    this.showPerception = !this.showPerception;
+                    e.target.classList.toggle('active');
+                    document.getElementById('perception-panel').style.display = 
+                        this.showPerception ? 'block' : 'none';
+                    this.drawPlot();
+                });
+                
+                document.getElementById('toggle-stress').addEventListener('click', (e) => {
+                    this.showStressAnimation = !this.showStressAnimation;
+                    e.target.classList.toggle('active');
+                    document.getElementById('stress-animation').style.display = 
+                        this.showStressAnimation ? 'block' : 'none';
+                });
+                
+                document.getElementById('reset-simulation').addEventListener('click', () => {
+                    this.resetSimulation();
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.initializeCanvas();
+                    this.drawPlot();
+                });
+            }
+            
+            updateDisplay() {
+                document.getElementById('k-value').textContent = this.K;
+                document.getElementById('c-value').textContent = this.c.toFixed(2);
+                document.getElementById('p-value').textContent = this.p.toFixed(2);
+                
+                document.getElementById('k-display').textContent = this.K;
+                document.getElementById('c-display').textContent = this.c.toFixed(2);
+                document.getElementById('p-display').textContent = this.p.toFixed(2);
+                
+                this.updateInterpretation();
+            }
+            
+            updateInterpretation() {
+                let interpretation = '';
+                
+                if (this.K > 500) {
+                    interpretation += 'High productivity (K > 500) indicates a large mainshock or highly fractured region generating many aftershocks. ';
+                } else if (this.K < 50) {
+                    interpretation += 'Low productivity (K < 50) suggests a smaller mainshock or stable crustal region with fewer aftershocks. ';
+                } else {
+                    interpretation += 'Moderate productivity suggests typical aftershock generation. ';
+                }
+                
+                if (this.c > 0.5) {
+                    interpretation += 'Large c-value smooths the initial peak, indicating catalog incompleteness or delayed triggering immediately after the mainshock. ';
+                } else if (this.c < 0.05) {
+                    interpretation += 'Small c-value shows immediate aftershock onset with a sharp initial peak. ';
+                } else {
+                    interpretation += 'Moderate c-value represents typical initial aftershock behavior. ';
+                }
+                
+                if (this.p > 1.5) {
+                    interpretation += 'High p-value (fast decay) indicates rapid stress relaxation, typical of highly fractured media or volcanic swarms.';
+                } else if (this.p < 0.8) {
+                    interpretation += 'Low p-value (slow decay) suggests persistent stress and prolonged aftershock activity, increasing late large aftershock probability.';
+                } else {
+                    interpretation += 'Standard p-value follows typical Omori decay with moderate-term aftershock persistence.';
+                }
+                
+                document.getElementById('interpretation-text').textContent = interpretation;
+            }
+            
+            triggerMainshock() {
+                if (this.isRunning) return;
+                
+                this.isRunning = true;
+                this.startTime = Date.now();
+                this.aftershocks = [];
+                
+                // Show mainshock marker
+                const marker = document.getElementById('mainshock-marker');
+                marker.classList.add('active');
+                
+                // Disable button during simulation
+                const button = document.getElementById('trigger-mainshock');
+                button.disabled = true;
+                button.textContent = 'Simulating...';
+                
+                // Start animations
+                this.animateAftershocks();
+                if (this.showStressAnimation) {
+                    this.animateStressRelease();
+                }
+                
+                // Re-enable button after simulation
+                setTimeout(() => {
+                    this.isRunning = false;
+                    button.disabled = false;
+                    button.textContent = '🌋 TRIGGER MAINSHOCK';
+                }, 30000); // 30 second simulation
+            }
+            
+            animateAftershocks() {
+                if (!this.isRunning) return;
+                
+                const currentTime = (Date.now() - this.startTime) / 1000; // seconds
+                const maxTime = 30; // 30 seconds represents the full time range
+                
+                // Calculate expected aftershock rate
+                const rate = this.calculateOmoriRate(currentTime);
+                
+                // Probability of aftershock in this time step
+                const probability = rate * 0.1; // 0.1 second time step
+                
+                if (Math.random() < probability && currentTime < maxTime) {
+                    this.addAftershockToTimeline(currentTime, maxTime);
+                    this.aftershocks.push(currentTime);
+                }
+                
+                // Continue animation
+                if (currentTime < maxTime) {
+                    setTimeout(() => this.animateAftershocks(), 100);
+                }
+            }
+            
+            calculateOmoriRate(t) {
+                // Convert simulation time to realistic time scale
+                const timeHours = t * 8760 / 30; // 30 seconds = 1 year
+                return this.K / Math.pow(timeHours + this.c, this.p);
+            }
+            
+            addAftershockToTimeline(currentTime, maxTime) {
+                const timeline = document.querySelector('.timeline');
+                const timelineRect = timeline.getBoundingClientRect();
+                
+                const aftershock = document.createElement('div');
+                aftershock.className = 'aftershock';
+                
+                // Position based on time
+                const position = (currentTime / maxTime) * 100;
+                aftershock.style.left = `${position}%`;
+                
+                timeline.appendChild(aftershock);
+                
+                // Remove aftershock dot after animation
+                setTimeout(() => {
+                    if (aftershock.parentNode) {
+                        aftershock.parentNode.removeChild(aftershock);
+                    }
+                }, 2000);
+            }
+            
+            animateStressRelease() {
+                if (!this.isRunning) return;
+                
+                const currentTime = (Date.now() - this.startTime) / 1000;
+                
+                // Release stress patches based on Omori law
+                this.stressPatches.forEach((patch, index) => {
+                    if (!patch.released && patch.stress > 0.7) {
+                        const releaseProb = this.calculateOmoriRate(currentTime) * 0.001;
+                        
+                        if (Math.random() < releaseProb) {
+                            patch.element.classList.remove('stressed');
+                            patch.element.classList.add('released');
+                            patch.released = true;
+                            patch.releaseTime = currentTime;
+                        }
+                    }
+                });
+                
+                // Continue stress animation
+                if (currentTime < 30) {
+                    setTimeout(() => this.animateStressRelease(), 200);
+                }
+            }
+            
+            resetSimulation() {
+                this.isRunning = false;
+                this.startTime = null;
+                this.aftershocks = [];
+                
+                // Reset UI elements
+                document.getElementById('mainshock-marker').classList.remove('active');
+                document.getElementById('trigger-mainshock').disabled = false;
+                document.getElementById('trigger-mainshock').textContent = '🌋 TRIGGER MAINSHOCK';
+                
+                // Clear timeline
+                document.querySelectorAll('.aftershock').forEach(el => el.remove());
+                
+                // Reset stress grid
+                this.initializeStressGrid();
+                
+                // Redraw plot
+                this.drawPlot();
+            }
+            
+            drawPlot() {
+                const ctx = this.ctx;
+                const rect = this.canvas.getBoundingClientRect();
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, rect.width, rect.height);
+                
+                // Draw background
+                ctx.fillStyle = '#f8f9fa';
+                ctx.fillRect(0, 0, rect.width, rect.height);
+                
+                // Draw grid and axes
+                this.drawGrid();
+                this.drawAxes();
+                
+                // Draw Omori curve
+                this.drawOmoriCurve();
+                
+                // Draw public perception curve if enabled
+                if (this.showPerception) {
+                    this.drawPerceptionCurve();
+                }
+                
+                // Draw live data points if simulation is running
+                if (this.isRunning && this.aftershocks.length > 0) {
+                    this.drawLiveData();
+                }
+            }
+            
+            drawGrid() {
+                const ctx = this.ctx;
+                
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                
+                // Vertical grid lines (time)
+                for (let i = 0; i <= 10; i++) {
+                    const x = this.plotX + (i / 10) * this.plotWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(x, this.plotY);
+                    ctx.lineTo(x, this.plotY + this.plotHeight);
+                    ctx.stroke();
+                }
+                
+                // Horizontal grid lines (rate)
+                for (let i = 0; i <= 10; i++) {
+                    const y = this.plotY + (i / 10) * this.plotHeight;
+                    ctx.beginPath();
+                    ctx.moveTo(this.plotX, y);
+                    ctx.lineTo(this.plotX + this.plotWidth, y);
+                    ctx.stroke();
+                }
+            }
+            
+            drawAxes() {
+                const ctx = this.ctx;
+                
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                
+                // X-axis
+                ctx.beginPath();
+                ctx.moveTo(this.plotX, this.plotY + this.plotHeight);
+                ctx.lineTo(this.plotX + this.plotWidth, this.plotY + this.plotHeight);
+                ctx.stroke();
+                
+                // Y-axis
+                ctx.beginPath();
+                ctx.moveTo(this.plotX, this.plotY);
+                ctx.lineTo(this.plotX, this.plotY + this.plotHeight);
+                ctx.stroke();
+                
+                // Labels
+                ctx.fillStyle = '#333';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                
+                // Time axis labels (log scale)
+                const timeLabels = ['1h', '1d', '1w', '1m', '1y'];
+                timeLabels.forEach((label, i) => {
+                    const x = this.plotX + ((i + 1) / 6) * this.plotWidth;
+                    ctx.fillText(label, x, this.plotY + this.plotHeight + 20);
+                });
+                
+                // Rate axis labels
+                ctx.textAlign = 'right';
+                for (let i = 0; i <= 5; i++) {
+                    const y = this.plotY + this.plotHeight - (i / 5) * this.plotHeight;
+                    const rateValue = Math.pow(10, i);
+                    ctx.fillText(rateValue.toString(), this.plotX - 10, y + 4);
+                }
+                
+                // Axis titles
+                ctx.textAlign = 'center';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText('Time since mainshock', this.plotX + this.plotWidth / 2, this.plotY + this.plotHeight + 45);
+                
+                ctx.save();
+                ctx.translate(20, this.plotY + this.plotHeight / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('Aftershock rate (events/hour)', 0, 0);
+                ctx.restore();
+            }
+            
+            drawOmoriCurve() {
+                const ctx = this.ctx;
+                
+                ctx.strokeStyle = '#ff4444';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                // Draw curve from 1 hour to 1 year (log scale)
+                for (let logT = 0; logT <= 4; logT += 0.01) {
+                    const t = Math.pow(10, logT); // Time in hours
+                    const rate = this.K / Math.pow(t + this.c, this.p);
+                    
+                    const x = this.plotX + (logT / 4) * this.plotWidth;
+                    const y = this.plotY + this.plotHeight - (Math.log10(Math.max(0.1, rate)) / 5) * this.plotHeight;
+                    
+                    if (logT === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+                
+                // Add equation label
+                ctx.fillStyle = '#ff4444';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(`n(t) = ${this.K}/(t + ${this.c.toFixed(2)})^${this.p.toFixed(2)}`, 
+                           this.plotX + 10, this.plotY + 20);
+            }
+            
+            drawPerceptionCurve() {
+                const ctx = this.ctx;
+                
+                ctx.strokeStyle = '#ffa500';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                
+                // Exponential decay representing public expectation
+                for (let logT = 0; logT <= 4; logT += 0.01) {
+                    const t = Math.pow(10, logT);
+                    const rate = this.K * Math.exp(-t / 100); // Much faster decay
+                    
+                    const x = this.plotX + (logT / 4) * this.plotWidth;
+                    const y = this.plotY + this.plotHeight - (Math.log10(Math.max(0.1, rate)) / 5) * this.plotHeight;
+                    
+                    if (logT === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Add label
+                ctx.fillStyle = '#ffa500';
+                ctx.font = '12px Arial';
+                ctx.fillText('Public expectation', this.plotX + 10, this.plotY + 40);
+            }
+            
+            drawLiveData() {
+                // This would show real-time aftershock data points during simulation
+                const ctx = this.ctx;
+                ctx.fillStyle = 'rgba(68, 138, 255, 0.8)';
+                
+                // Bin aftershocks and plot rates
+                const bins = [];
+                for (let i = 0; i < 10; i++) {
+                    bins.push(0);
+                }
+                
+                this.aftershocks.forEach(time => {
+                    const logTime = Math.log10((time * 8760 / 30) + 1); // Convert to log hours
+                    const binIndex = Math.floor((logTime / 4) * 10);
+                    if (binIndex >= 0 && binIndex < 10) {
+                        bins[binIndex]++;
+                    }
+                });
+                
+                bins.forEach((count, i) => {
+                    if (count > 0) {
+                        const x = this.plotX + (i / 10) * this.plotWidth;
+                        const rate = count * 10; // Normalize
+                        const y = this.plotY + this.plotHeight - (Math.log10(Math.max(0.1, rate)) / 5) * this.plotHeight;
+                        
+                        ctx.beginPath();
+                        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                });
+            }
+        }
+        
+        // Initialize simulator when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new OmoriLawSimulator();
+        });
+    </script>
+</body>
+</html>

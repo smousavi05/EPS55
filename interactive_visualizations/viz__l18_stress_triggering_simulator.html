@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Stress Triggering Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .controls-panel {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-section h3 {
+            margin-bottom: 15px;
+            color: #ffd700;
+            font-size: 1.1em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 5px;
+        }
+
+        .slider-container {
+            margin: 15px 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .button {
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin: 5px;
+            width: 100%;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .button.active {
+            background: linear-gradient(145deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .trigger-button {
+            background: linear-gradient(145deg, #ff6b6b 0%, #ee5a6f 100%);
+            font-weight: bold;
+            font-size: 16px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .case-study-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            margin: 8px 0;
+            padding: 12px;
+            text-align: left;
+        }
+
+        .case-study-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .case-study-btn strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #ffd700;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: #2c3e50;
+            overflow: hidden;
+        }
+
+        .map-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .map-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 250px;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 300px;
+        }
+
+        .legend h4 {
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 15px;
+            margin-right: 10px;
+            border-radius: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .mainshock-marker {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #ff0000 0%, #aa0000 100%);
+            border: 3px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            animation: pulse-mainshock 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-mainshock {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.3); }
+        }
+
+        .rupture-line {
+            position: absolute;
+            height: 4px;
+            background: linear-gradient(90deg, #ff0000 0%, #aa0000 100%);
+            transform-origin: left center;
+            z-index: 90;
+            border-radius: 2px;
+        }
+
+        .stress-lobe {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.6;
+            z-index: 20;
+            animation: stress-fade-in 1s ease-out;
+        }
+
+        .stress-increase {
+            background: radial-gradient(circle, rgba(255, 0, 0, 0.7) 0%, rgba(255, 0, 0, 0) 70%);
+        }
+
+        .stress-decrease {
+            background: radial-gradient(circle, rgba(0, 0, 255, 0.7) 0%, rgba(0, 0, 255, 0) 70%);
+        }
+
+        @keyframes stress-fade-in {
+            0% { opacity: 0; transform: scale(0.5); }
+            100% { opacity: 0.6; transform: scale(1); }
+        }
+
+        .aftershock {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ffd700;
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 80;
+            animation: aftershock-appear 0.5s ease-out;
+        }
+
+        @keyframes aftershock-appear {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .dynamic-wavefront {
+            position: absolute;
+            border: 3px solid #00ffff;
+            border-radius: 50%;
+            opacity: 0.8;
+            z-index: 30;
+            animation: wavefront-expand 8s ease-out;
+        }
+
+        @keyframes wavefront-expand {
+            0% { width: 20px; height: 20px; opacity: 1; }
+            100% { width: 800px; height: 800px; opacity: 0; }
+        }
+
+        .fluid-region {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255, 165, 0, 0.4) 0%, rgba(255, 165, 0, 0) 70%);
+            border: 2px dashed #ffa500;
+            border-radius: 50%;
+            z-index: 10;
+        }
+
+        .remote-trigger {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #00ffff;
+            border: 1px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 85;
+            animation: remote-flash 0.3s ease-out;
+        }
+
+        @keyframes remote-flash {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(2); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .fault-line {
+            position: absolute;
+            height: 2px;
+            background: rgba(139, 69, 19, 0.8);
+            z-index: 5;
+            border-radius: 1px;
+        }
+
+        .viscoelastic-indicator {
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            background: rgba(138, 43, 226, 0.2);
+            border: 2px solid #8a2be2;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .viscoelastic-indicator.active {
+            opacity: 1;
+        }
+
+        .time-controls {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .info-display {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .controls-panel {
+                width: 100%;
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌏 Earthquake Stress Triggering Simulator</h1>
+        <p class="subtitle">Visualize static and dynamic stress transfer mechanisms</p>
+    </div>
+    
+    <div class="main-container">
+        <div class="controls-panel">
+            <div class="control-section">
+                <h3>🎯 Mainshock Parameters</h3>
+                <p style="font-size: 0.8em; margin-bottom: 10px; color: rgba(255,255,255,0.8);">
+                    Click on map to place mainshock
+                </p>
+                
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Magnitude:</span>
+                        <span id="magnitude-value">7.0</span>
+                    </div>
+                    <input type="range" class="slider" id="magnitude-slider" min="5.5" max="8.0" value="7.0" step="0.1">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Rupture Length:</span>
+                        <span id="length-value">50 km</span>
+                    </div>
+                    <input type="range" class="slider" id="length-slider" min="10" max="200" value="50" step="5">
+                </div>
+                
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Rupture Azimuth:</span>
+                        <span id="azimuth-value">90°</span>
+                    </div>
+                    <input type="range" class="slider" id="azimuth-slider" min="0" max="359" value="90" step="1">
+                </div>
+                
+                <button class="button trigger-button" id="trigger-mainshock">
+                    🌋 TRIGGER MAINSHOCK
+                </button>
+            </div>
+            
+            <div class="control-section">
+                <h3>📊 Visualization Options</h3>
+                <button class="button" id="toggle-stress">Show Static Stress</button>
+                <button class="button" id="toggle-dynamic">Dynamic Triggering</button>
+                <button class="button" id="toggle-viscoelastic">Viscoelastic Relaxation</button>
+                <button class="button" id="clear-all">🗑️ Clear All</button>
+                
+                <div class="time-controls">
+                    <button class="button" id="time-immediate">Immediate</button>
+                    <button class="button" id="time-hours">Hours</button>
+                    <button class="button" id="time-years">Years</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>📚 Case Studies</h3>
+                <button class="case-study-btn" data-case="izmit">
+                    <strong>1999 İzmit, Turkey M7.6</strong>
+                    <small>Static stress transfer validation</small>
+                </button>
+                <button class="case-study-btn" data-case="landers">
+                    <strong>1992 Landers, California M7.3</strong>
+                    <small>Remote dynamic triggering</small>
+                </button>
+                <button class="case-study-btn" data-case="tohoku">
+                    <strong>2011 Tōhoku, Japan M9.1</strong>
+                    <small>Long-range stress changes</small>
+                </button>
+            </div>
+            
+            <div class="info-display">
+                <h4>Current Simulation</h4>
+                <div class="info-item">
+                    <span>Mainshock:</span>
+                    <span id="mainshock-info">Not placed</span>
+                </div>
+                <div class="info-item">
+                    <span>Aftershocks:</span>
+                    <span id="aftershock-count">0</span>
+                </div>
+                <div class="info-item">
+                    <span>Remote Events:</span>
+                    <span id="remote-count">0</span>
+                </div>
+                <div class="info-item">
+                    <span>Stress State:</span>
+                    <span id="stress-state">Initial</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <canvas class="map-canvas" id="map-canvas"></canvas>
+            
+            <div class="map-info">
+                <h4 style="margin-bottom: 10px; color: #ffd700;">🗺️ Generic Fault System</h4>
+                <p style="font-size: 0.9em;">
+                    Interactive regional model showing major fault segments and potential triggering zones.
+                </p>
+            </div>
+            
+            <div class="viscoelastic-indicator" id="viscoelastic-indicator">
+                <strong>🕐 Viscoelastic Relaxation</strong><br>
+                Deep lithosphere adjustment over years
+            </div>
+            
+            <div class="legend">
+                <h4>Legend</h4>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8B4513;"></div>
+                    <span>Major fault lines</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: radial-gradient(circle, red 0%, transparent 70%);"></div>
+                    <span>Stress increase (triggering zones)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: radial-gradient(circle, blue 0%, transparent 70%);"></div>
+                    <span>Stress decrease (stress shadows)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffd700;"></div>
+                    <span>Static aftershocks</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00ffff;"></div>
+                    <span>Dynamic/remote triggers</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(255, 165, 0, 0.4); border: 2px dashed #ffa500;"></div>
+                    <span>Fluid-rich regions</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class StressTriggeringSimulator {
+            constructor() {
+                this.canvas = document.getElementById('map-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Simulation state
+                this.mainshock = null;
+                this.magnitude = 7.0;
+                this.ruptureLength = 50;
+                this.ruptureAzimuth = 90;
+                this.aftershocks = [];
+                this.remoteEvents = [];
+                this.showStatic = false;
+                this.showDynamic = false;
+                this.showViscoelastic = false;
+                this.timePhase = 'immediate';
+                
+                // Map elements
+                this.faultLines = [];
+                this.fluidRegions = [];
+                this.stressLobes = [];
+                
+                this.initializeCanvas();
+                this.initializeMapFeatures();
+                this.bindEvents();
+                this.drawMap();
+                this.updateLabels();
+            }
+            
+            initializeCanvas() {
+                const rect = this.canvas.getBoundingClientRect();
+                this.canvas.width = rect.width * window.devicePixelRatio;
+                this.canvas.height = rect.height * window.devicePixelRatio;
+                this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                this.canvas.style.width = rect.width + 'px';
+                this.canvas.style.height = rect.height + 'px';
+                
+                this.mapWidth = rect.width;
+                this.mapHeight = rect.height;
+            }
+            
+            initializeMapFeatures() {
+                // Create fault system
+                this.faultLines = [
+                    { x1: 100, y1: 200, x2: 700, y2: 250, active: true },
+                    { x1: 150, y1: 100, x2: 650, y2: 180, active: true },
+                    { x1: 200, y1: 300, x2: 600, y2: 400, active: true },
+                    { x1: 300, y1: 150, x2: 500, y2: 350, active: false },
+                    { x1: 450, y1: 100, x2: 750, y2: 300, active: false }
+                ];
+                
+                // Create fluid-rich regions
+                this.fluidRegions = [
+                    { x: 150, y: 150, radius: 40, type: 'geothermal' },
+                    { x: 500, y: 300, radius: 50, type: 'volcanic' },
+                    { x: 600, y: 150, radius: 35, type: 'hydrothermal' },
+                    { x: 300, y: 450, radius: 45, type: 'geothermal' }
+                ];
+            }
+            
+            bindEvents() {
+                // Canvas click for mainshock placement
+                this.canvas.addEventListener('click', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    this.placeMainshock(x, y);
+                });
+                
+                // Parameter sliders
+                document.getElementById('magnitude-slider').addEventListener('input', (e) => {
+                    this.magnitude = parseFloat(e.target.value);
+                    this.updateLabels();
+                });
+                
+                document.getElementById('length-slider').addEventListener('input', (e) => {
+                    this.ruptureLength = parseInt(e.target.value);
+                    this.updateLabels();
+                });
+                
+                document.getElementById('azimuth-slider').addEventListener('input', (e) => {
+                    this.ruptureAzimuth = parseInt(e.target.value);
+                    this.updateLabels();
+                });
+                
+                // Control buttons
+                document.getElementById('trigger-mainshock').addEventListener('click', () => {
+                    this.triggerMainshock();
+                });
+                
+                document.getElementById('toggle-stress').addEventListener('click', (e) => {
+                    this.showStatic = !this.showStatic;
+                    e.target.classList.toggle('active');
+                    this.drawMap();
+                });
+                
+                document.getElementById('toggle-dynamic').addEventListener('click', (e) => {
+                    this.showDynamic = !this.showDynamic;
+                    e.target.classList.toggle('active');
+                    if (this.showDynamic && this.mainshock) {
+                        this.startDynamicTriggering();
+                    }
+                });
+                
+                document.getElementById('toggle-viscoelastic').addEventListener('click', (e) => {
+                    this.showViscoelastic = !this.showViscoelastic;
+                    e.target.classList.toggle('active');
+                    document.getElementById('viscoelastic-indicator').classList.toggle('active');
+                    if (this.showViscoelastic) {
+                        this.startViscoelasticRelaxation();
+                    }
+                });
+                
+                document.getElementById('clear-all').addEventListener('click', () => {
+                    this.clearAll();
+                });
+                
+                // Time controls
+                document.getElementById('time-immediate').addEventListener('click', () => {
+                    this.timePhase = 'immediate';
+                    this.updateTimePhase();
+                });
+                
+                document.getElementById('time-hours').addEventListener('click', () => {
+                    this.timePhase = 'hours';
+                    this.updateTimePhase();
+                });
+                
+                document.getElementById('time-years').addEventListener('click', () => {
+                    this.timePhase = 'years';
+                    this.updateTimePhase();
+                });
+                
+                // Case studies
+                document.querySelectorAll('.case-study-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.loadCaseStudy(e.currentTarget.dataset.case);
+                    });
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.initializeCanvas();
+                    this.drawMap();
+                });
+            }
+            
+            placeMainshock(x, y) {
+                this.mainshock = { x, y };
+                this.updateLabels();
+                this.drawMap();
+            }
+            
+            updateLabels() {
+                document.getElementById('magnitude-value').textContent = this.magnitude.toFixed(1);
+                document.getElementById('length-value').textContent = `${this.ruptureLength} km`;
+                document.getElementById('azimuth-value').textContent = `${this.ruptureAzimuth}°`;
+                
+                if (this.mainshock) {
+                    document.getElementById('mainshock-info').textContent = `M${this.magnitude} placed`;
+                } else {
+                    document.getElementById('mainshock-info').textContent = 'Not placed';
+                }
+                
+                document.getElementById('aftershock-count').textContent = this.aftershocks.length;
+                document.getElementById('remote-count').textContent = this.remoteEvents.length;
+            }
+            
+            drawMap() {
+                this.ctx.clearRect(0, 0, this.mapWidth, this.mapHeight);
+                
+                // Draw background
+                this.drawBackground();
+                
+                // Draw fault lines
+                this.drawFaultLines();
+                
+                // Draw fluid regions
+                this.drawFluidRegions();
+                
+                // Draw stress field if enabled
+                if (this.showStatic && this.mainshock) {
+                    this.drawStressField();
+                }
+                
+                // Draw mainshock and rupture
+                if (this.mainshock) {
+                    this.drawMainshock();
+                    this.drawRupture();
+                }
+                
+                // Draw aftershocks
+                this.drawAftershocks();
+                
+                // Draw remote events
+                this.drawRemoteEvents();
+            }
+            
+            drawBackground() {
+                // Gradient background representing topography
+                const gradient = this.ctx.createLinearGradient(0, 0, this.mapWidth, this.mapHeight);
+                gradient.addColorStop(0, '#8db4a0');
+                gradient.addColorStop(0.3, '#7a9b8a');
+                gradient.addColorStop(0.7, '#6b8574');
+                gradient.addColorStop(1, '#5c6f5e');
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.mapWidth, this.mapHeight);
+            }
+            
+            drawFaultLines() {
+                this.faultLines.forEach(fault => {
+                    this.ctx.strokeStyle = fault.active ? '#8B4513' : '#654321';
+                    this.ctx.lineWidth = fault.active ? 3 : 2;
+                    this.ctx.setLineDash(fault.active ? [] : [5, 5]);
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(fault.x1, fault.y1);
+                    this.ctx.lineTo(fault.x2, fault.y2);
+                    this.ctx.stroke();
+                });
+                this.ctx.setLineDash([]);
+            }
+            
+            drawFluidRegions() {
+                this.fluidRegions.forEach(region => {
+                    // Outer dashed border
+                    this.ctx.strokeStyle = '#ffa500';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([5, 5]);
+                    this.ctx.beginPath();
+                    this.ctx.arc(region.x, region.y, region.radius, 0, 2 * Math.PI);
+                    this.ctx.stroke();
+                    
+                    // Inner filled area
+                    this.ctx.fillStyle = 'rgba(255, 165, 0, 0.3)';
+                    this.ctx.fill();
+                    
+                    // Label
+                    this.ctx.fillStyle = '#ffa500';
+                    this.ctx.font = '12px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(region.type, region.x, region.y + 5);
+                });
+                this.ctx.setLineDash([]);
+            }
+            
+            drawStressField() {
+                if (!this.mainshock) return;
+                
+                const stressPatterns = this.calculateStressField();
+                
+                stressPatterns.forEach(pattern => {
+                    this.ctx.fillStyle = pattern.type === 'increase' ? 
+                        'rgba(255, 0, 0, 0.4)' : 'rgba(0, 0, 255, 0.4)';
+                    
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(pattern.x, pattern.y, pattern.width, pattern.height, 
+                                   pattern.rotation, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                });
+            }
+            
+            calculateStressField() {
+                const patterns = [];
+                const ruptureLengthPx = this.ruptureLength * 2; // Scale factor
+                const angleRad = (this.ruptureAzimuth * Math.PI) / 180;
+                
+                // Stress lobes at rupture ends (compressive)
+                const endX1 = this.mainshock.x - (ruptureLengthPx / 2) * Math.cos(angleRad);
+                const endY1 = this.mainshock.y - (ruptureLengthPx / 2) * Math.sin(angleRad);
+                const endX2 = this.mainshock.x + (ruptureLengthPx / 2) * Math.cos(angleRad);
+                const endY2 = this.mainshock.y + (ruptureLengthPx / 2) * Math.sin(angleRad);
+                
+                // Stress increase lobes
+                patterns.push({
+                    x: endX1, y: endY1,
+                    width: 60, height: 40,
+                    rotation: angleRad,
+                    type: 'increase'
+                });
+                
+                patterns.push({
+                    x: endX2, y: endY2,
+                    width: 60, height: 40,
+                    rotation: angleRad,
+                    type: 'increase'
+                });
+                
+                // Stress shadow along sides
+                const sideX1 = this.mainshock.x - 50 * Math.sin(angleRad);
+                const sideY1 = this.mainshock.y + 50 * Math.cos(angleRad);
+                const sideX2 = this.mainshock.x + 50 * Math.sin(angleRad);
+                const sideY2 = this.mainshock.y - 50 * Math.cos(angleRad);
+                
+                patterns.push({
+                    x: sideX1, y: sideY1,
+                    width: 80, height: 50,
+                    rotation: angleRad + Math.PI / 2,
+                    type: 'decrease'
+                });
+                
+                patterns.push({
+                    x: sideX2, y: sideY2,
+                    width: 80, height: 50,
+                    rotation: angleRad + Math.PI / 2,
+                    type: 'decrease'
+                });
+                
+                return patterns;
+            }
+            
+            drawMainshock() {
+                // Main shock marker
+                this.ctx.fillStyle = '#ff0000';
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 3;
+                
+                this.ctx.beginPath();
+                this.ctx.arc(this.mainshock.x, this.mainshock.y, 12, 0, 2 * Math.PI);
+                this.ctx.fill();
+                this.ctx.stroke();
+                
+                // Magnitude label
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = 'bold 12px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(`M${this.magnitude}`, this.mainshock.x, this.mainshock.y - 20);
+            }
+            
+            drawRupture() {
+                const ruptureLengthPx = this.ruptureLength * 2;
+                const angleRad = (this.ruptureAzimuth * Math.PI) / 180;
+                
+                const startX = this.mainshock.x - (ruptureLengthPx / 2) * Math.cos(angleRad);
+                const startY = this.mainshock.y - (ruptureLengthPx / 2) * Math.sin(angleRad);
+                const endX = this.mainshock.x + (ruptureLengthPx / 2) * Math.cos(angleRad);
+                const endY = this.mainshock.y + (ruptureLengthPx / 2) * Math.sin(angleRad);
+                
+                this.ctx.strokeStyle = '#ff0000';
+                this.ctx.lineWidth = 4;
+                this.ctx.beginPath();
+                this.ctx.moveTo(startX, startY);
+                this.ctx.lineTo(endX, endY);
+                this.ctx.stroke();
+            }
+            
+            drawAftershocks() {
+                this.aftershocks.forEach(aftershock => {
+                    this.ctx.fillStyle = '#ffd700';
+                    this.ctx.strokeStyle = '#ffffff';
+                    this.ctx.lineWidth = 2;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(aftershock.x, aftershock.y, 6, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                });
+            }
+            
+            drawRemoteEvents() {
+                this.remoteEvents.forEach(event => {
+                    this.ctx.fillStyle = '#00ffff';
+                    this.ctx.strokeStyle = '#ffffff';
+                    this.ctx.lineWidth = 1;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(event.x, event.y, 4, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                    this.ctx.stroke();
+                });
+            }
+            
+            triggerMainshock() {
+                if (!this.mainshock) {
+                    alert('Please place a mainshock on the map first!');
+                    return;
+                }
+                
+                // Generate static aftershocks
+                this.generateStaticAftershocks();
+                
+                // Update display
+                document.getElementById('stress-state').textContent = 'Post-mainshock';
+                this.updateLabels();
+                this.drawMap();
+            }
+            
+            generateStaticAftershocks() {
+                this.aftershocks = [];
+                const numAftershocks = Math.floor(Math.pow(10, this.magnitude - 4));
+                
+                for (let i = 0; i < numAftershocks; i++) {
+                    // Generate aftershocks preferentially in stress increase zones
+                    const angle = Math.random() * 2 * Math.PI;
+                    const distance = Math.random() * 100 + 20;
+                    
+                    // Bias towards rupture ends (stress increase zones)
+                    const biasAngle = (this.ruptureAzimuth * Math.PI) / 180;
+                    const endBias = Math.random() < 0.7 ? biasAngle : biasAngle + Math.PI;
+                    
+                    const x = this.mainshock.x + distance * Math.cos(endBias + (Math.random() - 0.5) * Math.PI / 2);
+                    const y = this.mainshock.y + distance * Math.sin(endBias + (Math.random() - 0.5) * Math.PI / 2);
+                    
+                    // Only add if within map bounds
+                    if (x > 0 && x < this.mapWidth && y > 0 && y < this.mapHeight) {
+                        this.aftershocks.push({ x, y, time: Date.now() });
+                    }
+                }
+            }
+            
+            startDynamicTriggering() {
+                if (!this.mainshock) return;
+                
+                // Simulate wavefront propagation
+                this.simulateWavefront();
+            }
+            
+            simulateWavefront() {
+                const startTime = Date.now();
+                const duration = 8000; // 8 seconds
+                
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = elapsed / duration;
+                    
+                    if (progress < 1) {
+                        // Check if wavefront reaches fluid regions
+                        const wavefrontRadius = progress * 400; // Max radius
+                        
+                        this.fluidRegions.forEach(region => {
+                            const distance = Math.sqrt(
+                                Math.pow(region.x - this.mainshock.x, 2) + 
+                                Math.pow(region.y - this.mainshock.y, 2)
+                            );
+                            
+                            // Trigger remote event when wavefront reaches fluid region
+                            if (Math.abs(distance - wavefrontRadius) < 10 && 
+                                !this.remoteEvents.some(e => 
+                                    Math.abs(e.x - region.x) < 20 && Math.abs(e.y - region.y) < 20)) {
+                                
+                                // Add some random scatter around the fluid region
+                                const offsetX = (Math.random() - 0.5) * 40;
+                                const offsetY = (Math.random() - 0.5) * 40;
+                                
+                                this.remoteEvents.push({
+                                    x: region.x + offsetX,
+                                    y: region.y + offsetY,
+                                    time: Date.now()
+                                });
+                            }
+                        });
+                        
+                        this.updateLabels();
+                        this.drawMap();
+                        this.drawWavefront(wavefrontRadius);
+                        
+                        requestAnimationFrame(animate);
+                    }
+                };
+                
+                animate();
+            }
+            
+            drawWavefront(radius) {
+                this.ctx.strokeStyle = '#00ffff';
+                this.ctx.lineWidth = 3;
+                this.ctx.setLineDash([10, 10]);
+                
+                this.ctx.beginPath();
+                this.ctx.arc(this.mainshock.x, this.mainshock.y, radius, 0, 2 * Math.PI);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+            }
+            
+            startViscoelasticRelaxation() {
+                // Simulate slow stress field evolution over years
+                let relaxationPhase = 0;
+                
+                const relaxationTimer = setInterval(() => {
+                    relaxationPhase += 0.1;
+                    
+                    // Gradually modify stress field and potentially trigger late events
+                    if (relaxationPhase > 1 && Math.random() < 0.1) {
+                        // Add late aftershock in modified stress field
+                        const lateX = this.mainshock.x + (Math.random() - 0.5) * 200;
+                        const lateY = this.mainshock.y + (Math.random() - 0.5) * 200;
+                        
+                        if (lateX > 0 && lateX < this.mapWidth && lateY > 0 && lateY < this.mapHeight) {
+                            this.aftershocks.push({ x: lateX, y: lateY, time: Date.now(), late: true });
+                            this.updateLabels();
+                            this.drawMap();
+                        }
+                    }
+                    
+                    if (relaxationPhase > 3) {
+                        clearInterval(relaxationTimer);
+                    }
+                }, 2000);
+            }
+            
+            updateTimePhase() {
+                // Update which events are visible based on time phase
+                document.querySelectorAll('.button').forEach(btn => {
+                    if (btn.id.startsWith('time-')) {
+                        btn.classList.remove('active');
+                    }
+                });
+                document.getElementById(`time-${this.timePhase}`).classList.add('active');
+                
+                // Filter events by time phase
+                // (Implementation would filter visibility of different event types)
+                this.drawMap();
+            }
+            
+            loadCaseStudy(caseId) {
+                this.clearAll();
+                
+                const cases = {
+                    izmit: {
+                        x: 400, y: 200,
+                        magnitude: 7.6,
+                        length: 120,
+                        azimuth: 75,
+                        description: "1999 İzmit earthquake - demonstrates static stress transfer"
+                    },
+                    landers: {
+                        x: 300, y: 350,
+                        magnitude: 7.3,
+                        length: 85,
+                        azimuth: 135,
+                        description: "1992 Landers earthquake - shows remote dynamic triggering"
+                    },
+                    tohoku: {
+                        x: 500, y: 150,
+                        magnitude: 9.1,
+                        length: 180,
+                        azimuth: 45,
+                        description: "2011 Tōhoku earthquake - global stress changes"
+                    }
+                };
+                
+                const caseData = cases[caseId];
+                if (caseData) {
+                    this.mainshock = { x: caseData.x, y: caseData.y };
+                    this.magnitude = caseData.magnitude;
+                    this.ruptureLength = caseData.length;
+                    this.ruptureAzimuth = caseData.azimuth;
+                    
+                    // Update sliders
+                    document.getElementById('magnitude-slider').value = this.magnitude;
+                    document.getElementById('length-slider').value = this.ruptureLength;
+                    document.getElementById('azimuth-slider').value = this.ruptureAzimuth;
+                    
+                    this.updateLabels();
+                    this.triggerMainshock();
+                    
+                    // Enable relevant features
+                    this.showStatic = true;
+                    document.getElementById('toggle-stress').classList.add('active');
+                    
+                    if (caseId === 'landers') {
+                        this.showDynamic = true;
+                        document.getElementById('toggle-dynamic').classList.add('active');
+                        this.startDynamicTriggering();
+                    }
+                }
+            }
+            
+            clearAll() {
+                this.mainshock = null;
+                this.aftershocks = [];
+                this.remoteEvents = [];
+                this.showStatic = false;
+                this.showDynamic = false;
+                this.showViscoelastic = false;
+                
+                // Reset UI
+                document.querySelectorAll('.button').forEach(btn => {
+                    if (btn.id.startsWith('toggle-')) {
+                        btn.classList.remove('active');
+                    }
+                });
+                
+                document.getElementById('viscoelastic-indicator').classList.remove('active');
+                document.getElementById('stress-state').textContent = 'Initial';
+                
+                this.updateLabels();
+                this.drawMap();
+            }
+        }
+        
+        // Initialize simulator when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new StressTriggeringSimulator();
+        });
+    </script>
+</body>
+</html>

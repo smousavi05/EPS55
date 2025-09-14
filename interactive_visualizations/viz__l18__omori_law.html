@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Omori Law Simulator</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f8; color: #1e2a3a; margin: 0; padding: 20px;
+        }
+        h1, h2 { text-align: center; }
+        .main-container {
+            display: flex; flex-wrap: wrap; gap: 20px; max-width: 1400px; margin: auto;
+        }
+        .controls-panel {
+            flex: 1; min-width: 400px; background: #fff; padding: 20px;
+            border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); align-self: flex-start;
+        }
+        .viewer-panel {
+            flex: 1.5; min-width: 600px;
+        }
+        .viz-container {
+            background: #fff; padding: 15px; border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px;
+        }
+        .viz-container canvas { display: block; width: 100%; height: auto; background-color: #f8f9fa; border-radius: 5px; }
+        .control-group legend {
+            font-size: 1.2em; font-weight: bold; color: #0077b6;
+            border-bottom: 2px solid #0077b6; margin-bottom: 10px; padding-bottom: 5px;
+        }
+        .param-slider { margin-bottom: 15px; }
+        .param-slider label { display: block; margin-bottom: 5px; }
+        .param-slider input { width: 100%; }
+        button {
+            width: 100%; padding: 12px; border: none; border-radius: 5px; color: white;
+            font-size: 1.1em; font-weight: bold; cursor: pointer; transition: background-color: 0.2s;
+            background-color: #e63946;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Modified Omori Law Simulator 📉</h1>
+    <div class="main-container">
+        <div class="controls-panel">
+            <div class="control-group">
+                <legend>1. Omori Law Parameters</legend>
+                <div class="param-slider">
+                    <label for="k-slider">'K' (Productivity): <span id="k-value">100</span></label>
+                    <input type="range" class="param-slider-input" id="k-slider" min="10" max="500" value="100" step="10">
+                </div>
+                <div class="param-slider">
+                    <label for="c-slider">'c' (Initial Delay): <span id="c-value">0.1</span> days</label>
+                    <input type="range" class="param-slider-input" id="c-slider" min="0.01" max="1.0" value="0.1" step="0.01">
+                </div>
+                <div class="param-slider">
+                    <label for="p-slider">'p' (Decay Exponent): <span id="p-value">1.1</span></label>
+                    <input type="range" class="param-slider-input" id="p-slider" min="0.7" max="1.5" value="1.1" step="0.05">
+                </div>
+            </div>
+            <div class="control-group">
+                <legend>2. Conceptual Model</legend>
+                 <div class="viz-container" style="padding:5px;">
+                    <canvas id="stress-canvas" width="400" height="150"></canvas>
+                </div>
+                <p style="font-size: 0.9em; color: #555;">This shows stressed patches (bright) "relaxing" into aftershocks. The most unstable patches break first, leading to a decay in activity.</p>
+            </div>
+            <div class="control-group">
+                 <legend>3. Public Perception</legend>
+                 <label><input type="checkbox" id="perception-toggle"> Show Public Perception vs. Reality</label>
+                 <p style="font-size: 0.9em; color: #555;">The long tail of the Omori decay means aftershocks can continue for years, long after public perception (dotted line) assumes the danger has passed.</p>
+            </div>
+        </div>
+        <div class="viewer-panel">
+            <div class="viz-container">
+                <h2>Aftershock Timeline</h2>
+                <button id="btn-mainshock">💥 Trigger Mainshock</button>
+                <canvas id="timeline-canvas" width="800" height="50"></canvas>
+            </div>
+            <div class="viz-container">
+                <h2>Aftershock Rate Plot</h2>
+                <canvas id="rate-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- 1. SETUP & STATE MANAGEMENT ---
+const sliders = {
+    K: document.getElementById('k-slider'),
+    c: document.getElementById('c-slider'),
+    p: document.getElementById('p-slider')
+};
+const displays = {
+    K: document.getElementById('k-value'),
+    c: document.getElementById('c-value'),
+    p: document.getElementById('p-value')
+};
+const timelineCanvas = document.getElementById('timeline-canvas');
+const timelineCtx = timelineCanvas.getContext('2d');
+const stressCanvas = document.getElementById('stress-canvas');
+const stressCtx = stressCanvas.getContext('2d');
+const rateChartCanvas = document.getElementById('rate-chart');
+
+let sim = {
+    time: 0,
+    isRunning: false,
+    aftershocks: [], // Stores {time, flash_alpha}
+    animationFrameId: null
+};
+let stressPatches = [];
+let rateChart;
+
+// --- 2. CORE SIMULATION & CALCULATION ---
+function startSimulation() {
+    if (sim.isRunning) {
+        cancelAnimationFrame(sim.animationFrameId);
+    }
+    sim = { time: 0, isRunning: true, aftershocks: [], animationFrameId: null };
+    
+    // Initialize stress patches
+    stressPatches = [];
+    for(let i=0; i<100; i++) {
+        stressPatches.push({ stress: 0.5 + Math.random() * 0.5 });
+    }
+    
+    animate();
+}
+
+function updateOmoriCurve() {
+    const K = parseFloat(sliders.K.value);
+    const c = parseFloat(sliders.c.value);
+    const p = parseFloat(sliders.p.value);
+    
+    const omoriData = [];
+    const perceptionData = [];
+    
+    for (let t = 0.01; t <= 100; t*=1.1) {
+        const rate = K / Math.pow(t + c, p);
+        omoriData.push({x: t, y: rate});
+        // Exponential decay for "perception"
+        perceptionData.push({x: t, y: K * Math.exp(-t / 5)});
+    }
+    
+    rateChart.data.datasets[0].data = omoriData;
+    rateChart.update();
+}
+
+// --- 3. ANIMATION & DRAWING ---
+function animate() {
+    if (!sim.isRunning) return;
+    sim.time += 0.05; // Time step in days
+    
+    // Generate new aftershocks stochastically
+    const K = parseFloat(sliders.K.value);
+    const c = parseFloat(sliders.c.value);
+    const p = parseFloat(sliders.p.value);
+    const currentRate = K / Math.pow(sim.time + c, p);
+    // Probability of an event in this timestep
+    if (Math.random() < currentRate * 0.05) {
+        sim.aftershocks.push({ time: sim.time, flash_alpha: 1.0 });
+    }
+    
+    // Update and draw timeline
+    timelineCtx.clearRect(0, 0, timelineCanvas.width, timelineCanvas.height);
+    timelineCtx.beginPath();
+    timelineCtx.moveTo(0, 25);
+    timelineCtx.lineTo(timelineCanvas.width, 25);
+    timelineCtx.strokeStyle = '#333';
+    timelineCtx.stroke();
+    
+    sim.aftershocks.forEach(shock => {
+        const x = (shock.time / 100) * timelineCanvas.width; // 100-day timeline
+        if(x < timelineCanvas.width){
+            timelineCtx.beginPath();
+            timelineCtx.arc(x, 25, 10, 0, 2*Math.PI);
+            timelineCtx.fillStyle = `rgba(230, 57, 70, ${shock.flash_alpha})`;
+            timelineCtx.fill();
+            shock.flash_alpha *= 0.95; // Fade out
+        }
+    });
+    
+    // Update and draw stress patches
+    stressCtx.clearRect(0,0,stressCanvas.width, stressCanvas.height);
+    stressPatches.forEach(patch => {
+        if(Math.random() < patch.stress * 0.001) {
+            patch.stress *= 0.5; // Relax
+        }
+        const gray = patch.stress * 255;
+        stressCtx.fillStyle = `rgb(${gray}, ${gray}, ${gray/2})`;
+        stressCtx.fillRect(Math.random()*stressCanvas.width, Math.random()*stressCanvas.height, 5, 5);
+    });
+    
+    if (sim.time > 100) {
+        sim.isRunning = false; // End simulation
+    }
+    sim.animationFrameId = requestAnimationFrame(animate);
+}
+
+// --- 4. CHART & UI SETUP ---
+function initializeChart() {
+    const ctx = rateChartCanvas.getContext('2d');
+    rateChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: [
+                { label: 'Omori Law Decay', data: [], borderColor: '#e63946', borderWidth: 3 },
+                { label: 'Public Perception', data: [], borderColor: '#0077b6', borderDash: [5,5], borderWidth: 2, hidden: true }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { type: 'logarithmic', title: { display: true, text: 'Aftershocks per Day' } },
+                x: { type: 'logarithmic', title: { display: true, text: 'Time since Mainshock (days)' }, min: 0.01, max: 100 }
+            }
+        }
+    });
+}
+
+// --- 5. EVENT LISTENERS ---
+document.getElementById('btn-mainshock').addEventListener('click', startSimulation);
+
+document.querySelectorAll('.param-slider-input').forEach(slider => {
+    slider.addEventListener('input', (e) => {
+        const id = e.target.id.split('-')[0];
+        displays[id].textContent = parseFloat(e.target.value).toFixed(2);
+        updateOmoriCurve();
+    });
+});
+
+document.getElementById('perception-toggle').addEventListener('change', (e) => {
+    rateChart.data.datasets[1].hidden = !e.target.checked;
+    updateOmoriCurve();
+});
+
+
+// --- 6. INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', () => {
+    initializeChart();
+    // Set initial values
+    Object.keys(displays).forEach(key => {
+        displays[key].textContent = parseFloat(sliders[key].value).toFixed(2);
+    });
+    updateOmoriCurve();
+    startSimulation(); // Start with an initial run
+});
+</script>
+</body>
+</html>

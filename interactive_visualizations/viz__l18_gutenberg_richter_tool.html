@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gutenberg-Richter Law Interactive Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            height: fit-content;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-section h3 {
+            margin-bottom: 15px;
+            color: #ffd700;
+            font-size: 1.2em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .slider-container {
+            margin: 20px 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1em;
+            font-weight: bold;
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .equation-display {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            margin: 15px 0;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .rule-of-ten {
+            background: rgba(255, 193, 7, 0.2);
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .rule-of-ten h4 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .preset-btn strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #ffd700;
+        }
+
+        .visualization-area {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .plot-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            height: 500px;
+            position: relative;
+        }
+
+        .plot-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .interpretation-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .interpretation-panel h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .interpretation-text {
+            line-height: 1.6;
+            font-size: 1em;
+        }
+
+        .geological-significance {
+            background: rgba(100, 181, 246, 0.1);
+            border-left: 4px solid #64b5f6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .completeness-section {
+            background: rgba(255, 152, 0, 0.1);
+            border: 2px solid rgba(255, 152, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .completeness-section h4 {
+            color: #ff9800;
+            margin-bottom: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-box h4 {
+            color: #4ecdc4;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .stat-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Gutenberg-Richter Law Interactive Tool</h1>
+        <p class="subtitle">Explore how earthquake magnitude-frequency distributions reflect tectonic processes</p>
+        
+        <div class="main-layout">
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h3>⚙️ GR Parameters</h3>
+                    
+                    <div class="equation-display">
+                        log₁₀(N) = <span id="a-display">6.0</span> - <span id="b-display">1.0</span> × M
+                    </div>
+                    
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>a-value (Activity):</span>
+                            <span id="a-value">6.0</span>
+                        </div>
+                        <input type="range" class="slider" id="a-slider" min="3.0" max="9.0" value="6.0" step="0.1">
+                        <small style="opacity: 0.8;">Controls total seismicity rate</small>
+                    </div>
+                    
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>b-value (Slope):</span>
+                            <span id="b-value">1.0</span>
+                        </div>
+                        <input type="range" class="slider" id="b-slider" min="0.5" max="2.0" value="1.0" step="0.05">
+                        <small style="opacity: 0.8;">Controls size distribution</small>
+                    </div>
+                    
+                    <div class="rule-of-ten">
+                        <h4>📐 Rule of Ten</h4>
+                        <div id="rule-text">
+                            For every M7.0 earthquake:<br>
+                            • <strong>10</strong> M6.0 earthquakes<br>
+                            • <strong>100</strong> M5.0 earthquakes<br>
+                            • <strong>1,000</strong> M4.0 earthquakes
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>🌍 Regional Profiles</h3>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" data-preset="global">
+                            <strong>Global Average</strong>
+                            <small>a=6.0, b=1.0 - Typical worldwide values</small>
+                        </button>
+                        <button class="preset-btn" data-preset="volcanic">
+                            <strong>Volcanic Swarm</strong>
+                            <small>a=7.5, b=1.4 - High b-value, many small events</small>
+                        </button>
+                        <button class="preset-btn" data-preset="locked">
+                            <strong>Locked Fault Zone</strong>
+                            <small>a=5.0, b=0.7 - Low b-value, fewer small events</small>
+                        </button>
+                        <button class="preset-btn" data-preset="induced">
+                            <strong>Induced Seismicity</strong>
+                            <small>a=6.8, b=1.2 - Fluid injection effects</small>
+                        </button>
+                        <button class="preset-btn" data-preset="subduction">
+                            <strong>Subduction Zone</strong>
+                            <small>a=5.5, b=0.9 - Plate boundary setting</small>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <div class="completeness-section">
+                        <h4>📋 Magnitude of Completeness</h4>
+                        <div class="slider-container">
+                            <div class="slider-label">
+                                <span>Mc:</span>
+                                <span id="mc-value">2.5</span>
+                            </div>
+                            <input type="range" class="slider" id="mc-slider" min="1.0" max="5.0" value="2.5" step="0.1">
+                            <small style="opacity: 0.8;">Data below this magnitude is incomplete</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <h4>Expected M7+ per Year</h4>
+                        <div class="stat-value" id="m7-rate">10</div>
+                    </div>
+                    <div class="stat-box">
+                        <h4>Expected M6+ per Year</h4>
+                        <div class="stat-value" id="m6-rate">100</div>
+                    </div>
+                    <div class="stat-box">
+                        <h4>Recurrence M8+</h4>
+                        <div class="stat-value" id="m8-recurrence">10 yrs</div>
+                    </div>
+                    <div class="stat-box">
+                        <h4>b-value Category</h4>
+                        <div class="stat-value" id="b-category">Normal</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="visualization-area">
+                <div class="plot-container">
+                    <canvas class="plot-canvas" id="gr-plot"></canvas>
+                </div>
+                
+                <div class="interpretation-panel">
+                    <h3>🔬 Geological Interpretation</h3>
+                    <div class="interpretation-text" id="interpretation-text">
+                        The current parameters represent typical global seismicity with a standard b-value of 1.0, indicating normal stress conditions and a balanced distribution of earthquake sizes.
+                    </div>
+                    
+                    <div class="geological-significance">
+                        <strong>Physical Meaning:</strong>
+                        <div id="physical-meaning">
+                            • a-value: Reflects regional tectonics and fault system activity<br>
+                            • b-value: Indicates stress state and material properties<br>
+                            • High b-values suggest highly fractured media or low stress<br>
+                            • Low b-values indicate locked faults or high differential stress
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class GutenbergRichterTool {
+            constructor() {
+                this.a = 6.0;
+                this.b = 1.0;
+                this.mc = 2.5;
+                
+                this.canvas = document.getElementById('gr-plot');
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.initializeCanvas();
+                this.bindEvents();
+                this.updateDisplay();
+                this.drawPlot();
+            }
+            
+            initializeCanvas() {
+                const rect = this.canvas.getBoundingClientRect();
+                this.canvas.width = rect.width * window.devicePixelRatio;
+                this.canvas.height = rect.height * window.devicePixelRatio;
+                this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                this.canvas.style.width = rect.width + 'px';
+                this.canvas.style.height = rect.height + 'px';
+                
+                this.plotWidth = rect.width - 80;
+                this.plotHeight = rect.height - 80;
+                this.plotX = 60;
+                this.plotY = 20;
+            }
+            
+            bindEvents() {
+                // Parameter sliders
+                document.getElementById('a-slider').addEventListener('input', (e) => {
+                    this.a = parseFloat(e.target.value);
+                    this.updateDisplay();
+                    this.drawPlot();
+                });
+                
+                document.getElementById('b-slider').addEventListener('input', (e) => {
+                    this.b = parseFloat(e.target.value);
+                    this.updateDisplay();
+                    this.drawPlot();
+                });
+                
+                document.getElementById('mc-slider').addEventListener('input', (e) => {
+                    this.mc = parseFloat(e.target.value);
+                    this.updateDisplay();
+                    this.drawPlot();
+                });
+                
+                // Preset buttons
+                document.querySelectorAll('.preset-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.loadPreset(e.currentTarget.dataset.preset);
+                    });
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.initializeCanvas();
+                    this.drawPlot();
+                });
+            }
+            
+            loadPreset(preset) {
+                const presets = {
+                    global: { a: 6.0, b: 1.0 },
+                    volcanic: { a: 7.5, b: 1.4 },
+                    locked: { a: 5.0, b: 0.7 },
+                    induced: { a: 6.8, b: 1.2 },
+                    subduction: { a: 5.5, b: 0.9 }
+                };
+                
+                const params = presets[preset];
+                if (params) {
+                    this.a = params.a;
+                    this.b = params.b;
+                    
+                    document.getElementById('a-slider').value = this.a;
+                    document.getElementById('b-slider').value = this.b;
+                    
+                    this.updateDisplay();
+                    this.drawPlot();
+                }
+            }
+            
+            updateDisplay() {
+                // Update parameter displays
+                document.getElementById('a-value').textContent = this.a.toFixed(1);
+                document.getElementById('b-value').textContent = this.b.toFixed(2);
+                document.getElementById('mc-value').textContent = this.mc.toFixed(1);
+                document.getElementById('a-display').textContent = this.a.toFixed(1);
+                document.getElementById('b-display').textContent = this.b.toFixed(2);
+                
+                // Update rule of ten
+                this.updateRuleOfTen();
+                
+                // Update statistics
+                this.updateStatistics();
+                
+                // Update interpretation
+                this.updateInterpretation();
+            }
+            
+            updateRuleOfTen() {
+                const factor = Math.pow(10, this.b);
+                const ruleText = document.getElementById('rule-text');
+                
+                ruleText.innerHTML = `
+                    For every M7.0 earthquake:<br>
+                    • <strong>${Math.round(factor)}</strong> M6.0 earthquakes<br>
+                    • <strong>${Math.round(factor * factor)}</strong> M5.0 earthquakes<br>
+                    • <strong>${Math.round(factor * factor * factor).toLocaleString()}</strong> M4.0 earthquakes
+                `;
+            }
+            
+            updateStatistics() {
+                // Calculate expected rates
+                const m7Rate = Math.pow(10, this.a - this.b * 7);
+                const m6Rate = Math.pow(10, this.a - this.b * 6);
+                const m8Recurrence = 1 / Math.pow(10, this.a - this.b * 8);
+                
+                document.getElementById('m7-rate').textContent = m7Rate < 1 ? 
+                    (m7Rate * 365).toFixed(0) + '/year' : m7Rate.toFixed(0);
+                document.getElementById('m6-rate').textContent = m6Rate < 1 ? 
+                    (m6Rate * 365).toFixed(0) + '/year' : m6Rate.toFixed(0);
+                document.getElementById('m8-recurrence').textContent = m8Recurrence > 1 ? 
+                    m8Recurrence.toFixed(0) + ' yrs' : (m8Recurrence * 365).toFixed(0) + ' days';
+                
+                // B-value category
+                let category = 'Normal';
+                if (this.b > 1.3) category = 'High';
+                else if (this.b < 0.8) category = 'Low';
+                document.getElementById('b-category').textContent = category;
+            }
+            
+            updateInterpretation() {
+                let interpretation = '';
+                let physicalMeaning = '';
+                
+                // B-value interpretation
+                if (this.b > 1.3) {
+                    interpretation = `High b-value (${this.b.toFixed(2)}) indicates a stress-relaxed environment with highly fractured rock. This is typical of volcanic regions, geothermal areas, or aftershock sequences where the crust is heavily fractured and stress is relatively low.`;
+                    physicalMeaning = `
+                        • High fracture density creates many small failure surfaces<br>
+                        • Low differential stress prevents large ruptures<br>
+                        • Typical of: volcanic swarms, geothermal fields, mining areas<br>
+                        • Dominated by small earthquakes
+                    `;
+                } else if (this.b < 0.8) {
+                    interpretation = `Low b-value (${this.b.toFixed(2)}) suggests high stress conditions on locked fault systems. This indicates that stress is building up on major fault planes, creating conditions favorable for larger earthquakes. This pattern is concerning for seismic hazard.`;
+                    physicalMeaning = `
+                        • High differential stress on locked fault planes<br>
+                        • Fewer but potentially larger ruptures<br>
+                        • Typical of: mature fault systems, plate boundaries<br>
+                        • Increased probability of damaging earthquakes
+                    `;
+                } else {
+                    interpretation = `Normal b-value (${this.b.toFixed(2)}) represents typical crustal conditions with a standard distribution of earthquake sizes. This indicates moderate stress conditions and normal fault behavior consistent with average tectonic environments.`;
+                    physicalMeaning = `
+                        • Balanced stress conditions in the crust<br>
+                        • Standard earthquake size distribution<br>
+                        • Typical of: stable continental regions, moderate fault activity<br>
+                        • Follows global seismicity patterns
+                    `;
+                }
+                
+                // A-value interpretation
+                if (this.a > 7.0) {
+                    interpretation += ` The high a-value (${this.a.toFixed(1)}) indicates very active seismicity with frequent earthquake occurrence.`;
+                } else if (this.a < 5.0) {
+                    interpretation += ` The low a-value (${this.a.toFixed(1)}) suggests relatively quiet seismic activity with infrequent earthquake occurrence.`;
+                } else {
+                    interpretation += ` The moderate a-value (${this.a.toFixed(1)}) indicates typical regional seismic activity levels.`;
+                }
+                
+                document.getElementById('interpretation-text').textContent = interpretation;
+                document.getElementById('physical-meaning').innerHTML = physicalMeaning;
+            }
+            
+            drawPlot() {
+                const ctx = this.ctx;
+                const rect = this.canvas.getBoundingClientRect();
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, rect.width, rect.height);
+                
+                // Draw background
+                ctx.fillStyle = '#f8f9fa';
+                ctx.fillRect(0, 0, rect.width, rect.height);
+                
+                // Draw grid
+                this.drawGrid();
+                
+                // Draw axes
+                this.drawAxes();
+                
+                // Draw GR line
+                this.drawGRLine();
+                
+                // Draw data points
+                this.drawDataPoints();
+                
+                // Draw completeness threshold
+                this.drawCompletenessLine();
+            }
+            
+            drawGrid() {
+                const ctx = this.ctx;
+                
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 1;
+                
+                // Vertical grid lines (magnitude)
+                for (let m = 1; m <= 9; m++) {
+                    const x = this.plotX + (m - 1) * (this.plotWidth / 8);
+                    ctx.beginPath();
+                    ctx.moveTo(x, this.plotY);
+                    ctx.lineTo(x, this.plotY + this.plotHeight);
+                    ctx.stroke();
+                }
+                
+                // Horizontal grid lines (log N)
+                for (let logN = 0; logN <= 8; logN++) {
+                    const y = this.plotY + this.plotHeight - (logN * this.plotHeight / 8);
+                    ctx.beginPath();
+                    ctx.moveTo(this.plotX, y);
+                    ctx.lineTo(this.plotX + this.plotWidth, y);
+                    ctx.stroke();
+                }
+            }
+            
+            drawAxes() {
+                const ctx = this.ctx;
+                
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                
+                // X-axis
+                ctx.beginPath();
+                ctx.moveTo(this.plotX, this.plotY + this.plotHeight);
+                ctx.lineTo(this.plotX + this.plotWidth, this.plotY + this.plotHeight);
+                ctx.stroke();
+                
+                // Y-axis
+                ctx.beginPath();
+                ctx.moveTo(this.plotX, this.plotY);
+                ctx.lineTo(this.plotX, this.plotY + this.plotHeight);
+                ctx.stroke();
+                
+                // Labels
+                ctx.fillStyle = '#333';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                
+                // X-axis labels (magnitude)
+                for (let m = 1; m <= 9; m++) {
+                    const x = this.plotX + (m - 1) * (this.plotWidth / 8);
+                    ctx.fillText(m.toString(), x, this.plotY + this.plotHeight + 20);
+                }
+                
+                // Y-axis labels (log N)
+                ctx.textAlign = 'right';
+                for (let logN = 0; logN <= 8; logN++) {
+                    const y = this.plotY + this.plotHeight - (logN * this.plotHeight / 8);
+                    ctx.fillText(logN.toString(), this.plotX - 10, y + 4);
+                }
+                
+                // Axis titles
+                ctx.textAlign = 'center';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText('Magnitude (M)', this.plotX + this.plotWidth / 2, this.plotY + this.plotHeight + 45);
+                
+                ctx.save();
+                ctx.translate(20, this.plotY + this.plotHeight / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('log₁₀(N)', 0, 0);
+                ctx.restore();
+            }
+            
+            drawGRLine() {
+                const ctx = this.ctx;
+                
+                ctx.strokeStyle = '#ff4444';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                // Draw line from M1 to M9
+                for (let m = 1; m <= 9; m += 0.1) {
+                    const logN = this.a - this.b * m;
+                    const x = this.plotX + (m - 1) * (this.plotWidth / 8);
+                    const y = this.plotY + this.plotHeight - (logN * this.plotHeight / 8);
+                    
+                    if (m === 1) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+                
+                // Add equation label
+                ctx.fillStyle = '#ff4444';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(`log₁₀(N) = ${this.a.toFixed(1)} - ${this.b.toFixed(2)}M`, 
+                           this.plotX + 10, this.plotY + 25);
+            }
+            
+            drawDataPoints() {
+                const ctx = this.ctx;
+                
+                // Generate synthetic data points with some scatter
+                ctx.fillStyle = 'rgba(68, 138, 255, 0.6)';
+                
+                for (let m = 1; m <= 8.5; m += 0.2) {
+                    const logN_ideal = this.a - this.b * m;
+                    const scatter = (Math.random() - 0.5) * 0.3; // Add realistic scatter
+                    const logN = logN_ideal + scatter;
+                    
+                    if (logN > 0 && logN < 8) {
+                        const x = this.plotX + (m - 1) * (this.plotWidth / 8);
+                        const y = this.plotY + this.plotHeight - (logN * this.plotHeight / 8);
+                        
+                        // Gray out points below Mc
+                        if (m < this.mc) {
+                            ctx.fillStyle = 'rgba(200, 200, 200, 0.4)';
+                        } else {
+                            ctx.fillStyle = 'rgba(68, 138, 255, 0.8)';
+                        }
+                        
+                        ctx.beginPath();
+                        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                }
+            }
+            
+            drawCompletenessLine() {
+                const ctx = this.ctx;
+                
+                ctx.strokeStyle = '#ff9800';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                
+                const x = this.plotX + (this.mc - 1) * (this.plotWidth / 8);
+                ctx.beginPath();
+                ctx.moveTo(x, this.plotY);
+                ctx.lineTo(x, this.plotY + this.plotHeight);
+                ctx.stroke();
+                
+                ctx.setLineDash([]);
+                
+                // Label
+                ctx.fillStyle = '#ff9800';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Mc = ${this.mc.toFixed(1)}`, x, this.plotY - 5);
+            }
+        }
+        
+        // Initialize tool when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new GutenbergRichterTool();
+        });
+    </script>
+</body>
+</html>

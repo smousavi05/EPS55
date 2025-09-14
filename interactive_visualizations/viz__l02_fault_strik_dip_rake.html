@@ -139,13 +139,14 @@
         // 3. North Arrow
         const northArrow = new THREE.Group();
         const northLine = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 5), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-        northLine.position.y = 5.5;
+        northLine.position.y = 2.5;
         const northHead = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-        northHead.position.y = 2.5;
+        northHead.position.y = 5.5;
     
         northArrow.add(northLine, northHead);
 
         northArrow.rotation.x = 0; //Math.PI / 2;
+        northArrow.rotation.y = /Math.PI / 2;
         northArrow.position.set(0, 0, -15);
         scene.add(northArrow);
     

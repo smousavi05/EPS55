@@ -111,37 +111,37 @@ Understand the physics - why normal stress increases shear resistance
 
 <table>
   <tr align="center">
-    <th>Coseismic Ground Displacement!</th>
-    <th>Interseismic-Coseismic-Postseismic Phases!</th>
-    <th>Interactive Spring-Block Earthquake Model!</th>
-    <th>Interactive Recurrence Models with Rate-and-State Friction!</th>
-    <th>Rate-and-State Friction Explorer!</th>
+    <th>Far-Field Apparent Rupture!</th>
+    <th>Directivity Explorer!</th>
+    <th>Earthquake Directivity Effects!</th>
+    <th>Earthquake Nucleation Hypotheses!</th>
+    <th>Interactive Rupture Dynamics Explorer!</th>
   </tr>
   
   <tr align="center">
     <td>
-      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_coseismic_calculator.html">
-        <img src="interactive_visualizations/viz__l06_coseismic_calculator.png" alt="Interactive Figure Preview" width="200">
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l07_apparent_rupture.html">
+        <img src="interactive_visualizations/viz__l07_apparent_rupture.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
     <td>
-      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_earthquake_cycle.html">
-        <img src="interactive_visualizations/viz__l06_earthquake_cycle.png" alt="Interactive Figure Preview" width="200">
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l07_directivity_1.html">
+        <img src="interactive_visualizations/viz__l07_directivity_1.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
     <td>
-      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_spring_block_model.html">
-        <img src="interactive_visualizations/viz__l06_spring_block_model.png" alt="Interactive Figure Preview" width="200">
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l07_directivity_2.html">
+        <img src="interactive_visualizations/viz__l07_directivity_2.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
     <td>
-      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_timepredictable_slippredictable.html">
-        <img src="interactive_visualizations/viz__l06_timepredictable_slippredictable.png" alt="Interactive Figure Preview" width="200">
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l07_nucleation.html">
+        <img src="interactive_visualizations/viz__l07_nucleation.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
     <td>
-      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_rate_and_state.html">
-        <img src="interactive_visualizations/viz__l06_rate_and_state.png" alt="Interactive Figure Preview" width="200">
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l07_rupture_dynamics.html">
+        <img src="interactive_visualizations/viz__l07_rupture_dynamics.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
   </tr>

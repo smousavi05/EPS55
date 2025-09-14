@@ -483,12 +483,24 @@ Understand the physics - why normal stress increases shear resistance
 <table>
   <tr align="center">
     <th>Focal Mechanism</th>
+    <th>Interactive 3D Fault & Beachball Simulator</th>
+    <th>Interactive Moment Tensor Decomposer</th>
   </tr>
   
   <tr align="center">
     <td>
       <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l15_seismology_focal_sphere.html">
         <img src="interactive_visualizations/viz__l15_seismology_focal_sphere.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l15_3d_fault_beachball_simulator.html">
+        <img src="interactive_visualizations/viz__l15_3d_fault_beachball_simulator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l15_moment_tensor.html">
+        <img src="interactive_visualizations/viz__l15_moment_tensor.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
   </tr>

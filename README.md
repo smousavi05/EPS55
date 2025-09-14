@@ -416,8 +416,6 @@ Understand the physics - why normal stress increases shear resistance
 
 ---------------------------------------------------------
 
----------------------------------------------------------
-
 ## Lecture 14: Magnitude Estimation
 
 <table>
@@ -505,3 +503,41 @@ Understand the physics - why normal stress increases shear resistance
     </td>
   </tr>
 </table>
+
+---------------------------------------------------------
+
+## Lecture 17: Site Effects and Strong Ground Motion
+
+<table>
+  <tr align="center">
+    <th>Site Amplification: Two Physical Mechanisms!</th>
+    <th>Seismic Wave Effects in Sedimentary Layers!</th>
+    <th>Building Failure Encyclopedia!</th>
+    <th>Interactive ShakeMap Simulator!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l17__site_amplification.html">
+        <img src="interactive_visualizations/viz__l17__site_amplification.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l17_site_amplification_2.html">
+        <img src="interactive_visualizations/viz__l17_site_amplification_2.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l17_building_failure_encyclopedia.html">
+        <img src="interactive_visualizations/viz__l17_building_failure_encyclopedia.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l17_shakemap_simulator.html">
+        <img src="interactive_visualizations/viz__l17_shakemap_simulator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
+
+---------------------------------------------------------

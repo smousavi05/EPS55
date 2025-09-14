@@ -459,3 +459,20 @@ Understand the physics - why normal stress increases shear resistance
 </table>
 
 ---------------------------------------------------------
+
+## Lecture 15: Quake’s Focal Point
+
+<table>
+  <tr align="center">
+    <th>Focal Mechanism</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l15_seismology_focal_sphere.html">
+        <img src="interactive_visualizations/viz__l15_seismology_focal_sphere.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
+---------------------------------------------------------

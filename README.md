@@ -48,3 +48,10 @@ Understand the physics - why normal stress increases shear resistance
 <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_coseismic_calculator.html">
   <img src="interactive_visualizations/viz__l06_coseismic_calculator.png" alt="Interactive Figure Preview" width="500">
 </a>
+
+#### Interseismic-Coseismic-Postseismic Phases!
+<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_earthquake_cycle.html">
+  <img src="interactive_visualizations/viz__l06_earthquake_cycle.png" alt="Interactive Figure Preview" width="500">
+</a>
+
+---------------------------------------------------------

@@ -541,3 +541,45 @@ Understand the physics - why normal stress increases shear resistance
 </table>
 
 ---------------------------------------------------------
+
+## Lecture 13: Earthquake Location
+
+<table>
+  <tr align="center">
+    <th>Gutenberg-Richter Law Interactive Tool!</th>
+    <th>Interactive Gutenberg-Richter Law Simulator!</th>
+    <th>Interactive Modified Omori Law Simulator!</th>
+    <th>Modified Omori Law Simulator!</th>
+    <th>Earthquake Stress Triggering Simulator!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l18_gutenberg_richter_tool.html">
+        <img src="interactive_visualizations/viz__l18_gutenberg_richter_tool.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l18_gr_simulator.html">
+        <img src="interactive_visualizations/viz__l18_gr_simulator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l18__omori_law.html">
+        <img src="interactive_visualizations/viz__l18__omori_law.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l18_omori_law_simulator.html">
+        <img src="interactive_visualizations/viz__l18_omori_law_simulator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l18_stress_triggering_simulator.html">
+        <img src="interactive_visualizations/viz__l18_stress_triggering_simulator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
+
+---------------------------------------------------------

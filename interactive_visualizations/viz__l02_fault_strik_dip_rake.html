@@ -146,7 +146,6 @@
         northArrow.add(northLine, northHead);
 
         northArrow.rotation.z = Math.PI / 2;
-        // northArrow.rotation.y = Math.PI / 2;
         northArrow.position.set(-15, 0, 0);
         scene.add(northArrow);
     
@@ -154,7 +153,7 @@
         northDiv.className = 'label';
         northDiv.textContent = 'North';
         const northLabel = new CSS2DObject(northDiv);
-        northLabel.position.set(0, 6.5, 0);
+        northLabel.position.set(-15, 0, 0);
         scene.add(northLabel);
 
         // 4. Strike Line

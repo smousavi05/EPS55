@@ -13,7 +13,7 @@
 </a>
 
 ---------------------------------------------------------
-## L02
+## Lecture 2: Geological Faults
 
 #### Fault types!
 
@@ -41,3 +41,10 @@ Compare different scenarios - weak vs. strong materials under various stress con
 Understand the physics - why normal stress increases shear resistance
 
 ---------------------------------------------------------
+## Lecture 6: Earthquake Cycle
+
+#### Coseismic Ground Displacement!
+
+<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_coseismic_calculator.html">
+  <img src="interactive_visualizations/viz__l06_coseismic_calculator.png" alt="Interactive Figure Preview" width="500">
+</a>

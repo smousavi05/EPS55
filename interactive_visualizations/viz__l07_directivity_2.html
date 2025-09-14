@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Directivity Visualization</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 30%, #2d1b69 70%, #9d50bb 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.8em;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24, #e056fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 4s ease-in-out infinite alternate;
+            font-weight: 700;
+        }
+        
+        @keyframes shimmer {
+            0% { filter: hue-rotate(0deg) brightness(1); }
+            100% { filter: hue-rotate(60deg) brightness(1.2); }
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            font-size: 1.2em;
+            font-weight: 300;
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .visualization-section {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .map-panel, .waveform-panel, .controls-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        
+        .panel-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #4ecdc4;
+        }
+        
+        #mapCanvas, #waveformCanvas {
+            width: 100%;
+            height: 350px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            background: radial-gradient(circle at center, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.9));
+        }
+        
+        .controls-grid {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .control-group {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .control-group h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #f9ca24;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        .slider-container {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 8px 0;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(78, 205, 196, 0.3));
+            outline: none;
+            transition: background 0.3s ease;
+        }
+        
+        input[type="range"]:hover {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.3), rgba(78, 205, 196, 0.5));
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+            transition: all 0.2s ease;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(78, 205, 196, 0.5);
+        }
+        
+        .value-display {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(78, 205, 196, 0.2), rgba(69, 183, 209, 0.2));
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            float: right;
+            min-width: 70px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid rgba(78, 205, 196, 0.3);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            margin: 8px 4px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.5);
+            background: linear-gradient(135deg, #ff5252, #d84315);
+        }
+        
+        button.secondary {
+            background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+            box-shadow: 0 5px 20px rgba(78, 205, 196, 0.3);
+        }
+        
+        button.secondary:hover {
+            box-shadow: 0 8px 25px rgba(78, 205, 196, 0.5);
+            background: linear-gradient(135deg, #26d0ce, #3498db);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border-color: rgba(78, 205, 196, 0.5);
+        }
+        
+        .stat-value {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: #4ecdc4;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.8;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .info-panel {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-panel h3 {
+            color: #f9ca24;
+            margin-top: 0;
+            font-size: 1.3em;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .rupture-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 0.9em;
+            display: none;
+            animation: pulse 1.5s ease-in-out infinite;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        
+        .station-info {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            pointer-events: none;
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(5px);
+        }
+        
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .visualization-section {
+                grid-template-rows: auto auto;
+            }
+            
+            #mapCanvas, #waveformCanvas {
+                height: 300px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2.2em;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+            
+            button {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Earthquake Directivity Effects</h1>
+        <p class="subtitle">Interactive visualization of rupture propagation and seismic wave amplification</p>
+        
+        <div class="main-layout">
+            <div class="visualization-section">
+                <div class="map-panel">
+                    <div class="panel-title">Fault Rupture & Station Network</div>
+                    <canvas id="mapCanvas"></canvas>
+                    <div class="rupture-indicator" id="ruptureIndicator">RUPTURE PROPAGATING</div>
+                    
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #feca57;"></div>
+                            <span>Hypocenter</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff6b6b;"></div>
+                            <span>Rupture Front</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #4ecdc4;"></div>
+                            <span>Seismic Stations</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #e056fd;"></div>
+                            <span>Selected Station</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="waveform-panel">
+                    <div class="panel-title">Seismograms & Directivity Effects</div>
+                    <canvas id="waveformCanvas"></canvas>
+                </div>
+            </div>
+            
+            <div class="controls-panel">
+                <div class="panel-title">Simulation Controls</div>
+                
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <h3>Rupture Animation</h3>
+                        <button onclick="startRupture()">Start Rupture</button>
+                        <button onclick="resetSimulation()" class="secondary">Reset</button>
+                        <button onclick="togglePause()" class="secondary">Pause/Resume</button>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3>Fault Properties</h3>
+                        <div class="slider-container">
+                            <label>Magnitude <span class="value-display" id="magnitudeValue">7.0</span></label>
+                            <input type="range" id="magnitude" min="6.0" max="8.5" step="0.1" value="7.0">
+                        </div>
+                        <div class="slider-container">
+                            <label>Fault Length <span class="value-display" id="lengthValue">100 km</span></label>
+                            <input type="range" id="length" min="20" max="300" step="10" value="100">
+                        </div>
+                        <div class="slider-container">
+                            <label>Fault Strike <span class="value-display" id="strikeValue">90°</span></label>
+                            <input type="range" id="strike" min="0" max="360" step="15" value="90">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3>Rupture Dynamics</h3>
+                        <div class="slider-container">
+                            <label>Rupture Velocity <span class="value-display" id="velocityValue">2.8 km/s</span></label>
+                            <input type="range" id="velocity" min="1.5" max="4.0" step="0.1" value="2.8">
+                        </div>
+                        <div class="slider-container">
+                            <label>Rupture Direction <span class="value-display" id="directionValue">Unilateral</span></label>
+                            <input type="range" id="direction" min="0" max="2" step="1" value="1">
+                        </div>
+                        <div class="slider-container">
+                            <label>Hypocenter Position <span class="value-display" id="hypoPositionValue">50%</span></label>
+                            <input type="range" id="hypoPosition" min="10" max="90" step="5" value="50">
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <h3>Wave Properties</h3>
+                        <div class="slider-container">
+                            <label>S-wave Velocity <span class="value-display" id="sVelocityValue">3.5 km/s</span></label>
+                            <input type="range" id="sVelocity" min="2.0" max="5.0" step="0.1" value="3.5">
+                        </div>
+                        <div class="slider-container">
+                            <label>Frequency <span class="value-display" id="frequencyValue">1.0 Hz</span></label>
+                            <input type="range" id="frequency" min="0.1" max="5.0" step="0.1" value="1.0">
+                        </div>
+                        <div class="slider-container">
+                            <label>Time Window <span class="value-display" id="timeWindowValue">100 s</span></label>
+                            <input type="range" id="timeWindow" min="50" max="200" step="10" value="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-value" id="currentTime">0.0</div>
+                <div class="stat-label">Rupture Time (s)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="ruptureLength">0</div>
+                <div class="stat-label">Rupture Length (km)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="selectedStation">Station 1</div>
+                <div class="stat-label">Selected Station</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="stationDistance">0</div>
+                <div class="stat-label">Distance (km)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="directivityFactor">1.0</div>
+                <div class="stat-label">Directivity Factor</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="arrivalTime">0.0</div>
+                <div class="stat-label">S-wave Arrival (s)</div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>Understanding Earthquake Directivity</h3>
+            <p><strong>Directivity</strong> is a fundamental effect where the direction of fault rupture strongly influences the intensity and duration of seismic shaking at different locations.</p>
+            
+            <p><strong>Key Physical Mechanisms:</strong></p>
+            <ul>
+                <li><strong>Forward Directivity:</strong> Stations in the direction of rupture propagation experience amplified, shorter-duration shaking</li>
+                <li><strong>Backward Directivity:</strong> Stations opposite to rupture direction see longer-duration, lower-amplitude waves</li>
+                <li><strong>Doppler Effect:</strong> Rupture velocity approaching the speed of seismic waves creates frequency shifts</li>
+                <li><strong>Constructive Interference:</strong> Waves from different parts of the fault arrive nearly simultaneously in forward direction</li>
+            </ul>
+            
+            <p><strong>Practical Importance:</strong></p>
+            <ul>
+                <li><strong>Earthquake Engineering:</strong> Buildings in forward directivity zones experience much stronger shaking</li>
+                <li><strong>Seismic Hazard:</strong> Directivity can amplify ground motion by factors of 2-4 or more</li>
+                <li><strong>Rupture Imaging:</strong> Directivity patterns help determine fault orientation and rupture direction</li>
+                <li><strong>Real-time Seismology:</strong> Understanding directivity improves earthquake early warning systems</li>
+            </ul>
+            
+            <p><strong>Interactive Features:</strong> Click on stations to see their seismograms. Adjust rupture parameters to explore how fault geometry and rupture velocity affect directivity patterns. Notice how forward directivity creates sharp, high-amplitude pulses while backward directivity produces extended, lower-amplitude signals.</p>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const mapCanvas = document.getElementById('mapCanvas');
+        const mapCtx = mapCanvas.getContext('2d');
+        const waveformCanvas = document.getElementById('waveformCanvas');
+        const waveformCtx = waveformCanvas.getContext('2d');
+        
+        function resizeCanvases() {
+            const mapRect = mapCanvas.getBoundingClientRect();
+            mapCanvas.width = mapRect.width;
+            mapCanvas.height = mapRect.height;
+            
+            const waveRect = waveformCanvas.getBoundingClientRect();
+            waveformCanvas.width = waveRect.width;
+            waveformCanvas.height = waveRect.height;
+        }
+        resizeCanvases();
+        window.addEventListener('resize', resizeCanvases);
+        
+        // Simulation state
+        let isRupturing = false;
+        let isPaused = false;
+        let ruptureTime = 0;
+        let animationId = null;
+        let selectedStation = 0;
+        
+        // Parameters
+        let params = {
+            magnitude: 7.0,
+            length: 100,        // km
+            strike: 90,         // degrees
+            velocity: 2.8,      // km/s
+            direction: 1,       // 0=bilateral, 1=unilateral, 2=reverse
+            hypoPosition: 50,   // percentage along fault
+            sVelocity: 3.5,     // km/s
+            frequency: 1.0,     // Hz
+            timeWindow: 100     // seconds
+        };
+        
+        // Stations configuration
+        const stations = [
+            { name: 'STA1', x: 0.2, y: 0.3, azimuth: 0 },
+            { name: 'STA2', x: 0.8, y: 0.3, azimuth: 0 },
+            { name: 'STA3', x: 0.5, y: 0.1, azimuth: 0 },
+            { name: 'STA4', x: 0.5, y: 0.9, azimuth: 0 },
+            { name: 'STA5', x: 0.1, y: 0.5, azimuth: 0 },
+            { name: 'STA6', x: 0.9, y: 0.5, azimuth: 0 },
+            { name: 'STA7', x: 0.3, y: 0.7, azimuth: 0 },
+            { name: 'STA8', x: 0.7, y: 0.7, azimuth: 0 }
+        ];
+        
+        // Fault geometry
+        let fault = {
+            x1: 0, y1: 0, x2: 0, y2: 0,
+            hypoX: 0, hypoY: 0,
+            length: 0,
+            currentRuptureLength: 0
+        };
+        
+        // Seismogram data
+        let seismograms = {};
+        let stationInfo = null;
+        
+        // Initialize fault geometry
+        function updateFaultGeometry() {
+            const centerX = mapCanvas.width / 2;
+            const centerY = mapCanvas.height / 2;
+            const pixelLength = Math.min(mapCanvas.width, mapCanvas.height) * 0.6;
+            
+            const strikeRad = (params.strike * Math.PI) / 180;
+            const dx = (pixelLength / 2) * Math.cos(strikeRad);
+            const dy = (pixelLength / 2) * Math.sin(strikeRad);
+            
+            fault.x1 = centerX - dx;
+            fault.y1 = centerY - dy;
+            fault.x2 = centerX + dx;
+            fault.y2 = centerY + dy;
+            fault.length = pixelLength;
+            
+            // Hypocenter position
+            const hypoFraction = params.hypoPosition / 100;
+            fault.hypoX = fault.x1 + (fault.x2 - fault.x1) * hypoFraction;
+            fault.hypoY = fault.y1 + (fault.y2 - fault.y1) * hypoFraction;
+            
+            // Update station distances and azimuths
+            updateStationGeometry();
+        }
+        
+        // Update station geometry relative to fault
+        function updateStationGeometry() {
+            stations.forEach(station => {
+                const stationX = station.x * mapCanvas.width;
+                const stationY = station.y * mapCanvas.height;
+                
+                // Distance from hypocenter
+                const dx = stationX - fault.hypoX;
+                const dy = stationY - fault.hypoY;
+                station.distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Azimuth from fault strike
+                const faultAzimuth = params.strike;
+                const stationAzimuth = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+                station.azimuth = (stationAzimuth - faultAzimuth + 360) % 360;
+                
+                // Project station onto fault line for directivity calculation
+                const faultDir = {
+                    x: Math.cos(params.strike * Math.PI / 180),
+                    y: Math.sin(params.strike * Math.PI / 180)
+                };
+                
+                const stationVector = { x: dx, y: dy };
+                const projection = (stationVector.x * faultDir.x + stationVector.y * faultDir.y);
+                station.faultParallelDistance = projection;
+                station.faultPerpendicularDistance = Math.sqrt(dx * dx + dy * dy - projection * projection);
+            });
+        }
+        
+        // Calculate directivity factor for a station
+        function calculateDirectivityFactor(station, ruptureTime) {
+            if (ruptureTime <= 0) return 1.0;
+            
+            const pixelsPerKm = fault.length / params.length;
+            const stationDistanceKm = station.distance / pixelsPerKm;
+            const parallelDistanceKm = station.faultParallelDistance / pixelsPerKm;
+            
+            // Rupture direction factor
+            let directionMultiplier = 1.0;
+            if (params.direction === 1) { // Unilateral
+                directionMultiplier = parallelDistanceKm > 0 ? 1.0 : -1.0;
+            } else if (params.direction === 2) { // Reverse unilateral
+                directionMultiplier = parallelDistanceKm > 0 ? -1.0 : 1.0;
+            }
+            
+            // Directivity effect based on rupture velocity and station position
+            const cosTheta = Math.abs(parallelDistanceKm) / Math.max(stationDistanceKm, 0.1);
+            const ruptureVelocityRatio = params.velocity / params.sVelocity;
+            
+            // Enhanced directivity when rupture approaches S-wave velocity
+            const directivityStrength = 1.0 + 2.0 * ruptureVelocityRatio * cosTheta * directionMultiplier;
+            
+            // Duration effect (inverse relationship with directivity)
+            const durationEffect = 1.0 / Math.max(directivityStrength, 0.3);
+            
+            return {
+                amplification: Math.max(directivityStrength, 0.2),
+                duration: durationEffect,
+                cosTheta: cosTheta,
+                ruptureVelocityRatio: ruptureVelocityRatio
+            };
+        }
+        
+        // Generate synthetic seismogram
+        function generateSeismogram(stationIndex, currentTime) {
+            const station = stations[stationIndex];
+            const pixelsPerKm = fault.length / params.length;
+            const distanceKm = station.distance / pixelsPerKm;
+            
+            // S-wave arrival time
+            const arrivalTime = distanceKm / params.sVelocity;
+            
+            if (currentTime < arrivalTime) {
+                return { amplitude: 0, phase: 0 };
+            }
+            
+            const relativeTime = currentTime - arrivalTime;
+            const directivity = calculateDirectivityFactor(station, currentTime);
+            
+            // Source time function (simplified)
+            const sourceDuration = params.length / params.velocity;
+            let sourceFunction = 0;
+            
+            if (relativeTime < sourceDuration * directivity.duration) {
+                // Brune-like source function modified by directivity
+                const tau = sourceDuration * directivity.duration / 3;
+                sourceFunction = Math.exp(-relativeTime / tau) * Math.sin(2 * Math.PI * params.frequency * relativeTime);
+            }
+            
+            // Apply directivity amplification
+            const amplitude = sourceFunction * directivity.amplification * Math.pow(10, 0.5 * params.magnitude - 3);
+            
+            // Geometric spreading
+            const geometricSpreading = 1.0 / Math.max(distanceKm, 1.0);
+            
+            return {
+                amplitude: amplitude * geometricSpreading,
+                phase: 2 * Math.PI * params.frequency * relativeTime,
+                arrivalTime: arrivalTime,
+                directivity: directivity
+            };
+        }
+        
+        // Animation loop
+        function animate() {
+            if (!isRupturing || isPaused) return;
+            
+            const dt = 0.2; // seconds
+            ruptureTime += dt;
+            
+            // Update rupture length
+            fault.currentRuptureLength = Math.min(params.velocity * ruptureTime, params.length);
+            
+            // Generate seismograms
+            stations.forEach((station, index) => {
+                if (!seismograms[index]) seismograms[index] = [];
+                const seismo = generateSeismogram(index, ruptureTime);
+                seismograms[index].push({
+                    time: ruptureTime,
+                    amplitude: seismo.amplitude,
+                    arrivalTime: seismo.arrivalTime,
+                    directivity: seismo.directivity
+                });
+                
+                // Limit data length
+                if (seismograms[index].length > 1000) {
+                    seismograms[index].shift();
+                }
+            });
+            
+            // Update displays
+            drawMap();
+            drawWaveforms();
+            updateStats();
+            
+            // Show rupture indicator
+            const indicator = document.getElementById('ruptureIndicator');
+            const totalDuration = params.length / params.velocity + 30; // Add some buffer
+            
+            if (ruptureTime <= totalDuration) {
+                indicator.style.display = 'block';
+            } else {
+                indicator.style.display = 'none';
+                isRupturing = false;
+            }
+            
+            // Continue animation
+            if (isRupturing) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        // Draw map view
+        function drawMap() {
+            const width = mapCanvas.width;
+            const height = mapCanvas.height;
+            
+            mapCtx.clearRect(0, 0, width, height);
+            
+            // Background
+            const gradient = mapCtx.createRadialGradient(width/2, height/2, 0, width/2, height/2, Math.max(width, height)/2);
+            gradient.addColorStop(0, 'rgba(20, 20, 40, 0.8)');
+            gradient.addColorStop(1, 'rgba(5, 5, 15, 0.9)');
+            mapCtx.fillStyle = gradient;
+            mapCtx.fillRect(0, 0, width, height);
+            
+            // Draw fault line
+            mapCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            mapCtx.lineWidth = 3;
+            mapCtx.setLineDash([10, 5]);
+            mapCtx.beginPath();
+            mapCtx.moveTo(fault.x1, fault.y1);
+            mapCtx.lineTo(fault.x2, fault.y2);
+            mapCtx.stroke();
+            mapCtx.setLineDash([]);
+            
+            // Draw ruptured section
+            if (fault.currentRuptureLength > 0) {
+                const pixelsPerKm = fault.length / params.length;
+                const rupturePixels = fault.currentRuptureLength * pixelsPerKm;
+                
+                mapCtx.strokeStyle = '#ff6b6b';
+                mapCtx.lineWidth = 6;
+                
+                if (params.direction === 0) { // Bilateral
+                    const halfRupture = rupturePixels / 2;
+                    const dx = (fault.x2 - fault.x1) / fault.length;
+                    const dy = (fault.y2 - fault.y1) / fault.length;
+                    
+                    mapCtx.beginPath();
+                    mapCtx.moveTo(fault.hypoX - dx * halfRupture, fault.hypoY - dy * halfRupture);
+                    mapCtx.lineTo(fault.hypoX + dx * halfRupture, fault.hypoY + dy * halfRupture);
+                    mapCtx.stroke();
+                } else { // Unilateral
+                    const dx = (fault.x2 - fault.x1) / fault.length;
+                    const dy = (fault.y2 - fault.y1) / fault.length;
+                    const direction = params.direction === 1 ? 1 : -1;
+                    
+                    mapCtx.beginPath();
+                    mapCtx.moveTo(fault.hypoX, fault.hypoY);
+                    mapCtx.lineTo(fault.hypoX + dx * rupturePixels * direction, 
+                                 fault.hypoY + dy * rupturePixels * direction);
+                    mapCtx.stroke();
+                }
+            }
+            
+            // Draw hypocenter
+            mapCtx.fillStyle = '#feca57';
+            mapCtx.strokeStyle = '#fff';
+            mapCtx.lineWidth = 3;
+            mapCtx.beginPath();
+            mapCtx.arc(fault.hypoX, fault.hypoY, 12, 0, 2 * Math.PI);
+            mapCtx.fill();
+            mapCtx.stroke();
+            
+            // Hypocenter label
+            mapCtx.fillStyle = '#fff';
+            mapCtx.font = 'bold 12px Arial';
+            mapCtx.textAlign = 'center';
+            mapCtx.fillText('HYPOCENTER', fault.hypoX, fault.hypoY - 20);
+            
+            // Draw rupture front
+            if (fault.currentRuptureLength > 0 && fault.currentRuptureLength < params.length) {
+                const pixelsPerKm = fault.length / params.length;
+                const rupturePixels = fault.currentRuptureLength * pixelsPerKm;
+                const dx = (fault.x2 - fault.x1) / fault.length;
+                const dy = (fault.y2 - fault.y1) / fault.length;
+                
+                if (params.direction === 0) { // Bilateral
+                    const halfRupture = rupturePixels / 2;
+                    
+                    // Front 1
+                    mapCtx.fillStyle = '#ff6b6b';
+                    mapCtx.beginPath();
+                    mapCtx.arc(fault.hypoX + dx * halfRupture, fault.hypoY + dy * halfRupture, 8, 0, 2 * Math.PI);
+                    mapCtx.fill();
+                    
+                    // Front 2
+                    mapCtx.beginPath();
+                    mapCtx.arc(fault.hypoX - dx * halfRupture, fault.hypoY - dy * halfRupture, 8, 0, 2 * Math.PI);
+                    mapCtx.fill();
+                } else { // Unilateral
+                    const direction = params.direction === 1 ? 1 : -1;
+                    mapCtx.fillStyle = '#ff6b6b';
+                    mapCtx.beginPath();
+                    mapCtx.arc(fault.hypoX + dx * rupturePixels * direction, 
+                              fault.hypoY + dy * rupturePixels * direction, 8, 0, 2 * Math.PI);
+                    mapCtx.fill();
+                }
+            }
+            
+            // Draw stations
+            stations.forEach((station, index) => {
+                const x = station.x * width;
+                const y = station.y * height;
+                
+                // Station circle
+                if (index === selectedStation) {
+                    mapCtx.fillStyle = '#e056fd';
+                    mapCtx.strokeStyle = '#fff';
+                    mapCtx.lineWidth = 3;
+                } else {
+                    mapCtx.fillStyle = '#4ecdc4';
+                    mapCtx.strokeStyle = '#fff';
+                    mapCtx.lineWidth = 2;
+                }
+                
+                mapCtx.beginPath();
+                mapCtx.arc(x, y, 10, 0, 2 * Math.PI);
+                mapCtx.fill();
+                mapCtx.stroke();
+                
+                // Station label
+                mapCtx.fillStyle = '#fff';
+                mapCtx.font = 'bold 11px Arial';
+                mapCtx.textAlign = 'center';
+                mapCtx.fillText(station.name, x, y - 15);
+                
+                // Directivity visualization
+                if (seismograms[index] && seismograms[index].length > 0) {
+                    const latestData = seismograms[index][seismograms[index].length - 1];
+                    if (latestData.directivity) {
+                        const factor = latestData.directivity.amplification;
+                        const radius = 15 + factor * 10;
+                        const alpha = Math.min(factor / 3, 1);
+                        
+                        mapCtx.strokeStyle = `rgba(255, 107, 107, ${alpha})`;
+                        mapCtx.lineWidth = 2;
+                        mapCtx.beginPath();
+                        mapCtx.arc(x, y, radius, 0, 2 * Math.PI);
+                        mapCtx.stroke();
+                    }
+                }
+            });
+            
+            // Draw scale and info
+            mapCtx.fillStyle = '#fff';
+            mapCtx.font = '12px Arial';
+            mapCtx.textAlign = 'left';
+            mapCtx.fillText(`Fault Length: ${params.length} km`, 10, 30);
+            mapCtx.fillText(`Strike: ${params.strike}°`, 10, 45);
+            mapCtx.fillText(`Magnitude: ${params.magnitude}`, 10, 60);
+        }
+        
+        // Draw waveforms
+        function drawWaveforms() {
+            const width = waveformCanvas.width;
+            const height = waveformCanvas.height;
+            
+            waveformCtx.clearRect(0, 0, width, height);
+            
+            // Background
+            waveformCtx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            waveformCtx.fillRect(0, 0, width, height);
+            
+            if (!seismograms[selectedStation] || seismograms[selectedStation].length < 2) {
+                waveformCtx.fillStyle = '#fff';
+                waveformCtx.font = '16px Arial';
+                waveformCtx.textAlign = 'center';
+                waveformCtx.fillText('Waiting for seismic waves...', width/2, height/2);
+                return;
+            }
+            
+            const data = seismograms[selectedStation];
+            const timeWindow = params.timeWindow;
+            const currentTime = ruptureTime;
+            const startTime = Math.max(0, currentTime - timeWindow);
+            
+            // Filter data for current time window
+            const visibleData = data.filter(d => d.time >= startTime && d.time <= currentTime);
+            
+            if (visibleData.length < 2) return;
+            
+            const margin = 50;
+            const plotWidth = width - 2 * margin;
+            const plotHeight = height - 2 * margin;
+            
+            // Find amplitude range
+            const maxAmp = Math.max(...visibleData.map(d => Math.abs(d.amplitude)));
+            const ampScale = maxAmp > 0 ? plotHeight / (2 * maxAmp) : 1;
+            
+            // Draw grid
+            waveformCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            waveformCtx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const x = margin + (i / 10) * plotWidth;
+                const y = margin + (i / 10) * plotHeight;
+                
+                waveformCtx.beginPath();
+                waveformCtx.moveTo(x, margin);
+                waveformCtx.lineTo(x, margin + plotHeight);
+                waveformCtx.stroke();
+                
+                waveformCtx.beginPath();
+                waveformCtx.moveTo(margin, y);
+                waveformCtx.lineTo(margin + plotWidth, y);
+                waveformCtx.stroke();
+            }
+            
+            // Draw waveform
+            waveformCtx.strokeStyle = '#4ecdc4';
+            waveformCtx.lineWidth = 2;
+            waveformCtx.beginPath();
+            
+            visibleData.forEach((point, index) => {
+                const x = margin + ((point.time - startTime) / timeWindow) * plotWidth;
+                const y = margin + plotHeight/2 - point.amplitude * ampScale;
+                
+                if (index === 0) {
+                    waveformCtx.moveTo(x, y);
+                } else {
+                    waveformCtx.lineTo(x, y);
+                }
+            });
+            waveformCtx.stroke();
+            
+            // Draw S-wave arrival
+            if (visibleData.length > 0 && visibleData[0].arrivalTime) {
+                const arrivalTime = visibleData[0].arrivalTime;
+                if (arrivalTime >= startTime && arrivalTime <= currentTime) {
+                    const arrivalX = margin + ((arrivalTime - startTime) / timeWindow) * plotWidth;
+                    waveformCtx.strokeStyle = '#feca57';
+                    waveformCtx.lineWidth = 2;
+                    waveformCtx.setLineDash([5, 5]);
+                    waveformCtx.beginPath();
+                    waveformCtx.moveTo(arrivalX, margin);
+                    waveformCtx.lineTo(arrivalX, margin + plotHeight);
+                    waveformCtx.stroke();
+                    waveformCtx.setLineDash([]);
+                    
+                    // Label
+                    waveformCtx.fillStyle = '#feca57';
+                    waveformCtx.font = '12px Arial';
+                    waveformCtx.textAlign = 'center';
+                    waveformCtx.fillText('S-wave', arrivalX, margin - 10);
+                }
+            }
+            
+            // Draw current time marker
+            const currentX = margin + plotWidth;
+            waveformCtx.strokeStyle = '#ff6b6b';
+            waveformCtx.lineWidth = 2;
+            waveformCtx.setLineDash([3, 3]);
+            waveformCtx.beginPath();
+            waveformCtx.moveTo(currentX, margin);
+            waveformCtx.lineTo(currentX, margin + plotHeight);
+            waveformCtx.stroke();
+            waveformCtx.setLineDash([]);
+            
+            // Axes and labels
+            waveformCtx.strokeStyle = '#fff';
+            waveformCtx.lineWidth = 2;
+            waveformCtx.beginPath();
+            waveformCtx.moveTo(margin, margin + plotHeight);
+            waveformCtx.lineTo(margin + plotWidth, margin + plotHeight);
+            waveformCtx.moveTo(margin, margin);
+            waveformCtx.lineTo(margin, margin + plotHeight);
+            waveformCtx.stroke();
+            
+            // Labels
+            waveformCtx.fillStyle = '#fff';
+            waveformCtx.font = '14px Arial';
+            waveformCtx.textAlign = 'center';
+            waveformCtx.fillText(`${stations[selectedStation].name} - Time (s)`, width/2, height - 10);
+            
+            waveformCtx.save();
+            waveformCtx.translate(15, height/2);
+            waveformCtx.rotate(-Math.PI/2);
+            waveformCtx.fillText('Velocity (m/s)', 0, 0);
+            waveformCtx.restore();
+            
+            // Time axis labels
+            waveformCtx.font = '12px Arial';
+            waveformCtx.textAlign = 'center';
+            for (let i = 0; i <= 5; i++) {
+                const x = margin + (i / 5) * plotWidth;
+                const time = startTime + (i / 5) * timeWindow;
+                waveformCtx.fillText(time.toFixed(0), x, margin + plotHeight + 20);
+            }
+            
+            // Amplitude axis labels
+            waveformCtx.textAlign = 'right';
+            if (maxAmp > 0) {
+                waveformCtx.fillText(maxAmp.toFixed(2), margin - 10, margin + 5);
+                waveformCtx.fillText('0', margin - 10, margin + plotHeight/2 + 5);
+                waveformCtx.fillText((-maxAmp).toFixed(2), margin - 10, margin + plotHeight);
+            }
+            
+            // Station info
+            const station = stations[selectedStation];
+            waveformCtx.fillStyle = '#fff';
+            waveformCtx.font = 'bold 14px Arial';
+            waveformCtx.textAlign = 'left';
+            waveformCtx.fillText(`Station: ${station.name}`, margin, 25);
+            
+            if (visibleData.length > 0 && visibleData[0].directivity) {
+                const dir = visibleData[visibleData.length - 1].directivity;
+                waveformCtx.font = '12px Arial';
+                waveformCtx.fillText(`Directivity Factor: ${dir.amplification.toFixed(2)}`, margin, 45);
+                waveformCtx.fillText(`Duration Factor: ${dir.duration.toFixed(2)}`, margin, 65);
+            }
+        }
+        
+        // Update statistics
+        function updateStats() {
+            const pixelsPerKm = fault.length / params.length;
+            const ruptureDistanceKm = fault.currentRuptureLength;
+            
+            document.getElementById('currentTime').textContent = ruptureTime.toFixed(1);
+            document.getElementById('ruptureLength').textContent = Math.round(ruptureDistanceKm);
+            document.getElementById('selectedStation').textContent = stations[selectedStation].name;
+            
+            const station = stations[selectedStation];
+            const distanceKm = station.distance / pixelsPerKm;
+            document.getElementById('stationDistance').textContent = Math.round(distanceKm);
+            
+            const arrivalTime = distanceKm / params.sVelocity;
+            document.getElementById('arrivalTime').textContent = arrivalTime.toFixed(1);
+            
+            if (seismograms[selectedStation] && seismograms[selectedStation].length > 0) {
+                const latestData = seismograms[selectedStation][seismograms[selectedStation].length - 1];
+                if (latestData.directivity) {
+                    document.getElementById('directivityFactor').textContent = 
+                        latestData.directivity.amplification.toFixed(2);
+                }
+            }
+        }
+        
+        // Mouse interaction for station selection
+        mapCanvas.addEventListener('click', (event) => {
+            const rect = mapCanvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            // Check if click is near any station
+            stations.forEach((station, index) => {
+                const stationX = station.x * mapCanvas.width;
+                const stationY = station.y * mapCanvas.height;
+                const distance = Math.sqrt((x - stationX)**2 + (y - stationY)**2);
+                
+                if (distance < 20) {
+                    selectedStation = index;
+                    updateStats();
+                    if (!isRupturing) {
+                        drawMap();
+                        drawWaveforms();
+                    }
+                }
+            });
+        });
+        
+        // Mouse hover for station info
+        mapCanvas.addEventListener('mousemove', (event) => {
+            const rect = mapCanvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            let nearStation = false;
+            stations.forEach((station, index) => {
+                const stationX = station.x * mapCanvas.width;
+                const stationY = station.y * mapCanvas.height;
+                const distance = Math.sqrt((x - stationX)**2 + (y - stationY)**2);
+                
+                if (distance < 20) {
+                    nearStation = true;
+                    // Could show tooltip here
+                }
+            });
+            
+            mapCanvas.style.cursor = nearStation ? 'pointer' : 'default';
+        });
+        
+        // Control functions
+        function startRupture() {
+            if (isRupturing) return;
+            
+            isRupturing = true;
+            isPaused = false;
+            ruptureTime = 0;
+            fault.currentRuptureLength = 0;
+            seismograms = {};
+            
+            updateFaultGeometry();
+            
+            document.getElementById('ruptureIndicator').style.display = 'block';
+            animate();
+        }
+        
+        function resetSimulation() {
+            isRupturing = false;
+            isPaused = false;
+            ruptureTime = 0;
+            fault.currentRuptureLength = 0;
+            seismograms = {};
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            
+            document.getElementById('ruptureIndicator').style.display = 'none';
+            
+            updateFaultGeometry();
+            drawMap();
+            drawWaveforms();
+            updateStats();
+        }
+        
+        function togglePause() {
+            if (!isRupturing) return;
+            
+            isPaused = !isPaused;
+            if (!isPaused) {
+                animate();
+            }
+        }
+        
+        // Setup parameter controls
+        function setupControls() {
+            const controls = {
+                magnitude: { param: 'magnitude', display: 'magnitudeValue', format: (v) => v },
+                length: { param: 'length', display: 'lengthValue', format: (v) => v + ' km' },
+                strike: { param: 'strike', display: 'strikeValue', format: (v) => v + '°' },
+                velocity: { param: 'velocity', display: 'velocityValue', format: (v) => v + ' km/s' },
+                hypoPosition: { param: 'hypoPosition', display: 'hypoPositionValue', format: (v) => v + '%' },
+                sVelocity: { param: 'sVelocity', display: 'sVelocityValue', format: (v) => v + ' km/s' },
+                frequency: { param: 'frequency', display: 'frequencyValue', format: (v) => v + ' Hz' },
+                timeWindow: { param: 'timeWindow', display: 'timeWindowValue', format: (v) => v + ' s' }
+            };
+            
+            Object.keys(controls).forEach(key => {
+                const control = document.getElementById(key);
+                const config = controls[key];
+                const valueDisplay = document.getElementById(config.display);
+                
+                control.addEventListener('input', () => {
+                    params[config.param] = parseFloat(control.value);
+                    valueDisplay.textContent = config.format(parseFloat(control.value));
+                    
+                    if (['strike', 'hypoPosition', 'length'].includes(key)) {
+                        updateFaultGeometry();
+                        if (!isRupturing) {
+                            drawMap();
+                        }
+                    }
+                });
+                
+                // Initialize display
+                valueDisplay.textContent = config.format(parseFloat(control.value));
+            });
+            
+            // Special handling for direction control
+            document.getElementById('direction').addEventListener('input', (e) => {
+                const value = parseInt(e.target.value);
+                params.direction = value;
+                const labels = ['Bilateral', 'Unilateral', 'Reverse'];
+                document.getElementById('directionValue').textContent = labels[value];
+                
+                updateFaultGeometry();
+                if (!isRupturing) {
+                    drawMap();
+                }
+            });
+        }
+        
+        // Initialize
+        setupControls();
+        updateFaultGeometry();
+        drawMap();
+        drawWaveforms();
+        updateStats();
+    </script>
+</body>
+</html>

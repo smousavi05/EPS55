@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Far-Field Apparent Rupture Explorer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #2c3e50;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 2em;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #fff;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5em;
+            margin-top: 0;
+            color: #34495e;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2.5em;
+            margin-top: 2em;
+        }
+        .controls {
+            padding: 1.5em;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .slider-group { margin-bottom: 1.5em; }
+        .slider-group label { font-weight: bold; display: block; margin-bottom: 0.5em; }
+        .slider-group input[type="range"] { width: 100%; cursor: pointer; }
+        .results-box {
+            background: #eaf2f8;
+            border-radius: 8px;
+            padding: 1em;
+            text-align: center;
+        }
+        .results-box h3 { margin-top: 0; color: #2874a6; }
+        .results-box p { margin: 0.5em 0; font-size: 1.1em; }
+        .results-box span { font-weight: bold; color: #1f618d; }
+        .visualization-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #diagram-svg {
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 1em;
+        }
+        #polar-plot-container {
+            width: 100%;
+            max-width: 500px;
+        }
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Far-Field Apparent Rupture Explorer 🛰️</h1>
+    <div class="main-layout">
+        <div class="controls">
+            <h2>Rupture & Observation Parameters</h2>
+            <div class="slider-group">
+                <label>True Fault Length (L): <span id="length-val">50</span> km</label>
+                <input type="range" id="length-slider" min="10" max="100" step="2" value="50">
+            </div>
+            <div class="slider-group">
+                <label>Rupture Velocity (Vᵣ / Vₛ): <span id="vr-val">0.80</span></label>
+                <input type="range" id="vr-slider" min="0.1" max="0.95" step="0.05" value="0.8">
+            </div>
+            <div class="slider-group">
+                <label>Observation Angle (θ): <span id="angle-val">45</span>°</label>
+                <input type="range" id="angle-slider" min="0" max="180" step="1" value="45">
+            </div>
+            
+            <div class="results-box">
+                <h3>Calculated Apparent Values</h3>
+                <p>True Rupture Time (T₀): <span id="true-time-out">-</span> s</p>
+                <hr>
+                <p>Apparent Rupture Time (Tₐ): <span id="apparent-time-out">-</span> s</p>
+                <p>Apparent Rupture Length (Lₐ): <span id="apparent-length-out">-</span> km</p>
+            </div>
+        </div>
+
+        <div class="visualization-area">
+            <h2>Diagram and Directional Plot</h2>
+            <svg id="diagram-svg" viewBox="0 0 200 200">
+                <line x1="20" y1="100" x2="180" y2="100" stroke="#c0392b" stroke-width="3" />
+                <path d="M 175 95 L 185 100 L 175 105 z" fill="#c0392b" />
+                <text x="100" y="90" text-anchor="middle" font-size="10px">Rupture Direction →</text>
+                
+                <line id="observer-line" x1="100" y1="100" x2="150" y2="50" stroke="#2980b9" stroke-width="2" stroke-dasharray="4"/>
+                <text id="observer-text" x="155" y="45" font-size="10px" fill="#2980b9">Observer</text>
+                
+                <path id="angle-arc" fill="#2980b9" fill-opacity="0.2" stroke="#2980b9" stroke-width="1"/>
+                <text id="angle-text" x="120" y="85" text-anchor="middle" font-size="10px">θ</text>
+            </svg>
+            <div id="polar-plot-container">
+                <canvas id="polar-plot"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Get DOM Elements ---
+    const lengthSlider = document.getElementById('length-slider');
+    const vrSlider = document.getElementById('vr-slider');
+    const angleSlider = document.getElementById('angle-slider');
+    const lengthVal = document.getElementById('length-val');
+    const vrVal = document.getElementById('vr-val');
+    const angleVal = document.getElementById('angle-val');
+    const trueTimeOut = document.getElementById('true-time-out');
+    const apparentTimeOut = document.getElementById('apparent-time-out');
+    const apparentLengthOut = document.getElementById('apparent-length-out');
+    const observerLine = document.getElementById('observer-line');
+    const observerText = document.getElementById('observer-text');
+    const angleArc = document.getElementById('angle-arc');
+    const angleText = document.getElementById('angle-text');
+    const polarCtx = document.getElementById('polar-plot').getContext('2d');
+
+    // --- Simulation Constants ---
+    const Vs = 3.5; // Shear wave velocity in km/s
+
+    // --- Chart.js Polar Plot Initialization ---
+    const polarChart = new Chart(polarCtx, {
+        type: 'polarArea',
+        data: {
+            labels: [], // Angles 0 to 180
+            datasets: [{
+                label: 'Apparent Rupture Time (s)',
+                data: [],
+                backgroundColor: 'rgba(230, 126, 34, 0.5)',
+                borderColor: 'rgba(230, 126, 34, 1)',
+                borderWidth: 2
+            },{
+                label: 'Selected Angle', // For highlighting
+                data: [],
+                backgroundColor: 'rgba(41, 128, 185, 1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                r: {
+                    pointLabels: { display: true, centerPointLabels: true },
+                    ticks: { z: 1 }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return ` ${context.label}: ${context.raw.toFixed(2)} s`;
+                        }
+                    }
+                }
+            },
+            startAngle: -90 // Puts 0 degrees at the top
+        }
+    });
+
+    // --- Main Update Function ---
+    function updateVisualization() {
+        const L = parseFloat(lengthSlider.value);
+        const vr_vs_ratio = parseFloat(vrSlider.value);
+        const theta_deg = parseFloat(angleSlider.value);
+        const theta_rad = theta_deg * Math.PI / 180;
+
+        // Update display values
+        lengthVal.textContent = L.toFixed(0);
+        vrVal.textContent = vr_vs_ratio.toFixed(2);
+        angleVal.textContent = theta_deg.toFixed(0);
+
+        // --- Perform Calculations ---
+        const Vr = vr_vs_ratio * Vs;
+        const T0 = L / Vr;
+        const T_app = T0 * (1 - vr_vs_ratio * Math.cos(theta_rad));
+        const L_app = Vr * T_app;
+
+        // Update the results box
+        trueTimeOut.textContent = T0.toFixed(2);
+        apparentTimeOut.textContent = T_app.toFixed(2);
+        apparentLengthOut.textContent = L_app.toFixed(2);
+
+        // --- Update SVG Diagram ---
+        const r = 50;
+        const endX = 100 + r * Math.cos(-theta_rad); // SVG angles are clockwise
+        const endY = 100 + r * Math.sin(-theta_rad);
+        observerLine.setAttribute('x2', endX);
+        observerLine.setAttribute('y2', endY);
+        observerText.setAttribute('x', endX + 5);
+        observerText.setAttribute('y', endY);
+
+        const arcRadius = 25;
+        const arcEndX = 100 + arcRadius * Math.cos(-theta_rad);
+        const arcEndY = 100 + arcRadius * Math.sin(-theta_rad);
+        angleArc.setAttribute('d', `M 125 100 A ${arcRadius} ${arcRadius} 0 0 0 ${arcEndX} ${arcEndY} L 100 100 Z`);
+        
+        const textRadius = 15;
+        const angleTextX = 100 + textRadius * Math.cos(-theta_rad / 2);
+        const angleTextY = 100 + textRadius * Math.sin(-theta_rad / 2);
+        angleText.setAttribute('x', angleTextX);
+        angleText.setAttribute('y', angleTextY);
+
+
+        // --- Update Polar Plot ---
+        const angles = Array.from({length: 181}, (_, i) => i); // 0 to 180 degrees
+        const apparentTimes = angles.map(deg => {
+            const rad = deg * Math.PI / 180;
+            return T0 * (1 - vr_vs_ratio * Math.cos(rad));
+        });
+        
+        // Data for the full curve from 0 to 180 and back to make it symmetrical
+        const fullLabels = [...angles, ...angles.slice(1, -1).reverse().map(a => 360-a)];
+        const fullData = [...apparentTimes, ...apparentTimes.slice(1, -1).reverse()];
+        
+        polarChart.data.labels = fullLabels.map(a => `${a}°`);
+        polarChart.data.datasets[0].data = fullData;
+        
+        // Highlight the selected angle
+        const highlightData = new Array(360).fill(null);
+        highlightData[theta_deg] = T_app;
+        if(theta_deg !== 0 && theta_deg !== 180) { // Add symmetric point
+            highlightData[360-theta_deg] = T_app;
+        }
+        polarChart.data.datasets[1].data = highlightData;
+
+        polarChart.update();
+    }
+
+    // --- Event Listeners ---
+    [lengthSlider, vrSlider, angleSlider].forEach(slider => {
+        slider.addEventListener('input', updateVisualization);
+    });
+
+    // --- Initial Call ---
+    updateVisualization();
+});
+</script>
+
+</body>
+</html>

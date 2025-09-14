@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Nucleation Hypotheses - Enhanced</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c1e 0%, #1a1a3a 25%, #2d1b69 50%, #4a148c 75%, #6a1b9a 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1700px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 25px;
+            padding: 30px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 3.5em;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24, #e056fd, #ff9ff3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 5s ease-in-out infinite alternate;
+            font-weight: 900;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+        }
+        
+        @keyframes shimmer {
+            0% { filter: hue-rotate(0deg) brightness(1) saturate(1); }
+            100% { filter: hue-rotate(90deg) brightness(1.3) saturate(1.2); }
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            font-size: 1.3em;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .visualization-section {
+            display: grid;
+            grid-template-rows: auto auto 1fr;
+            gap: 20px;
+        }
+        
+        .hypothesis-selector {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            text-align: center;
+        }
+        
+        .hypothesis-tabs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .tab-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .tab-button.active {
+            background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+            border-color: #4ecdc4;
+            box-shadow: 0 5px 20px rgba(78, 205, 196, 0.4);
+        }
+        
+        .tab-button:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .time-control-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+        }
+        
+        .time-slider-container {
+            margin: 15px 0;
+        }
+        
+        .time-slider {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 10px;
+            border-radius: 5px;
+            background: linear-gradient(90deg, 
+                rgba(255, 255, 255, 0.2), 
+                rgba(78, 205, 196, 0.4), 
+                rgba(249, 202, 36, 0.6));
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .time-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f9ca24, #f0932b);
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 25px rgba(249, 202, 36, 0.4);
+            transition: all 0.2s ease;
+        }
+        
+        .time-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6), 0 0 35px rgba(249, 202, 36, 0.7);
+        }
+        
+        .time-markers {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+        
+        .fault-panel, .controls-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+        
+        .panel-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #4ecdc4;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        #faultCanvas {
+            width: 100%;
+            height: 500px;
+            border-radius: 15px;
+            border: 3px solid rgba(255, 255, 255, 0.15);
+            background: radial-gradient(ellipse at center, rgba(10, 10, 30, 0.9), rgba(5, 5, 15, 0.95));
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .control-section {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .control-section h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #f9ca24;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .slider-container {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.9);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 8px 0;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, 
+                rgba(255, 255, 255, 0.2), 
+                rgba(78, 205, 196, 0.4), 
+                rgba(69, 183, 209, 0.4));
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        input[type="range"]:hover {
+            background: linear-gradient(90deg, 
+                rgba(255, 255, 255, 0.3), 
+                rgba(78, 205, 196, 0.6), 
+                rgba(69, 183, 209, 0.6));
+            box-shadow: 0 0 15px rgba(78, 205, 196, 0.3);
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4), 0 0 20px rgba(78, 205, 196, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), 0 0 30px rgba(78, 205, 196, 0.6);
+        }
+        
+        .value-display {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(78, 205, 196, 0.25), rgba(69, 183, 209, 0.25));
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            float: right;
+            min-width: 60px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid rgba(78, 205, 196, 0.4);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 700;
+            margin: 8px 4px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            width: calc(50% - 8px);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.6);
+            background: linear-gradient(135deg, #ff5252, #d84315);
+        }
+        
+        button.secondary {
+            background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+            box-shadow: 0 5px 20px rgba(78, 205, 196, 0.4);
+        }
+        
+        button.secondary:hover {
+            box-shadow: 0 8px 25px rgba(78, 205, 196, 0.6);
+            background: linear-gradient(135deg, #26d0ce, #3498db);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.12), 
+                rgba(255, 255, 255, 0.06));
+            padding: 18px;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+            transition: all 0.4s ease;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            border-color: rgba(78, 205, 196, 0.6);
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4ecdc4;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+        }
+        
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.85;
+            color: rgba(255, 255, 255, 0.9);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .phase-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #f9ca24, #f0932b);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(249, 202, 36, 0.4);
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .legend-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+        
+        .legend-marker {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .stress-transfer-line {
+            stroke: #e056fd;
+            stroke-width: 3;
+            stroke-dasharray: 5,5;
+            opacity: 0.8;
+            animation: dash 1s linear infinite;
+        }
+        
+        @keyframes dash {
+            to { stroke-dashoffset: -10; }
+        }
+        
+        .info-panel {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.1), 
+                rgba(255, 255, 255, 0.05));
+            padding: 25px;
+            border-radius: 20px;
+            margin-top: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+        }
+        
+        .info-panel h3 {
+            color: #f9ca24;
+            margin-top: 0;
+            font-size: 1.3em;
+        }
+        
+        .hypothesis-description {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #4ecdc4;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2.5em;
+            }
+            
+            .hypothesis-tabs {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .tab-button {
+                width: 200px;
+            }
+            
+            button {
+                width: 100%;
+                margin: 5px 0;
+            }
+            
+            #faultCanvas {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Earthquake Nucleation Hypotheses</h1>
+        <p class="subtitle">Interactive comparison of Deterministic Pre-slip vs Cascade triggering theories</p>
+        
+        <div class="main-layout">
+            <div class="visualization-section">
+                <div class="hypothesis-selector">
+                    <div class="hypothesis-tabs">
+                        <button class="tab-button active" onclick="switchHypothesis('deterministic')">
+                            Deterministic (Pre-slip)
+                        </button>
+                        <button class="tab-button" onclick="switchHypothesis('cascade')">
+                            Cascade (Stochastic)
+                        </button>
+                    </div>
+                    
+                    <div class="hypothesis-description" id="hypothesisDescription">
+                        <strong>Deterministic Hypothesis:</strong> Gradual aseismic pre-slip in a nucleation zone accelerates until reaching a critical size, triggering the mainshock. Foreshocks are passive markers of the ongoing preparation process.
+                    </div>
+                </div>
+                
+                <div class="time-control-panel">
+                    <div class="panel-title" style="font-size: 1.1em; margin-bottom: 15px;">Time Control</div>
+                    <div class="time-slider-container">
+                        <label>Simulation Time: <span id="timeDisplay">0.0 s</span></label>
+                        <input type="range" class="time-slider" id="timeSlider" min="0" max="100" value="0" step="0.1">
+                        <div class="time-markers">
+                            <span>Start</span>
+                            <span id="nucleationMarker">Nucleation</span>
+                            <span>Mainshock</span>
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <button onclick="playPause()" id="playButton" style="width: 120px;">▶ Play</button>
+                        <button onclick="resetTime()" class="secondary" style="width: 120px;">⏮ Reset</button>
+                    </div>
+                </div>
+                
+                <div class="fault-panel">
+                    <div class="panel-title">Fault Segment Evolution</div>
+                    <canvas id="faultCanvas"></canvas>
+                    <div class="phase-indicator" id="phaseIndicator">Loading Phase</div>
+                    
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-marker" style="background: linear-gradient(45deg, #ff6b6b, #ff9500);"></div>
+                            <span>Stress Level</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-marker" style="background: #4ecdc4;"></div>
+                            <span>Nucleation Zone</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-marker" style="background: #feca57;"></div>
+                            <span>Passive Foreshocks</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-marker" style="background: #e056fd;"></div>
+                            <span>Active Triggers</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls-panel">
+                <div class="panel-title">Simulation Parameters</div>
+                
+                <div class="control-section">
+                    <h3>Fault Properties</h3>
+                    <div class="slider-container">
+                        <label>Fault Length <span class="value-display" id="lengthValue">50 km</span></label>
+                        <input type="range" id="length" min="20" max="100" step="5" value="50">
+                    </div>
+                    <div class="slider-container">
+                        <label>Background Stress <span class="value-display" id="stressValue">0.8</span></label>
+                        <input type="range" id="stress" min="0.5" max="1.0" step="0.05" value="0.8">
+                    </div>
+                    <div class="slider-container">
+                        <label>Stress Heterogeneity <span class="value-display" id="heterogeneityValue">0.3</span></label>
+                        <input type="range" id="heterogeneity" min="0.1" max="0.8" step="0.1" value="0.3">
+                    </div>
+                </div>
+                
+                <div class="control-section" id="deterministicControls">
+                    <h3>Deterministic Parameters</h3>
+                    <div class="slider-container">
+                        <label>Pre-slip Rate <span class="value-display" id="preslipRateValue">1.0</span></label>
+                        <input type="range" id="preslipRate" min="0.5" max="3.0" step="0.1" value="1.0">
+                    </div>
+                    <div class="slider-container">
+                        <label>Critical Zone Size <span class="value-display" id="criticalSizeValue">8.0 km</span></label>
+                        <input type="range" id="criticalSize" min="3.0" max="15.0" step="0.5" value="8.0">
+                    </div>
+                    <div class="slider-container">
+                        <label>Nucleation Duration <span class="value-display" id="nucleationDurationValue">30 s</span></label>
+                        <input type="range" id="nucleationDuration" min="15" max="60" step="5" value="30">
+                    </div>
+                </div>
+                
+                <div class="control-section" id="cascadeControls" style="display: none;">
+                    <h3>Cascade Parameters</h3>
+                    <div class="slider-container">
+                        <label>Initial Event Rate <span class="value-display" id="eventRateValue">0.5</span></label>
+                        <input type="range" id="eventRate" min="0.1" max="2.0" step="0.1" value="0.5">
+                    </div>
+                    <div class="slider-container">
+                        <label>Triggering Efficiency <span class="value-display" id="triggerEffValue">0.7</span></label>
+                        <input type="range" id="triggerEff" min="0.3" max="0.9" step="0.1" value="0.7">
+                    </div>
+                    <div class="slider-container">
+                        <label>Stress Transfer Decay <span class="value-display" id="stressDecayValue">3.0 km</span></label>
+                        <input type="range" id="stressDecay" min="1.0" max="8.0" step="0.5" value="3.0">
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>Visualization</h3>
+                    <div class="slider-container">
+                        <label>Animation Speed <span class="value-display" id="animSpeedValue">1.0x</span></label>
+                        <input type="range" id="animSpeed" min="0.2" max="3.0" step="0.2" value="1.0">
+                    </div>
+                    <div class="slider-container">
+                        <label>Stress Sensitivity <span class="value-display" id="stressSensValue">2.0</span></label>
+                        <input type="range" id="stressSens" min="1.0" max="5.0" step="0.5" value="2.0">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-value" id="currentTime">0.0</div>
+                <div class="stat-label">Current Time (s)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="nucleationSize">0.0</div>
+                <div class="stat-label">Nucleation Size (km)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="eventCount">0</div>
+                <div class="stat-label">Seismic Events</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="maxStress">0.80</div>
+                <div class="stat-label">Max Stress Level</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="slipRate">0.0</div>
+                <div class="stat-label">Slip Rate (mm/s)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="currentPhase">Loading</div>
+                <div class="stat-label">Current Phase</div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>Understanding Earthquake Nucleation Mechanisms</h3>
+            
+            <p><strong>🎛️ Time Slider Control:</strong> Use the time slider to manually control the progression of the earthquake nucleation process. This allows you to observe the critical differences in timing and spatial patterns between the two hypotheses.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div>
+                    <h4 style="color: #4ecdc4;">🎯 Deterministic Process</h4>
+                    <ul>
+                        <li><strong>Gradual Preparation:</strong> Watch the nucleation zone (blue outline) grow slowly and steadily</li>
+                        <li><strong>Accelerating Pre-slip:</strong> Slip rate increases exponentially as critical size approaches</li>
+                        <li><strong>Passive Foreshocks:</strong> Yellow dots appear as byproducts, not triggers</li>
+                        <li><strong>Critical Threshold:</strong> Mainshock occurs when zone reaches critical size</li>
+                        <li><strong>Predictable Timing:</strong> Process follows deterministic laws</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 style="color: #e056fd;">🎲 Cascade Process</h4>
+                    <ul>
+                        <li><strong>Stochastic Initiation:</strong> Starts with random small foreshock event</li>
+                        <li><strong>Active Triggering:</strong> Each event transfers stress to neighbors (purple lines)</li>
+                        <li><strong>Emergent Patterns:</strong> Larger events emerge from smaller ones unpredictably</li>
+                        <li><strong>Cascading Growth:</strong> Chain reaction of increasingly larger events</li>
+                        <li><strong>Unpredictable Timing:</strong> Mainshock timing depends on random cascade</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <p><strong>🔬 Key Observables:</strong></p>
+            <ul>
+                <li><strong>Spatial Patterns:</strong> Deterministic shows localized preparation zone; Cascade shows distributed activity</li>
+                <li><strong>Temporal Evolution:</strong> Deterministic has smooth acceleration; Cascade has irregular bursts</li>
+                <li><strong>Foreshock Role:</strong> Passive indicators vs active triggers</li>
+                <li><strong>Predictability:</strong> Deterministic process could enable forecasting; Cascade is inherently random</li>
+            </ul>
+            
+            <p><strong>🎮 Interactive Features:</strong> Use the time slider to step through the process at your own pace. Switch between hypotheses to compare their signatures. Adjust parameters to explore how fault conditions influence nucleation behavior.</p>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let faultCanvas, faultCtx;
+        let isPlaying = false;
+        let currentTime = 0;
+        let maxTime = 100;
+        let animationId = null;
+        let currentHypothesis = 'deterministic';
+        
+        // Simulation parameters
+        let params = {
+            length: 50,              // km
+            stress: 0.8,            // background stress
+            heterogeneity: 0.3,     // stress heterogeneity
+            preslipRate: 1.0,       // deterministic pre-slip rate
+            criticalSize: 8.0,      // critical nucleation size (km)
+            nucleationDuration: 30, // nucleation duration (s)
+            eventRate: 0.5,         // cascade event rate
+            triggerEff: 0.7,        // triggering efficiency
+            stressDecay: 3.0,       // stress transfer decay (km)
+            animSpeed: 1.0,         // animation speed
+            stressSens: 2.0         // stress visualization sensitivity
+        };
+        
+        // Fault state
+        let fault = {
+            segments: [],
+            nucleationZone: { center: 0.5, size: 0, active: false },
+            events: [],
+            stressTransfers: [],
+            phase: 'loading',
+            maxStress: 0,
+            slipRate: 0
+        };
+        
+        // Time-dependent data storage
+        let timeData = {};
+        
+        // Initialize canvases
+        function initializeCanvases() {
+            faultCanvas = document.getElementById('faultCanvas');
+            faultCtx = faultCanvas.getContext('2d');
+            resizeCanvases();
+        }
+        
+        function resizeCanvases() {
+            if (!faultCanvas) return;
+            const rect = faultCanvas.getBoundingClientRect();
+            faultCanvas.width = rect.width;
+            faultCanvas.height = rect.height;
+        }
+        
+        // Initialize fault segments
+        function initializeFault() {
+            fault.segments = [];
+            fault.events = [];
+            fault.stressTransfers = [];
+            fault.nucleationZone = { center: 0.5, size: 0, active: false };
+            fault.phase = 'loading';
+            fault.maxStress = params.stress;
+            fault.slipRate = 0;
+            timeData = {};
+            
+            const numSegments = 100;
+            const segmentLength = params.length / numSegments;
+            
+            // Create fault segments with heterogeneous stress
+            for (let i = 0; i < numSegments; i++) {
+                const position = i / numSegments;
+                const baseStress = params.stress;
+                const heterogeneity = (Math.random() - 0.5) * params.heterogeneity;
+                const stress = Math.max(0.1, Math.min(1.0, baseStress + heterogeneity));
+                
+                fault.segments.push({
+                    position: position,
+                    stress: stress,
+                    initialStress: stress,
+                    slip: 0,
+                    slipRate: 0,
+                    failed: false,
+                    length: segmentLength
+                });
+            }
+            
+            // Pre-calculate deterministic evolution
+            if (currentHypothesis === 'deterministic') {
+                calculateDeterministicEvolution();
+            } else {
+                calculateCascadeEvolution();
+            }
+        }
+        
+        // Pre-calculate deterministic evolution
+        function calculateDeterministicEvolution() {
+            const dt = 0.1;
+            const nucleationCenter = fault.nucleationZone.center;
+            const maxSize = params.criticalSize / params.length;
+            
+            for (let t = 0; t <= maxTime; t += dt) {
+                const data = {
+                    time: t,
+                    phase: 'loading',
+                    nucleationSize: 0,
+                    events: [],
+                    stressField: fault.segments.map(s => s.initialStress),
+                    slipField: fault.segments.map(() => 0),
+                    maxStress: params.stress,
+                    slipRate: 0
+                };
+                
+                // Loading phase
+                if (t < 10) {
+                    data.stressField = data.stressField.map(s => s + 0.02 * t * params.preslipRate);
+                    data.maxStress = Math.max(...data.stressField);
+                }
+                
+                // Nucleation phase
+                else if (t < params.nucleationDuration + 10) {
+                    data.phase = 'nucleation';
+                    const nucleationProgress = (t - 10) / params.nucleationDuration;
+                    data.nucleationSize = Math.min(maxSize, nucleationProgress ** 1.5 * maxSize);
+                    
+                    // Apply pre-slip
+                    const halfSize = data.nucleationSize / 2;
+                    data.stressField = data.stressField.map((stress, i) => {
+                        const pos = i / fault.segments.length;
+                        const distance = Math.abs(pos - nucleationCenter);
+                        if (distance < halfSize) {
+                            const slipAmount = nucleationProgress ** 2 * 0.1;
+                            data.slipField[i] = slipAmount;
+                            data.slipRate = Math.max(data.slipRate, slipAmount * 10);
+                            return Math.max(0.1, stress - slipAmount * 0.3);
+                        }
+                        return stress + 0.01 * nucleationProgress;
+                    });
+                    
+                    // Generate passive foreshocks
+                    if (nucleationProgress > 0.3 && Math.random() < 0.1) {
+                        const foreshockPos = nucleationCenter + (Math.random() - 0.5) * data.nucleationSize;
+                        if (foreshockPos >= 0 && foreshockPos <= 1) {
+                            data.events.push({
+                                position: foreshockPos,
+                                time: t,
+                                magnitude: 1 + Math.random() * 1.5,
+                                type: 'passive'
+                            });
+                        }
+                    }
+                    
+                    // Trigger mainshock
+                    if (data.nucleationSize >= maxSize * 0.9) {
+                        data.phase = 'mainshock';
+                        data.events.push({
+                            position: nucleationCenter,
+                            time: t,
+                            magnitude: 7.0,
+                            type: 'mainshock'
+                        });
+                        data.slipField = data.slipField.map(() => 1.0);
+                        data.stressField = data.stressField.map(() => 0.2);
+                        data.slipRate = 100;
+                    }
+                }
+                
+                // Post-mainshock
+                else {
+                    data.phase = 'mainshock';
+                    data.nucleationSize = maxSize;
+                    data.slipField = data.slipField.map(() => 1.0);
+                    data.stressField = data.stressField.map(() => 0.2);
+                    data.slipRate = Math.max(0, 100 * Math.exp(-(t - params.nucleationDuration - 10) * 2));
+                }
+                
+                timeData[t.toFixed(1)] = data;
+            }
+        }
+        
+        // Pre-calculate cascade evolution
+        function calculateCascadeEvolution() {
+            const dt = 0.1;
+            let events = [];
+            let stressField = fault.segments.map(s => s.initialStress);
+            
+            for (let t = 0; t <= maxTime; t += dt) {
+                const data = {
+                    time: t,
+                    phase: 'loading',
+                    nucleationSize: 0,
+                    events: [...events],
+                    stressField: [...stressField],
+                    slipField: fault.segments.map(() => 0),
+                    maxStress: Math.max(...stressField),
+                    slipRate: 0,
+                    stressTransfers: []
+                };
+                
+                // Background loading
+                if (t < 50) {
+                    stressField = stressField.map(s => s + 0.005 * params.eventRate);
+                }
+                
+                // Trigger first event
+                if (t > 5 && events.length === 0 && Math.random() < 0.1 * params.eventRate) {
+                    const eventPos = 0.3 + Math.random() * 0.4;
+                    events.push({
+                        position: eventPos,
+                        time: t,
+                        magnitude: 2.0 + Math.random() * 0.5,
+                        type: 'cascade'
+                    });
+                    
+                    // Apply stress transfer
+                    const result = applyStressTransfer(stressField, eventPos, 2.5);
+                    stressField = result.stressField;
+                    data.stressTransfers = result.transfers;
+                }
+                
+                // Continue cascade
+                else if (events.length > 0 && events.length < 15) {
+                    // Check for triggered events
+                    const recentEvents = events.filter(e => t - e.time < 5);
+                    const triggerProb = recentEvents.length * params.triggerEff * 0.02;
+                    
+                    if (Math.random() < triggerProb) {
+                        // Find high-stress location
+                        let maxStressPos = 0;
+                        let maxStressValue = 0;
+                        stressField.forEach((stress, i) => {
+                            if (stress > maxStressValue) {
+                                maxStressValue = stress;
+                                maxStressPos = i / stressField.length;
+                            }
+                        });
+                        
+                        // Magnitude depends on stress and event count
+                        const magnitude = 1.5 + Math.log10(events.length + 1) + Math.random() * 1.0;
+                        
+                        events.push({
+                            position: maxStressPos,
+                            time: t,
+                            magnitude: magnitude,
+                            type: 'cascade'
+                        });
+                        
+                        // Apply stress transfer
+                        const result = applyStressTransfer(stressField, maxStressPos, magnitude);
+                        stressField = result.stressField;
+                        data.stressTransfers = result.transfers;
+                        
+                        // Check for mainshock trigger
+                        if (events.length >= 8 && magnitude > 4.0 && Math.max(...stressField) > 1.1) {
+                            data.phase = 'mainshock';
+                            events.push({
+                                position: 0.5,
+                                time: t,
+                                magnitude: 7.0,
+                                type: 'mainshock'
+                            });
+                            data.slipField = data.slipField.map(() => 1.0);
+                            stressField = stressField.map(() => 0.2);
+                            data.slipRate = 100;
+                        }
+                    }
+                }
+                
+                // Update phase
+                if (events.some(e => e.type === 'mainshock')) {
+                    data.phase = 'mainshock';
+                } else if (events.length > 0) {
+                    data.phase = 'cascade';
+                }
+                
+                data.events = [...events];
+                data.stressField = [...stressField];
+                data.maxStress = Math.max(...stressField);
+                
+                timeData[t.toFixed(1)] = data;
+            }
+        }
+        
+        // Apply stress transfer from an event
+        function applyStressTransfer(stressField, eventPos, magnitude) {
+            const transfers = [];
+            const transferRange = params.stressDecay / params.length;
+            const stressIncrease = 0.1 * Math.log10(magnitude + 1);
+            
+            const newStressField = stressField.map((stress, i) => {
+                const pos = i / stressField.length;
+                const distance = Math.abs(pos - eventPos);
+                
+                if (distance < transferRange) {
+                    const factor = Math.exp(-distance / (transferRange * 0.3));
+                    const increase = stressIncrease * factor;
+                    
+                    if (increase > 0.01) {
+                        transfers.push({
+                            from: eventPos,
+                            to: pos,
+                            strength: factor
+                        });
+                    }
+                    
+                    return Math.min(1.5, stress + increase);
+                }
+                return stress;
+            });
+            
+            return { stressField: newStressField, transfers };
+        }
+        
+        // Switch between hypotheses
+        window.switchHypothesis = function(hypothesis) {
+            currentHypothesis = hypothesis;
+            
+            // Update tab appearance
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update description
+            const description = document.getElementById('hypothesisDescription');
+            if (hypothesis === 'deterministic') {
+                description.innerHTML = '<strong>Deterministic Hypothesis:</strong> Gradual aseismic pre-slip in a nucleation zone accelerates until reaching a critical size, triggering the mainshock. Foreshocks are passive markers of the ongoing preparation process.';
+                document.getElementById('deterministicControls').style.display = 'block';
+                document.getElementById('cascadeControls').style.display = 'none';
+                document.getElementById('nucleationMarker').textContent = 'Nucleation';
+            } else {
+                description.innerHTML = '<strong>Cascade Hypothesis:</strong> Random small earthquakes trigger larger events through stress transfer. Foreshocks actively participate in triggering the mainshock through stochastic cascading processes.';
+                document.getElementById('deterministicControls').style.display = 'none';
+                document.getElementById('cascadeControls').style.display = 'block';
+                document.getElementById('nucleationMarker').textContent = 'Cascade';
+            }
+            
+            // Reset and reinitialize
+            resetTime();
+        };
+        
+        // Update visualization based on current time
+        function updateVisualization() {
+            const timeKey = currentTime.toFixed(1);
+            const data = timeData[timeKey];
+            
+            if (!data) return;
+            
+            // Update fault state
+            fault.phase = data.phase;
+            fault.nucleationZone.size = data.nucleationSize;
+            fault.events = data.events;
+            fault.maxStress = data.maxStress;
+            fault.slipRate = data.slipRate;
+            fault.stressTransfers = data.stressTransfers || [];
+            
+            // Update fault segments
+            fault.segments.forEach((segment, i) => {
+                segment.stress = data.stressField[i];
+                segment.slip = data.slipField[i];
+            });
+            
+            drawFault();
+            updateStatistics();
+        }
+        
+        // Time control functions
+        window.playPause = function() {
+            isPlaying = !isPlaying;
+            const button = document.getElementById('playButton');
+            button.textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+            
+            if (isPlaying) {
+                animate();
+            }
+        };
+        
+        window.resetTime = function() {
+            isPlaying = false;
+            currentTime = 0;
+            document.getElementById('timeSlider').value = 0;
+            document.getElementById('timeDisplay').textContent = '0.0 s';
+            document.getElementById('playButton').textContent = '▶ Play';
+            
+            initializeFault();
+            updateVisualization();
+        };
+        
+        // Animation loop
+        function animate() {
+            if (!isPlaying) return;
+            
+            currentTime += 0.1 * params.animSpeed;
+            if (currentTime > maxTime) {
+                currentTime = maxTime;
+                isPlaying = false;
+                document.getElementById('playButton').textContent = '▶ Play';
+            }
+            
+            document.getElementById('timeSlider').value = currentTime;
+            document.getElementById('timeDisplay').textContent = currentTime.toFixed(1) + ' s';
+            
+            updateVisualization();
+            
+            if (isPlaying) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        // Time slider event
+        document.addEventListener('DOMContentLoaded', function() {
+            const timeSlider = document.getElementById('timeSlider');
+            timeSlider.addEventListener('input', function() {
+                currentTime = parseFloat(this.value);
+                document.getElementById('timeDisplay').textContent = currentTime.toFixed(1) + ' s';
+                updateVisualization();
+            });
+        });
+        
+        // Draw fault visualization
+        function drawFault() {
+            const width = faultCanvas.width;
+            const height = faultCanvas.height;
+            
+            faultCtx.clearRect(0, 0, width, height);
+            
+            // Background gradient
+            const gradient = faultCtx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, 'rgba(10, 10, 30, 0.95)');
+            gradient.addColorStop(1, 'rgba(5, 5, 15, 0.98)');
+            faultCtx.fillStyle = gradient;
+            faultCtx.fillRect(0, 0, width, height);
+            
+            // Draw fault segments
+            drawFaultSegments();
+            
+            // Draw nucleation zone (deterministic)
+            if (currentHypothesis === 'deterministic' && fault.nucleationZone.size > 0) {
+                drawNucleationZone();
+            }
+            
+            // Draw stress transfers (cascade)
+            if (currentHypothesis === 'cascade') {
+                drawStressTransfers();
+            }
+            
+            // Draw events
+            drawEvents();
+            
+            // Draw info
+            drawInfo();
+        }
+        
+        // Draw fault segments with stress coloring
+        function drawFaultSegments() {
+            const width = faultCanvas.width;
+            const height = faultCanvas.height;
+            const faultY = height * 0.5;
+            const segmentWidth = width / fault.segments.length;
+            
+            fault.segments.forEach((segment, index) => {
+                const x = index * segmentWidth;
+                
+                // Color based on stress level
+                const stressNorm = Math.min(segment.stress * params.stressSens, 2.0) / 2.0;
+                const red = Math.floor(255 * Math.min(stressNorm, 1.0));
+                const green = Math.floor(255 * Math.max(0, 1 - stressNorm * 0.8));
+                const blue = Math.floor(100 * Math.max(0, 1 - stressNorm));
+                
+                // Add failure visualization
+                if (segment.slip > 0.5) {
+                    faultCtx.fillStyle = '#ff6b6b';
+                } else {
+                    faultCtx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+                }
+                
+                // Draw segment
+                const segmentHeight = 40 + segment.slip * 30;
+                faultCtx.fillRect(x, faultY - segmentHeight/2, segmentWidth + 1, segmentHeight);
+                
+                // Draw segment border
+                faultCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                faultCtx.lineWidth = 0.5;
+                faultCtx.strokeRect(x, faultY - segmentHeight/2, segmentWidth, segmentHeight);
+            });
+            
+            // Draw fault line
+            faultCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            faultCtx.lineWidth = 2;
+            faultCtx.beginPath();
+            faultCtx.moveTo(0, faultY);
+            faultCtx.lineTo(width, faultY);
+            faultCtx.stroke();
+        }
+        
+        // Draw nucleation zone
+        function drawNucleationZone() {
+            if (fault.nucleationZone.size <= 0) return;
+            
+            const width = faultCanvas.width;
+            const height = faultCanvas.height;
+            const faultY = height * 0.5;
+            
+            const centerX = fault.nucleationZone.center * width;
+            const zoneWidth = fault.nucleationZone.size * width;
+            
+            // Nucleation zone outline
+            faultCtx.strokeStyle = '#4ecdc4';
+            faultCtx.lineWidth = 3;
+            faultCtx.setLineDash([8, 4]);
+            faultCtx.strokeRect(centerX - zoneWidth/2, faultY - 35, zoneWidth, 70);
+            faultCtx.setLineDash([]);
+            
+            // Nucleation zone fill
+            faultCtx.fillStyle = 'rgba(78, 205, 196, 0.15)';
+            faultCtx.fillRect(centerX - zoneWidth/2, faultY - 35, zoneWidth, 70);
+            
+            // Zone label
+            faultCtx.fillStyle = '#4ecdc4';
+            faultCtx.font = 'bold 12px Arial';
+            faultCtx.textAlign = 'center';
+            faultCtx.fillText('NUCLEATION ZONE', centerX, faultY - 45);
+            faultCtx.font = '10px Arial';
+            faultCtx.fillText(`${(fault.nucleationZone.size * params.length).toFixed(1)} km`, centerX, faultY + 50);
+        }
+        
+        // Draw stress transfers
+        function drawStressTransfers() {
+            if (!fault.stressTransfers) return;
+            
+            const width = faultCanvas.width;
+            const height = faultCanvas.height;
+            const faultY = height * 0.5;
+            
+            fault.stressTransfers.forEach(transfer => {
+                const fromX = transfer.from * width;
+                const toX = transfer.to * width;
+                const alpha = transfer.strength;
+                
+                faultCtx.strokeStyle = `rgba(224, 86, 253, ${alpha})`;
+                faultCtx.lineWidth = 2 + transfer.strength * 2;
+                faultCtx.setLineDash([5, 5]);
+                faultCtx.beginPath();
+                faultCtx.moveTo(fromX, faultY - 20);
+                faultCtx.lineTo(toX, faultY + 20);
+                faultCtx.stroke();
+                faultCtx.setLineDash([]);
+            });
+        }
+        
+        // Draw events
+        function drawEvents() {
+            const width = faultCanvas.width;
+            const height = faultCanvas.height;
+            const faultY = height * 0.5;
+            
+            fault.events.forEach(event => {
+                if (event.time > currentTime) return;
+                
+                const x = event.position * width;
+                const age = currentTime - event.time;
+                const alpha = Math.max(0.3, 1 - age / 15);
+                
+                // Size based on magnitude
+                const size = 3 + event.magnitude * 2;
+                
+                // Color based on type
+                let color;
+                if (event.type === 'passive') {
+                    color = `rgba(254, 202, 87, ${alpha})`;
+                } else if (event.type === 'cascade') {
+                    color = `rgba(224, 86, 253, ${alpha})`;
+                } else if (event.type === 'mainshock') {
+                    color = `rgba(255, 107, 107, ${alpha})`;
+                }
+                
+                faultCtx.fillStyle = color;
+                faultCtx.strokeStyle = 'white';
+                faultCtx.lineWidth = 1.5;
+                faultCtx.beginPath();
+                faultCtx.arc(x, faultY, size, 0, 2 * Math.PI);
+                faultCtx.fill();
+                faultCtx.stroke();
+                
+                // Magnitude label for larger events
+                if (event.magnitude > 4.0) {
+                    faultCtx.fillStyle = 'white';
+                    faultCtx.font = 'bold 10px Arial';
+                    faultCtx.textAlign = 'center';
+                    faultCtx.fillText(`M${event.magnitude.toFixed(1)}`, x, faultY - size - 8);
+                }
+            });
+        }
+        
+        // Draw info overlay
+        function drawInfo() {
+            const width = faultCanvas.width;
+            const height = faultCanvas.height;
+            
+            faultCtx.fillStyle = '#fff';
+            faultCtx.font = '14px Arial';
+            faultCtx.textAlign = 'left';
+            
+            let y = 25;
+            faultCtx.fillText(`Hypothesis: ${currentHypothesis.toUpperCase()}`, 15, y);
+            y += 20;
+            faultCtx.fillText(`Time: ${currentTime.toFixed(1)} s`, 15, y);
+            y += 20;
+            faultCtx.fillText(`Phase: ${fault.phase.toUpperCase()}`, 15, y);
+            
+            if (currentHypothesis === 'deterministic' && fault.nucleationZone.size > 0) {
+                y += 20;
+                const progress = (fault.nucleationZone.size / (params.criticalSize / params.length)) * 100;
+                faultCtx.fillText(`Progress: ${progress.toFixed(1)}%`, 15, y);
+            }
+            
+            if (currentHypothesis === 'cascade') {
+                y += 20;
+                faultCtx.fillText(`Events: ${fault.events.length}`, 15, y);
+            }
+            
+            // Color scale legend
+            drawColorScale();
+        }
+        
+        // Draw stress color scale
+        function drawColorScale() {
+            const width = faultCanvas.width;
+            const height = faultCanvas.height;
+            
+            const scaleWidth = 150;
+            const scaleHeight = 15;
+            const scaleX = width - scaleWidth - 20;
+            const scaleY = 20;
+            
+            // Draw scale background
+            faultCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            faultCtx.fillRect(scaleX - 10, scaleY - 5, scaleWidth + 20, scaleHeight + 25);
+            
+            // Draw color gradient
+            for (let i = 0; i < scaleWidth; i++) {
+                const stress = (i / scaleWidth) * 2; // 0 to 2 for visualization
+                const red = Math.floor(255 * Math.min(stress, 1.0));
+                const green = Math.floor(255 * Math.max(0, 1 - stress * 0.8));
+                const blue = Math.floor(100 * Math.max(0, 1 - stress));
+                
+                faultCtx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+                faultCtx.fillRect(scaleX + i, scaleY, 1, scaleHeight);
+            }
+            
+            // Scale labels
+            faultCtx.fillStyle = '#fff';
+            faultCtx.font = '10px Arial';
+            faultCtx.textAlign = 'left';
+            faultCtx.fillText('Low', scaleX, scaleY + scaleHeight + 12);
+            faultCtx.textAlign = 'center';
+            faultCtx.fillText('Stress Level', scaleX + scaleWidth/2, scaleY + scaleHeight + 12);
+            faultCtx.textAlign = 'right';
+            faultCtx.fillText('High', scaleX + scaleWidth, scaleY + scaleHeight + 12);
+        }
+        
+        // Update statistics
+        function updateStatistics() {
+            document.getElementById('currentTime').textContent = currentTime.toFixed(1);
+            document.getElementById('nucleationSize').textContent = 
+                (fault.nucleationZone.size * params.length).toFixed(2);
+            document.getElementById('eventCount').textContent = fault.events.length;
+            document.getElementById('maxStress').textContent = fault.maxStress.toFixed(2);
+            document.getElementById('slipRate').textContent = fault.slipRate.toFixed(1);
+            document.getElementById('currentPhase').textContent = fault.phase.toUpperCase();
+            
+            // Update phase indicator
+            const indicator = document.getElementById('phaseIndicator');
+            indicator.textContent = fault.phase.toUpperCase();
+            
+            if (fault.phase === 'mainshock') {
+                indicator.style.background = 'linear-gradient(135deg, #ff6b6b, #ee5a24)';
+            } else if (fault.phase === 'nucleation' || fault.phase === 'cascade') {
+                indicator.style.background = 'linear-gradient(135deg, #f9ca24, #f0932b)';
+            } else {
+                indicator.style.background = 'linear-gradient(135deg, #4ecdc4, #45b7d1)';
+            }
+        }
+        
+        // Setup parameter controls
+        function setupControls() {
+            const controls = {
+                length: { param: 'length', display: 'lengthValue', format: (v) => v + ' km' },
+                stress: { param: 'stress', display: 'stressValue', format: (v) => v },
+                heterogeneity: { param: 'heterogeneity', display: 'heterogeneityValue', format: (v) => v },
+                preslipRate: { param: 'preslipRate', display: 'preslipRateValue', format: (v) => v },
+                criticalSize: { param: 'criticalSize', display: 'criticalSizeValue', format: (v) => v + ' km' },
+                nucleationDuration: { param: 'nucleationDuration', display: 'nucleationDurationValue', format: (v) => v + ' s' },
+                eventRate: { param: 'eventRate', display: 'eventRateValue', format: (v) => v },
+                triggerEff: { param: 'triggerEff', display: 'triggerEffValue', format: (v) => v },
+                stressDecay: { param: 'stressDecay', display: 'stressDecayValue', format: (v) => v + ' km' },
+                animSpeed: { param: 'animSpeed', display: 'animSpeedValue', format: (v) => v + 'x' },
+                stressSens: { param: 'stressSens', display: 'stressSensValue', format: (v) => v }
+            };
+            
+            Object.keys(controls).forEach(key => {
+                const control = document.getElementById(key);
+                if (!control) return;
+                
+                const config = controls[key];
+                const valueDisplay = document.getElementById(config.display);
+                
+                control.addEventListener('input', () => {
+                    params[config.param] = parseFloat(control.value);
+                    valueDisplay.textContent = config.format(parseFloat(control.value));
+                    
+                    if (['length', 'stress', 'heterogeneity', 'criticalSize', 'nucleationDuration', 'eventRate', 'triggerEff', 'stressDecay'].includes(key)) {
+                        resetTime();
+                    }
+                });
+                
+                // Initialize display
+                valueDisplay.textContent = config.format(parseFloat(control.value));
+            });
+        }
+        
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCanvases();
+            setupControls();
+            initializeFault();
+            updateVisualization();
+        });
+        
+        window.addEventListener('resize', resizeCanvases);
+    </script>
+</body>
+</html>

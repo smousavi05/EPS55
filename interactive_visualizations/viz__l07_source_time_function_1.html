@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Source Time Function (STF) Explorer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #2c3e50;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 2em;
+            font-size: 16px;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #fff;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5em;
+            margin-top: 0;
+            color: #34495e;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2em;
+        }
+        .controls {
+            padding: 1.5em;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .slider-group {
+            margin-bottom: 1.5em;
+        }
+        .slider-group label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.5em;
+        }
+        .slider-group input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .plots {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 1.5em;
+        }
+        .plot-container {
+            grid-column: span 2; /* Full width by default */
+        }
+        .plot-container.half-width {
+            grid-column: span 1; /* Half width for smaller plots */
+        }
+        .interpretation {
+            grid-column: 1 / -1;
+            margin-top: 1em;
+            padding: 1em;
+            border-left: 5px solid #16a085;
+            background-color: #f0f9f8;
+        }
+        @media (max-width: 900px) {
+            .main-layout, .plots {
+                grid-template-columns: 1fr;
+            }
+            .plot-container.half-width {
+                grid-column: span 1; /* Keeps them stacked on mobile */
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Interactive Source Time Function (STF) Explorer 📈</h1>
+    <div class="main-layout">
+        <div class="controls">
+            <h2>Rupture Parameters</h2>
+            <div class="slider-group">
+                <label>Total Duration (T): <span id="duration-val">5.0</span> s</label>
+                <input type="range" id="duration-slider" min="1" max="20" step="0.5" value="5">
+            </div>
+            <div class="slider-group">
+                <label>Rise Time (τᵣ): <span id="rise-time-val">1.0</span> s</label>
+                <input type="range" id="rise-time-slider" min="0" max="10" step="0.25" value="1">
+            </div>
+            <div class="slider-group">
+                <label>Seismic Moment (M₀): <span id="moment-val">7.5</span> x10¹⁸ Nm</label>
+                <input type="range" id="moment-slider" min="1" max="20" step="0.5" value="7.5">
+            </div>
+             <div class="interpretation">
+                <h3>Interpretation</h3>
+                <p id="interp-text"></p>
+            </div>
+        </div>
+
+        <div class="plots">
+            <div class="plot-container">
+                <canvas id="stf-plot"></canvas>
+            </div>
+            <div class="plot-container half-width">
+                <canvas id="cumulative-plot"></canvas>
+            </div>
+            <div class="plot-container half-width">
+                <canvas id="spectrum-plot"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Get DOM Elements ---
+    const durationSlider = document.getElementById('duration-slider');
+    const riseTimeSlider = document.getElementById('rise-time-slider');
+    const momentSlider = document.getElementById('moment-slider');
+    const durationVal = document.getElementById('duration-val');
+    const riseTimeVal = document.getElementById('rise-time-val');
+    const momentVal = document.getElementById('moment-val');
+    const interpText = document.getElementById('interp-text');
+
+    // --- Chart Contexts ---
+    const stfCtx = document.getElementById('stf-plot').getContext('2d');
+    const cumulativeCtx = document.getElementById('cumulative-plot').getContext('2d');
+    const spectrumCtx = document.getElementById('spectrum-plot').getContext('2d');
+
+    // --- Chart Initialization ---
+    const stfChart = new Chart(stfCtx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Moment Rate (Ṁ)', data: [], borderColor: '#e74c3c', borderWidth: 3, pointRadius: 0 }] },
+        options: { scales: { x: { title: { display: true, text: 'Time (s)' } }, y: { title: { display: true, text: 'Moment Rate (Nm/s)' } } } }
+    });
+    const cumulativeChart = new Chart(cumulativeCtx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Cumulative Moment (M)', data: [], borderColor: '#3498db', borderWidth: 2.5, pointRadius: 0 }] },
+        options: { scales: { x: { title: { display: true, text: 'Time (s)' } }, y: { title: { display: true, text: 'Moment (Nm)' } } } }
+    });
+    const spectrumChart = new Chart(spectrumCtx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Amplitude Spectrum', data: [], borderColor: '#9b59b6', borderWidth: 2.5, pointRadius: 0 }] },
+        options: { scales: { x: { type: 'logarithmic', title: { display: true, text: 'Frequency (Hz)' } }, y: { type: 'logarithmic', title: { display: true, text: 'Amplitude' } } } }
+    });
+
+    // --- Main Update Function ---
+    function updateVisualization() {
+        let T = parseFloat(durationSlider.value);
+        let Tr = parseFloat(riseTimeSlider.value);
+        const M0_val = parseFloat(momentSlider.value);
+        const M0 = M0_val * 1e18; // Scale for realistic values
+
+        // Constrain Rise Time: 2 * Tr must be <= T
+        if (2 * Tr > T) {
+            Tr = T / 2;
+            riseTimeSlider.value = Tr;
+        }
+        
+        // Update display values
+        durationVal.textContent = T.toFixed(1);
+        riseTimeVal.textContent = Tr.toFixed(2);
+        momentVal.textContent = M0_val.toFixed(1);
+
+        // --- 1. Generate STF (Trapezoid) ---
+        const T_plateau = T - 2 * Tr;
+        const area_norm = Tr + T_plateau; // Area of trapezoid with height=1
+        const amplitude = area_norm > 0 ? M0 / area_norm : 0;
+        
+        const time_points = Array.from({length: 201}, (_, i) => i * (T * 1.2 / 200));
+        const stf_data = time_points.map(t => {
+            if (t < 0) return 0;
+            if (t < Tr) return (amplitude / Tr) * t;
+            if (t < Tr + T_plateau) return amplitude;
+            if (t < T) return amplitude * (1 - (t - Tr - T_plateau) / Tr);
+            return 0;
+        });
+        
+        // --- 2. Integrate STF for Cumulative Moment ---
+        const cumulative_data = [];
+        let cumulative_moment = 0;
+        const dt = time_points[1] - time_points[0];
+        for (let i = 0; i < stf_data.length; i++) {
+            cumulative_moment += stf_data[i] * dt;
+            cumulative_data.push(cumulative_moment);
+        }
+
+        // --- 3. Calculate Amplitude Spectrum ---
+        const corner_freq = 1 / T;
+        const freq_points = Array.from({length: 100}, (_, i) => 10**(-2 + i * 0.04)); // Log-spaced frequencies
+        const spectrum_data = freq_points.map(f => {
+            // Analytical spectrum for a trapezoid: M0 * |sinc(pi*f*T_pulse) * sinc(pi*f*Tr)|
+            // where T_pulse is the duration of the "boxcar" part of the trapezoid. T_pulse = Tr + T_plateau
+            const sinc = (x) => x === 0 ? 1 : Math.sin(x) / x;
+            const T_pulse = Tr + T_plateau;
+            return M0 * Math.abs(sinc(Math.PI * f * T_pulse) * sinc(Math.PI * f * Tr));
+        });
+
+        // --- Update Charts ---
+        stfChart.data.labels = time_points;
+        stfChart.data.datasets[0].data = stf_data;
+        stfChart.update();
+        
+        cumulativeChart.data.labels = time_points;
+        cumulativeChart.data.datasets[0].data = cumulative_data;
+        cumulativeChart.update();
+        
+        spectrumChart.data.labels = freq_points;
+        spectrumChart.data.datasets[0].data = spectrum_data;
+        spectrumChart.update();
+
+        // --- Update Interpretation Text ---
+        interpText.innerHTML = `
+            The current settings result in a trapezoidal STF with a peak moment rate of <strong>${amplitude.toExponential(2)} Nm/s</strong>.
+            The corner frequency (f<sub>c</sub>), which separates low- and high-frequency energy, is approximately 1/T = <strong>${corner_freq.toFixed(2)} Hz</strong>.
+            Shorter durations create more high-frequency energy (a higher f<sub>c</sub>), which is typically felt as sharper shaking.
+        `;
+    }
+
+    // --- Event Listeners ---
+    [durationSlider, riseTimeSlider, momentSlider].forEach(slider => {
+        slider.addEventListener('input', updateVisualization);
+    });
+
+    // --- Initial Call ---
+    updateVisualization();
+});
+</script>
+
+</body>
+</html>

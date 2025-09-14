@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Source Time Function</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 50%, #9b59b6 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s ease-in-out infinite alternate;
+        }
+        
+        @keyframes shimmer {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(30deg); }
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .visualization-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .fault-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #sourceCanvas {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.4));
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        #faultCanvas {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .control-group h3 {
+            margin-top: 0;
+            color: #4ecdc4;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+        
+        .slider-container {
+            margin: 15px 0;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 8px 0;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .value-display {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            float: right;
+            min-width: 70px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.9em;
+            margin: 5px 0;
+        }
+        
+        select option {
+            background: #2c3e50;
+            color: white;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            margin: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            width: calc(50% - 10px);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        button.secondary {
+            background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .stat-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+        
+        .stat-label {
+            font-size: 0.85em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .info-panel h3 {
+            color: #4ecdc4;
+            margin-top: 0;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        
+        .legend-line {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        
+        .rupture-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 107, 107, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            display: none;
+            animation: pulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+        
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            
+            button {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Earthquake Source Time Function</h1>
+        <p class="subtitle">Visualizing how seismic energy is released during earthquake rupture</p>
+        
+        <div class="main-grid">
+            <div class="visualization-panel">
+                <h3>Source Time Function</h3>
+                <canvas id="sourceCanvas"></canvas>
+                <div class="rupture-indicator" id="ruptureIndicator">RUPTURE IN PROGRESS</div>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-line" style="background: #ff6b6b;"></div>
+                        <span>Moment Rate</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line" style="background: #4ecdc4;"></div>
+                        <span>Cumulative Moment</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line" style="background: #feca57;"></div>
+                        <span>Sub-events</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="fault-panel">
+                <h3>Fault Rupture Animation</h3>
+                <canvas id="faultCanvas"></canvas>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <h3>Rupture Model</h3>
+                <label>Source Model Type</label>
+                <select id="modelType">
+                    <option value="simple">Simple Pulse</option>
+                    <option value="brune">Brune Model</option>
+                    <option value="triangle">Triangular</option>
+                    <option value="complex">Complex Multi-event</option>
+                    <option value="bilateral">Bilateral Rupture</option>
+                    <option value="barrier">Barrier Model</option>
+                </select>
+                
+                <button onclick="startRupture()">Start Rupture</button>
+                <button onclick="resetSimulation()" class="secondary">Reset</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>Earthquake Parameters</h3>
+                <div class="slider-container">
+                    <label>Magnitude <span class="value-display" id="magnitudeValue">7.0</span></label>
+                    <input type="range" id="magnitude" min="5.0" max="9.0" step="0.1" value="7.0">
+                </div>
+                <div class="slider-container">
+                    <label>Rupture Duration <span class="value-display" id="durationValue">20 s</span></label>
+                    <input type="range" id="duration" min="5" max="100" step="5" value="20">
+                </div>
+                <div class="slider-container">
+                    <label>Rise Time <span class="value-display" id="riseTimeValue">2.0 s</span></label>
+                    <input type="range" id="riseTime" min="0.5" max="10" step="0.5" value="2.0">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Rupture Dynamics</h3>
+                <div class="slider-container">
+                    <label>Rupture Velocity <span class="value-display" id="velocityValue">2.8 km/s</span></label>
+                    <input type="range" id="velocity" min="1.0" max="4.0" step="0.1" value="2.8">
+                </div>
+                <div class="slider-container">
+                    <label>Stress Drop <span class="value-display" id="stressDropValue">3 MPa</span></label>
+                    <input type="range" id="stressDrop" min="0.1" max="10" step="0.1" value="3">
+                </div>
+                <div class="slider-container">
+                    <label>Fault Length <span class="value-display" id="lengthValue">100 km</span></label>
+                    <input type="range" id="length" min="10" max="500" step="10" value="100">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Complexity Factors</h3>
+                <div class="slider-container">
+                    <label>Number of Sub-events <span class="value-display" id="subEventsValue">1</span></label>
+                    <input type="range" id="subEvents" min="1" max="5" step="1" value="1">
+                </div>
+                <div class="slider-container">
+                    <label>Heterogeneity <span class="value-display" id="heterogeneityValue">0.3</span></label>
+                    <input type="range" id="heterogeneity" min="0.0" max="1.0" step="0.1" value="0.3">
+                </div>
+                <div class="slider-container">
+                    <label>Directivity <span class="value-display" id="directivityValue">0.5</span></label>
+                    <input type="range" id="directivity" min="0.0" max="1.0" step="0.1" value="0.5">
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-value" id="totalMoment">0.0</div>
+                <div class="stat-label">Seismic Moment (×10²⁰ Nm)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="peakRate">0.0</div>
+                <div class="stat-label">Peak Moment Rate (×10¹⁸ Nm/s)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="ruptureArea">0</div>
+                <div class="stat-label">Rupture Area (km²)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="averageSlip">0.0</div>
+                <div class="stat-label">Average Slip (m)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="currentTime">0.0</div>
+                <div class="stat-label">Time (s)</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="energyReleased">0.0</div>
+                <div class="stat-label">Energy Released (%)</div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>Understanding Source Time Functions</h3>
+            <p>The <strong>Source Time Function (STF)</strong> describes how seismic moment is released over time during an earthquake. It provides crucial insights into rupture dynamics and earthquake physics.</p>
+            
+            <p><strong>Key Components:</strong></p>
+            <ul>
+                <li><strong>Moment Rate Function:</strong> Rate of seismic moment release (red curve)</li>
+                <li><strong>Cumulative Moment:</strong> Total moment released up to any time (blue curve)</li>
+                <li><strong>Rise Time:</strong> Time for slip to reach maximum at any point</li>
+                <li><strong>Rupture Duration:</strong> Total time for the entire rupture process</li>
+            </ul>
+            
+            <p><strong>Model Types:</strong></p>
+            <ul>
+                <li><strong>Simple Pulse:</strong> Single smooth moment release</li>
+                <li><strong>Brune Model:</strong> Exponential decay, common for small earthquakes</li>
+                <li><strong>Complex:</strong> Multiple sub-events, typical of large earthquakes</li>
+                <li><strong>Bilateral:</strong> Rupture propagates in both directions from hypocenter</li>
+            </ul>
+            
+            <p><strong>Physical Meaning:</strong> The STF reflects fault heterogeneity, stress distribution, and rupture dynamics. Simple earthquakes show smooth functions, while complex events reveal multiple asperities and barriers.</p>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const sourceCanvas = document.getElementById('sourceCanvas');
+        const sourceCtx = sourceCanvas.getContext('2d');
+        const faultCanvas = document.getElementById('faultCanvas');
+        const faultCtx = faultCanvas.getContext('2d');
+        
+        function resizeCanvases() {
+            const sourceRect = sourceCanvas.getBoundingClientRect();
+            sourceCanvas.width = sourceRect.width;
+            sourceCanvas.height = sourceRect.height;
+            
+            const faultRect = faultCanvas.getBoundingClientRect();
+            faultCanvas.width = faultRect.width;
+            faultCanvas.height = faultRect.height;
+        }
+        resizeCanvases();
+        window.addEventListener('resize', resizeCanvases);
+        
+        // Simulation state
+        let isRupturing = false;
+        let ruptureTime = 0;
+        let animationId = null;
+        
+        // Parameters
+        let params = {
+            magnitude: 7.0,
+            duration: 20,
+            riseTime: 2.0,
+            velocity: 2.8,
+            stressDrop: 3,
+            length: 100,
+            subEvents: 1,
+            heterogeneity: 0.3,
+            directivity: 0.5,
+            modelType: 'simple'
+        };
+        
+        // Data storage
+        let timeData = [];
+        let momentRateData = [];
+        let cumulativeMomentData = [];
+        let rupturePositions = [];
+        
+        // Calculate seismic moment from magnitude
+        function calculateMoment(magnitude) {
+            return Math.pow(10, 1.5 * (magnitude + 10.7)); // Nm
+        }
+        
+        // Calculate moment rate based on model type
+        function calculateMomentRate(t, totalDuration, totalMoment, modelType) {
+            if (t < 0 || t > totalDuration) return 0;
+            
+            const normalizedTime = t / totalDuration;
+            let rate = 0;
+            
+            switch (modelType) {
+                case 'simple':
+                    // Gaussian-like pulse
+                    const sigma = totalDuration / 4;
+                    const center = totalDuration / 2;
+                    rate = (totalMoment / (sigma * Math.sqrt(2 * Math.PI))) * 
+                           Math.exp(-0.5 * Math.pow((t - center) / sigma, 2));
+                    break;
+                    
+                case 'brune':
+                    // Brune (1970) model - exponential decay
+                    const tau = totalDuration / 3;
+                    rate = (totalMoment / tau) * Math.exp(-t / tau);
+                    break;
+                    
+                case 'triangle':
+                    // Triangular function
+                    const peak = totalDuration / 2;
+                    if (t <= peak) {
+                        rate = (2 * totalMoment / Math.pow(totalDuration, 2)) * t;
+                    } else {
+                        rate = (2 * totalMoment / Math.pow(totalDuration, 2)) * (totalDuration - t);
+                    }
+                    break;
+                    
+                case 'complex':
+                    // Multiple sub-events
+                    rate = 0;
+                    const eventSpacing = totalDuration / params.subEvents;
+                    for (let i = 0; i < params.subEvents; i++) {
+                        const eventCenter = (i + 0.5) * eventSpacing;
+                        const eventSigma = eventSpacing / 4;
+                        const eventMoment = totalMoment / params.subEvents;
+                        rate += (eventMoment / (eventSigma * Math.sqrt(2 * Math.PI))) * 
+                               Math.exp(-0.5 * Math.pow((t - eventCenter) / eventSigma, 2));
+                    }
+                    break;
+                    
+                case 'bilateral':
+                    // Bilateral rupture - two peaks
+                    const peak1 = totalDuration * 0.3;
+                    const peak2 = totalDuration * 0.7;
+                    const sigma1 = totalDuration / 8;
+                    const sigma2 = totalDuration / 8;
+                    rate = (totalMoment / 2) * (
+                        (1 / (sigma1 * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((t - peak1) / sigma1, 2)) +
+                        (1 / (sigma2 * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((t - peak2) / sigma2, 2))
+                    );
+                    break;
+                    
+                case 'barrier':
+                    // Barrier model - interrupted rupture
+                    const barrierTime = totalDuration * 0.4;
+                    const barrierWidth = totalDuration * 0.2;
+                    if (t < barrierTime || t > barrierTime + barrierWidth) {
+                        const adjustedT = t > barrierTime + barrierWidth ? t - barrierWidth : t;
+                        const adjustedDuration = totalDuration - barrierWidth;
+                        const center = adjustedDuration / 2;
+                        const sigma = adjustedDuration / 4;
+                        rate = (totalMoment / (sigma * Math.sqrt(2 * Math.PI))) * 
+                               Math.exp(-0.5 * Math.pow((adjustedT - center) / sigma, 2));
+                    } else {
+                        rate = 0; // Barrier region
+                    }
+                    break;
+            }
+            
+            // Add heterogeneity
+            if (params.heterogeneity > 0) {
+                const noise = (Math.random() - 0.5) * params.heterogeneity;
+                rate *= (1 + noise);
+            }
+            
+            return Math.max(0, rate);
+        }
+        
+        // Calculate rupture front position
+        function calculateRupturePosition(t) {
+            const distance = params.velocity * t; // km
+            return Math.min(distance, params.length);
+        }
+        
+        // Animation function
+        function animate() {
+            if (!isRupturing) return;
+            
+            const dt = 0.1; // Time step in seconds
+            ruptureTime += dt;
+            
+            // Calculate current values
+            const totalMoment = calculateMoment(params.magnitude);
+            const momentRate = calculateMomentRate(ruptureTime, params.duration, totalMoment, params.modelType);
+            const rupturePos = calculateRupturePosition(ruptureTime);
+            
+            // Store data
+            timeData.push(ruptureTime);
+            momentRateData.push(momentRate);
+            
+            // Calculate cumulative moment
+            let cumulativeMoment = 0;
+            if (cumulativeMomentData.length > 0) {
+                cumulativeMoment = cumulativeMomentData[cumulativeMomentData.length - 1] + momentRate * dt;
+            } else {
+                cumulativeMoment = momentRate * dt;
+            }
+            cumulativeMomentData.push(cumulativeMoment);
+            rupturePositions.push(rupturePos);
+            
+            // Update displays
+            drawSourceFunction();
+            drawFaultRupture();
+            updateStats();
+            
+            // Show rupture indicator
+            const indicator = document.getElementById('ruptureIndicator');
+            if (ruptureTime <= params.duration) {
+                indicator.style.display = 'block';
+            } else {
+                indicator.style.display = 'none';
+                isRupturing = false;
+            }
+            
+            // Continue animation
+            if (isRupturing) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        // Draw source time function
+        function drawSourceFunction() {
+            const width = sourceCanvas.width;
+            const height = sourceCanvas.height;
+            const margin = 60;
+            const plotWidth = width - 2 * margin;
+            const plotHeight = height - 2 * margin;
+            
+            sourceCtx.clearRect(0, 0, width, height);
+            
+            // Background
+            sourceCtx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            sourceCtx.fillRect(margin, margin, plotWidth, plotHeight);
+            
+            // Grid
+            sourceCtx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            sourceCtx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const x = margin + (i / 10) * plotWidth;
+                const y = margin + (i / 10) * plotHeight;
+                
+                sourceCtx.beginPath();
+                sourceCtx.moveTo(x, margin);
+                sourceCtx.lineTo(x, margin + plotHeight);
+                sourceCtx.stroke();
+                
+                sourceCtx.beginPath();
+                sourceCtx.moveTo(margin, y);
+                sourceCtx.lineTo(margin + plotWidth, y);
+                sourceCtx.stroke();
+            }
+            
+            if (timeData.length < 2) return;
+            
+            // Find data ranges
+            const maxTime = Math.max(...timeData);
+            const maxMomentRate = Math.max(...momentRateData);
+            const maxCumulativeMoment = Math.max(...cumulativeMomentData);
+            
+            // Draw moment rate (red)
+            sourceCtx.strokeStyle = '#ff6b6b';
+            sourceCtx.lineWidth = 3;
+            sourceCtx.beginPath();
+            for (let i = 0; i < timeData.length; i++) {
+                const x = margin + (timeData[i] / maxTime) * plotWidth;
+                const y = margin + plotHeight - (momentRateData[i] / maxMomentRate) * plotHeight;
+                if (i === 0) {
+                    sourceCtx.moveTo(x, y);
+                } else {
+                    sourceCtx.lineTo(x, y);
+                }
+            }
+            sourceCtx.stroke();
+            
+            // Draw cumulative moment (blue)
+            sourceCtx.strokeStyle = '#4ecdc4';
+            sourceCtx.lineWidth = 2;
+            sourceCtx.beginPath();
+            for (let i = 0; i < timeData.length; i++) {
+                const x = margin + (timeData[i] / maxTime) * plotWidth;
+                const y = margin + plotHeight - (cumulativeMomentData[i] / maxCumulativeMoment) * plotHeight;
+                if (i === 0) {
+                    sourceCtx.moveTo(x, y);
+                } else {
+                    sourceCtx.lineTo(x, y);
+                }
+            }
+            sourceCtx.stroke();
+            
+            // Draw current time marker
+            if (isRupturing) {
+                const currentX = margin + (ruptureTime / maxTime) * plotWidth;
+                sourceCtx.strokeStyle = '#feca57';
+                sourceCtx.lineWidth = 2;
+                sourceCtx.setLineDash([5, 5]);
+                sourceCtx.beginPath();
+                sourceCtx.moveTo(currentX, margin);
+                sourceCtx.lineTo(currentX, margin + plotHeight);
+                sourceCtx.stroke();
+                sourceCtx.setLineDash([]);
+            }
+            
+            // Labels
+            sourceCtx.fillStyle = '#fff';
+            sourceCtx.font = '14px Arial';
+            sourceCtx.textAlign = 'center';
+            sourceCtx.fillText('Time (s)', width / 2, height - 10);
+            
+            sourceCtx.save();
+            sourceCtx.translate(15, height / 2);
+            sourceCtx.rotate(-Math.PI / 2);
+            sourceCtx.fillText('Moment Rate / Cumulative Moment', 0, 0);
+            sourceCtx.restore();
+            
+            // Axes
+            sourceCtx.strokeStyle = '#fff';
+            sourceCtx.lineWidth = 2;
+            sourceCtx.beginPath();
+            sourceCtx.moveTo(margin, margin + plotHeight);
+            sourceCtx.lineTo(margin + plotWidth, margin + plotHeight);
+            sourceCtx.moveTo(margin, margin);
+            sourceCtx.lineTo(margin, margin + plotHeight);
+            sourceCtx.stroke();
+            
+            // Axis labels
+            sourceCtx.fillStyle = '#fff';
+            sourceCtx.font = '12px Arial';
+            sourceCtx.textAlign = 'center';
+            
+            // X-axis labels
+            for (let i = 0; i <= 5; i++) {
+                const x = margin + (i / 5) * plotWidth;
+                const time = (i / 5) * maxTime;
+                sourceCtx.fillText(time.toFixed(1), x, margin + plotHeight + 20);
+            }
+            
+            // Y-axis labels
+            sourceCtx.textAlign = 'right';
+            for (let i = 0; i <= 5; i++) {
+                const y = margin + plotHeight - (i / 5) * plotHeight;
+                const value = (i / 5) * maxMomentRate;
+                sourceCtx.fillText((value / 1e18).toFixed(1), margin - 10, y + 5);
+            }
+        }
+        
+        // Draw fault rupture animation
+        function drawFaultRupture() {
+            const width = faultCanvas.width;
+            const height = faultCanvas.height;
+            
+            faultCtx.clearRect(0, 0, width, height);
+            
+            // Draw fault plane
+            const faultY = height / 2;
+            const faultStartX = 50;
+            const faultEndX = width - 50;
+            const faultLength = faultEndX - faultStartX;
+            
+            // Background fault
+            faultCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            faultCtx.lineWidth = 4;
+            faultCtx.beginPath();
+            faultCtx.moveTo(faultStartX, faultY);
+            faultCtx.lineTo(faultEndX, faultY);
+            faultCtx.stroke();
+            
+            // Hypocenter
+            const hypoX = faultStartX + faultLength * params.directivity;
+            faultCtx.fillStyle = '#feca57';
+            faultCtx.beginPath();
+            faultCtx.arc(hypoX, faultY, 8, 0, 2 * Math.PI);
+            faultCtx.fill();
+            faultCtx.strokeStyle = '#fff';
+            faultCtx.lineWidth = 2;
+            faultCtx.stroke();
+            
+            if (rupturePositions.length > 0) {
+                const currentRupturePos = rupturePositions[rupturePositions.length - 1];
+                const rupturePixels = (currentRupturePos / params.length) * faultLength;
+                
+                // Draw ruptured section
+                faultCtx.strokeStyle = '#ff6b6b';
+                faultCtx.lineWidth = 8;
+                faultCtx.beginPath();
+                faultCtx.moveTo(hypoX, faultY);
+                faultCtx.lineTo(Math.min(hypoX + rupturePixels, faultEndX), faultY);
+                if (params.modelType === 'bilateral') {
+                    faultCtx.moveTo(hypoX, faultY);
+                    faultCtx.lineTo(Math.max(hypoX - rupturePixels, faultStartX), faultY);
+                }
+                faultCtx.stroke();
+                
+                // Draw rupture front
+                const frontX = Math.min(hypoX + rupturePixels, faultEndX);
+                faultCtx.fillStyle = '#ff6b6b';
+                faultCtx.beginPath();
+                faultCtx.arc(frontX, faultY, 6, 0, 2 * Math.PI);
+                faultCtx.fill();
+                
+                if (params.modelType === 'bilateral') {
+                    const frontX2 = Math.max(hypoX - rupturePixels, faultStartX);
+                    faultCtx.beginPath();
+                    faultCtx.arc(frontX2, faultY, 6, 0, 2 * Math.PI);
+                    faultCtx.fill();
+                }
+            }
+            
+            // Draw slip distribution
+            if (timeData.length > 10) {
+                for (let i = 0; i < faultLength; i += 5) {
+                    const pos = (i / faultLength) * params.length;
+                    const timeToReach = Math.abs(pos - params.length * params.directivity) / params.velocity;
+                    
+                    if (ruptureTime > timeToReach) {
+                        const slip = calculateSlipAtPosition(pos, ruptureTime - timeToReach);
+                        const slipHeight = (slip / 10) * 30; // Scale for visualization
+                        
+                        const x = faultStartX + i;
+                        const alpha = Math.min(slip / 5, 1);
+                        
+                        faultCtx.fillStyle = `rgba(255, 202, 87, ${alpha})`;
+                        faultCtx.fillRect(x, faultY - slipHeight/2, 5, slipHeight);
+                    }
+                }
+            }
+            
+            // Labels and info
+            faultCtx.fillStyle = '#fff';
+            faultCtx.font = '14px Arial';
+            faultCtx.textAlign = 'left';
+            faultCtx.fillText('Hypocenter', hypoX - 20, faultY - 20);
+            faultCtx.fillText(`Fault Length: ${params.length} km`, 20, 30);
+            faultCtx.fillText(`Rupture Velocity: ${params.velocity} km/s`, 20, 50);
+            
+            if (rupturePositions.length > 0) {
+                const currentPos = rupturePositions[rupturePositions.length - 1];
+                faultCtx.fillText(`Rupture Position: ${currentPos.toFixed(1)} km`, 20, 70);
+            }
+        }
+        
+        // Calculate slip at a specific position and time
+        function calculateSlipAtPosition(position, localTime) {
+            if (localTime <= 0) return 0;
+            
+            const maxSlip = params.stressDrop * 0.1; // Simplified relationship
+            const rampTime = params.riseTime;
+            
+            if (localTime < rampTime) {
+                return maxSlip * (localTime / rampTime);
+            } else {
+                return maxSlip;
+            }
+        }
+        
+        // Update statistics
+        function updateStats() {
+            const totalMoment = calculateMoment(params.magnitude);
+            const currentCumulativeMoment = cumulativeMomentData.length > 0 ? 
+                cumulativeMomentData[cumulativeMomentData.length - 1] : 0;
+            
+            const peakRate = momentRateData.length > 0 ? Math.max(...momentRateData) : 0;
+            const ruptureArea = Math.pow(params.length * 1000, 2) * 0.5; // Simplified
+            const averageSlip = params.stressDrop * 0.1; // Simplified
+            const energyReleased = (currentCumulativeMoment / totalMoment) * 100;
+            
+            document.getElementById('totalMoment').textContent = (totalMoment / 1e20).toFixed(1);
+            document.getElementById('peakRate').textContent = (peakRate / 1e18).toFixed(1);
+            document.getElementById('ruptureArea').textContent = Math.round(ruptureArea / 1e6);
+            document.getElementById('averageSlip').textContent = averageSlip.toFixed(1);
+            document.getElementById('currentTime').textContent = ruptureTime.toFixed(1);
+            document.getElementById('energyReleased').textContent = energyReleased.toFixed(1);
+        }
+        
+        // Control functions
+        function startRupture() {
+            if (isRupturing) return;
+            
+            isRupturing = true;
+            ruptureTime = 0;
+            timeData = [];
+            momentRateData = [];
+            cumulativeMomentData = [];
+            rupturePositions = [];
+            
+            animate();
+        }
+        
+        function resetSimulation() {
+            isRupturing = false;
+            ruptureTime = 0;
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            
+            timeData = [];
+            momentRateData = [];
+            cumulativeMomentData = [];
+            rupturePositions = [];
+            
+            document.getElementById('ruptureIndicator').style.display = 'none';
+            
+            // Clear canvases
+            sourceCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+            faultCtx.clearRect(0, 0, faultCanvas.width, faultCanvas.height);
+            
+            // Reset stats
+            document.getElementById('totalMoment').textContent = '0.0';
+            document.getElementById('peakRate').textContent = '0.0';
+            document.getElementById('ruptureArea').textContent = '0';
+            document.getElementById('averageSlip').textContent = '0.0';
+            document.getElementById('currentTime').textContent = '0.0';
+            document.getElementById('energyReleased').textContent = '0.0';
+            
+            // Redraw static elements
+            drawFaultRupture();
+        }
+        
+        // Setup parameter controls
+        function setupControls() {
+            const controls = {
+                magnitude: { param: 'magnitude', display: 'magnitudeValue', format: (v) => v },
+                duration: { param: 'duration', display: 'durationValue', format: (v) => v + ' s' },
+                riseTime: { param: 'riseTime', display: 'riseTimeValue', format: (v) => v + ' s' },
+                velocity: { param: 'velocity', display: 'velocityValue', format: (v) => v + ' km/s' },
+                stressDrop: { param: 'stressDrop', display: 'stressDropValue', format: (v) => v + ' MPa' },
+                length: { param: 'length', display: 'lengthValue', format: (v) => v + ' km' },
+                subEvents: { param: 'subEvents', display: 'subEventsValue', format: (v) => v },
+                heterogeneity: { param: 'heterogeneity', display: 'heterogeneityValue', format: (v) => v },
+                directivity: { param: 'directivity', display: 'directivityValue', format: (v) => v }
+            };
+            
+            Object.keys(controls).forEach(key => {
+                const control = document.getElementById(key);
+                const config = controls[key];
+                const valueDisplay = document.getElementById(config.display);
+                
+                control.addEventListener('input', () => {
+                    params[config.param] = parseFloat(control.value);
+                    valueDisplay.textContent = config.format(parseFloat(control.value));
+                });
+                
+                // Initialize display
+                valueDisplay.textContent = config.format(parseFloat(control.value));
+            });
+            
+            // Model type selector
+            document.getElementById('modelType').addEventListener('change', (e) => {
+                params.modelType = e.target.value;
+            });
+        }
+        
+        // Initialize
+        setupControls();
+        resetSimulation();
+    </script>
+</body>
+</html>

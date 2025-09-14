@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Directivity Explorer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #2c3e50;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 2em;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #fff;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5em;
+            margin-top: 0;
+            color: #34495e;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2em;
+            margin-top: 2em;
+        }
+        .controls {
+            padding: 1.5em;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .slider-group { margin-bottom: 1.5em; }
+        .slider-group label { font-weight: bold; display: block; margin-bottom: 0.5em; }
+        .slider-group input[type="range"] { width: 100%; cursor: pointer; }
+        .interpretation {
+            margin-top: 2em;
+            padding: 1em;
+            border-left: 5px solid #e67e22;
+            background-color: #fdf3e6;
+        }
+        #map-container {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .plots-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1em;
+            margin-top: 1em;
+        }
+        .plot-container h3 {
+            text-align: center;
+            margin: 0 0 0.5em 0;
+            font-size: 1em;
+            color: #555;
+        }
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Interactive Directivity Explorer 📡</h1>
+    <div class="main-layout">
+        <div class="controls">
+            <h2>Rupture Parameters</h2>
+            <div class="slider-group">
+                <label>Hypocenter Location: <span id="hypocenter-val">20</span>%</label>
+                <input type="range" id="hypocenter-slider" min="0" max="100" step="1" value="20">
+            </div>
+            <div class="slider-group">
+                <label>Rupture Velocity (Vᵣ / Vₛ): <span id="vr-val">0.80</span></label>
+                <input type="range" id="vr-slider" min="0.1" max="0.95" step="0.05" value="0.8">
+            </div>
+            <div class="interpretation">
+                <h3>How Directivity Works</h3>
+                <p id="interp-text"></p>
+            </div>
+        </div>
+
+        <div class="visualization">
+            <div id="map-container">
+                <svg id="map-svg" viewBox="0 0 500 300"></svg>
+            </div>
+            <div class="plots-grid">
+                <div class="plot-container">
+                    <h3>Station A</h3>
+                    <canvas id="plot-a"></canvas>
+                </div>
+                <div class="plot-container">
+                    <h3>Station B</h3>
+                    <canvas id="plot-b"></canvas>
+                </div>
+                <div class="plot-container">
+                    <h3>Station C</h3>
+                    <canvas id="plot-c"></canvas>
+                </div>
+                <div class="plot-container">
+                    <h3>Station D</h3>
+                    <canvas id="plot-d"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Get DOM Elements ---
+    const hypocenterSlider = document.getElementById('hypocenter-slider');
+    const vrSlider = document.getElementById('vr-slider');
+    const hypocenterVal = document.getElementById('hypocenter-val');
+    const vrVal = document.getElementById('vr-val');
+    const interpText = document.getElementById('interp-text');
+    const mapSvg = document.getElementById('map-svg');
+
+    // --- Simulation Constants ---
+    const T0 = 5.0; // True rupture duration in seconds
+    const M0 = 1.0; // True seismic moment (area under STF)
+    
+    // --- Geometry Setup ---
+    const fault = { x1: 50, y1: 150, x2: 450, y2: 150 };
+    const stations = {
+        A: { x: 475, y: 150, name: 'A' }, // Forward
+        B: { x: 250, y: 50,  name: 'B' }, // Side
+        C: { x: 25,  y: 150, name: 'C' }, // Backward
+        D: { x: 250, y: 250, name: 'D' }  // Side
+    };
+
+    // --- SVG Initialization ---
+    const svgNS = "http://www.w3.org/2000/svg";
+    mapSvg.innerHTML = `
+        <line x1="${fault.x1}" y1="${fault.y1}" x2="${fault.x2}" y2="${fault.y2}" stroke="#333" stroke-width="4" />
+        <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#e74c3c" />
+            </marker>
+        </defs>
+        <line id="rupture-arrow" stroke="#e74c3c" stroke-width="3" marker-end="url(#arrow)" />
+        <circle id="hypocenter-marker" r="8" fill="#e74c3c" stroke="white" stroke-width="2" />
+    `;
+    // Add station markers
+    for (const key in stations) {
+        const s = stations[key];
+        mapSvg.innerHTML += `
+            <path d="M ${s.x-10} ${s.y+10} L ${s.x} ${s.y-10} L ${s.x+10} ${s.y+10} z" fill="#2980b9" />
+            <text x="${s.x}" y="${s.y-15}" text-anchor="middle" font-weight="bold" fill="#2980b9">${s.name}</text>
+        `;
+    }
+    const hypocenterMarker = document.getElementById('hypocenter-marker');
+    const ruptureArrow = document.getElementById('rupture-arrow');
+
+    // --- Chart Initialization ---
+    const charts = {};
+    const chartOptions = {
+        scales: { x: { title: { display: true, text: 'Time (s)' } }, y: { title: { display: true, text: 'Amplitude' }, beginAtZero: true } },
+        plugins: { legend: { display: false } }
+    };
+    ['a', 'b', 'c', 'd'].forEach(id => {
+        const ctx = document.getElementById(`plot-${id}`).getContext('2d');
+        charts[id.toUpperCase()] = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#34495e', borderWidth: 2, pointRadius: 0 }] },
+            options: chartOptions
+        });
+    });
+
+    // --- Main Update Function ---
+    function updateVisualization() {
+        const hypoLoc = parseFloat(hypocenterSlider.value) / 100;
+        const vr_vs = parseFloat(vrSlider.value);
+
+        hypocenterVal.textContent = (hypoLoc * 100).toFixed(0);
+        vrVal.textContent = vr_vs.toFixed(2);
+
+        // --- 1. Update Map ---
+        const faultLength = fault.x2 - fault.x1;
+        const hypoX = fault.x1 + hypoLoc * faultLength;
+        hypocenterMarker.setAttribute('cx', hypoX);
+        hypocenterMarker.setAttribute('cy', fault.y1);
+        
+        // Assume unilateral rupture (always to the right for simplicity in this model)
+        ruptureArrow.setAttribute('x1', hypoX);
+        ruptureArrow.setAttribute('y1', fault.y1 - 20); // Offset for visibility
+        ruptureArrow.setAttribute('x2', fault.x2);
+        ruptureArrow.setAttribute('y2', fault.y1 - 20);
+        const ruptureDirectionVector = { x: 1, y: 0 };
+
+        // --- 2. Update Plots for Each Station ---
+        for (const key in stations) {
+            const s = stations[key];
+            
+            // Vector from hypocenter to station
+            const stationVector = { x: s.x - hypoX, y: s.y - fault.y1 };
+            const stationVectorMag = Math.sqrt(stationVector.x**2 + stationVector.y**2);
+            
+            // Angle (theta) calculation
+            const dotProduct = ruptureDirectionVector.x * stationVector.x + ruptureDirectionVector.y * stationVector.y;
+            const cosTheta = dotProduct / stationVectorMag; // Rupture vector magnitude is 1
+            
+            // Directivity formula for apparent duration
+            const T_apparent = T0 * (1 - vr_vs * cosTheta);
+
+            // Amplitude is scaled to keep area constant (M0)
+            const amplitude_scaler = T0 / T_apparent;
+            const true_amplitude = (2 * M0) / T0;
+            const apparent_amplitude = true_amplitude * amplitude_scaler;
+
+            // Generate the STF (simple triangle)
+            const time_points = Array.from({length: 101}, (_, i) => i * (T0 * 2 / 100)); // Fixed time axis
+            const stf_data = time_points.map(t => {
+                if (t > T_apparent) return 0;
+                if (t < T_apparent / 2) return (apparent_amplitude / (T_apparent / 2)) * t;
+                return apparent_amplitude * (1 - (t - T_apparent / 2) / (T_apparent / 2));
+            });
+            
+            // Update the chart
+            charts[key].data.labels = time_points;
+            charts[key].data.datasets[0].data = stf_data;
+            charts[key].update();
+        }
+
+        // --- 3. Update Interpretation Text ---
+        interpText.innerHTML = `
+            Rupture is propagating to the right. The ratio Vᵣ/Vₛ is <strong>${vr_vs.toFixed(2)}</strong>.
+            <br><br>
+            <strong>Station A</strong> is in the direction of rupture. Energy arrives in a shorter time, creating a <strong>high-amplitude, high-frequency</strong> pulse.
+            <br><br>
+            <strong>Station C</strong> is opposite the rupture direction. Energy is spread out over a longer time, resulting in a <strong>low-amplitude, low-frequency</strong> signal.
+        `;
+    }
+
+    // --- Event Listeners ---
+    [hypocenterSlider, vrSlider].forEach(slider => {
+        slider.addEventListener('input', updateVisualization);
+    });
+
+    // --- Initial Call ---
+    updateVisualization();
+});
+</script>
+
+</body>
+</html>

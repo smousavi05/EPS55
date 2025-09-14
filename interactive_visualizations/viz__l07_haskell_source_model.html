@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Haskell Rupture Model</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #2c3e50;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 1em;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #fff;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5em;
+            margin-top: 0;
+            color: #34495e;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2em;
+        }
+        .controls {
+            padding: 1em;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .slider-group { margin-bottom: 1em; }
+        .slider-group label { font-weight: bold; display: block; margin-bottom: 0.5em; font-size: 0.9em;}
+        .slider-group input[type="range"] { width: 100%; cursor: pointer; }
+        .buttons { display: flex; gap: 0.5em; justify-content: space-between; margin-top: 1em; }
+        .buttons button {
+            flex-grow: 1; padding: 10px; font-size: 1em; border-radius: 5px; border: none; cursor: pointer;
+            background-color: #3498db; color: white; transition: background-color 0.3s;
+        }
+        .buttons button:hover { opacity: 0.8; }
+        .visualization-area {
+            display: flex;
+            flex-direction: column;
+            gap: 1em;
+        }
+        #fault-canvas {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            width: 100%;
+            aspect-ratio: 2 / 1;
+            background-color: #eee;
+        }
+        .interpretation {
+            margin-top: 1em; padding: 1em; border-left: 5px solid #27ae60; background-color: #e9f7ef;
+        }
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>The Haskell Source Model</h1>
+    <div class="main-layout">
+        <div class="controls">
+            <h2>Parameters</h2>
+            <div class="slider-group">
+                <label>Fault Length: <span id="length-val">40</span> km</label>
+                <input type="range" id="length-slider" min="10" max="80" step="2" value="40">
+            </div>
+            <div class="slider-group">
+                <label>Fault Width: <span id="width-val">20</span> km</label>
+                <input type="range" id="width-slider" min="5" max="40" step="1" value="20">
+            </div>
+            <div class="slider-group">
+                <label>Hypocenter X: <span id="hypo-x-val">10</span>%</label>
+                <input type="range" id="hypo-x-slider" min="0" max="100" step="1" value="10">
+            </div>
+            <div class="slider-group">
+                <label>Hypocenter Y: <span id="hypo-y-val">50</span>%</label>
+                <input type="range" id="hypo-y-slider" min="0" max="100" step="1" value="50">
+            </div>
+            <div class="slider-group">
+                <label>Rupture Velocity (Vᵣ): <span id="vr-val">2.8</span> km/s</label>
+                <input type="range" id="vr-slider" min="1.5" max="4.0" step="0.1" value="2.8">
+            </div>
+            <div class="slider-group">
+                <label>Rise Time (τ): <span id="rise-time-val">2.0</span> s</label>
+                <input type="range" id="rise-time-slider" min="0.5" max="5" step="0.1" value="2.0">
+            </div>
+            <div class="buttons">
+                <button id="start-btn">▶ Play</button>
+                <button id="reset-btn">⏹ Reset</button>
+            </div>
+            <div class="interpretation">
+                <h3>How It Works</h3>
+                <p>The Haskell model describes rupture on a rectangular fault. Rupture begins at the <strong>hypocenter</strong> (⭐) and spreads outwards in a circle at a constant <strong>Rupture Velocity (Vᵣ)</strong>. When the rupture front reaches a point, that point slips for a fixed duration called the <strong>Rise Time (τ)</strong>.</p>
+            </div>
+        </div>
+
+        <div class="visualization-area">
+            <div>
+                <h2>Fault Plane Rupture</h2>
+                <canvas id="fault-canvas"></canvas>
+            </div>
+            <div>
+                <h2>Source Time Function (STF)</h2>
+                <canvas id="stf-plot"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Get DOM Elements ---
+    const sliders = {
+        length: document.getElementById('length-slider'),
+        width: document.getElementById('width-slider'),
+        hypoX: document.getElementById('hypo-x-slider'),
+        hypoY: document.getElementById('hypo-y-slider'),
+        vr: document.getElementById('vr-slider'),
+        riseTime: document.getElementById('rise-time-slider')
+    };
+    const vals = {
+        length: document.getElementById('length-val'),
+        width: document.getElementById('width-val'),
+        hypoX: document.getElementById('hypo-x-val'),
+        hypoY: document.getElementById('hypo-y-val'),
+        vr: document.getElementById('vr-val'),
+        riseTime: document.getElementById('rise-time-val')
+    };
+    const startBtn = document.getElementById('start-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const faultCanvas = document.getElementById('fault-canvas');
+    const faultCtx = faultCanvas.getContext('2d');
+    const stfCtx = document.getElementById('stf-plot').getContext('2d');
+
+    // --- State and Parameters ---
+    let params = {};
+    let faultGrid = [];
+    let state = { isRunning: false, time: 0 };
+    let animationFrameId;
+
+    // --- Chart.js Setup ---
+    const stfChart = new Chart(stfCtx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Moment Rate (Ṁ)', data: [], borderColor: '#e74c3c', backgroundColor: '#fdedec', borderWidth: 2, pointRadius: 0, fill: true }] },
+        options: { scales: { x: { title: { display: true, text: 'Time (s)' } }, y: { title: { display: true, text: 'Moment Rate (normalized)' }, beginAtZero: true } } }
+    });
+
+    // --- Core Functions ---
+    function readAndUpdateParams() {
+        params = {
+            length: parseFloat(sliders.length.value),
+            width: parseFloat(sliders.width.value),
+            hypoX: parseFloat(sliders.hypoX.value) / 100,
+            hypoY: parseFloat(sliders.hypoY.value) / 100,
+            vr: parseFloat(sliders.vr.value),
+            riseTime: parseFloat(sliders.riseTime.value),
+            maxSlip: 1.0 // Normalized
+        };
+        Object.keys(vals).forEach(key => {
+            const slider = sliders[key];
+            const display = vals[key];
+            if (key.startsWith('hypo')) {
+                display.textContent = (slider.value).toString();
+            } else {
+                display.textContent = parseFloat(slider.value).toFixed(1);
+            }
+        });
+        faultCanvas.style.aspectRatio = params.length / params.width;
+    }
+
+    function createFaultGrid() {
+        faultGrid = [];
+        const gridSize = 2; // km
+        const nx = Math.floor(params.length / gridSize);
+        const ny = Math.floor(params.width / gridSize);
+        const hypo_abs_x = params.hypoX * params.length;
+        const hypo_abs_y = params.hypoY * params.width;
+
+        for (let i = 0; i < nx; i++) {
+            for (let j = 0; j < ny; j++) {
+                const cellX = (i + 0.5) * gridSize;
+                const cellY = (j + 0.5) * gridSize;
+                const dist = Math.sqrt((cellX - hypo_abs_x)**2 + (cellY - hypo_abs_y)**2);
+                faultGrid.push({
+                    x: cellX, y: cellY,
+                    ruptureTime: dist / params.vr,
+                    currentSlip: 0
+                });
+            }
+        }
+    }
+    
+    function draw() {
+        const w = faultCanvas.width;
+        const h = faultCanvas.height;
+        faultCtx.clearRect(0, 0, w, h);
+        
+        let momentRateThisStep = 0;
+        const slipRate = params.maxSlip / params.riseTime;
+
+        faultGrid.forEach(cell => {
+            const cellCanvasX = (cell.x / params.length) * w;
+            const cellCanvasY = (cell.y / params.width) * h;
+            const cellCanvasW = (w / params.length);
+            const cellCanvasH = (h / params.width);
+            
+            let slipProgress = 0;
+            if (state.time >= cell.ruptureTime) {
+                if (state.time < cell.ruptureTime + params.riseTime) {
+                    // Currently slipping
+                    slipProgress = (state.time - cell.ruptureTime) / params.riseTime;
+                    momentRateThisStep += slipRate; // Add this cell's contribution
+                } else {
+                    // Finished slipping
+                    slipProgress = 1.0;
+                }
+            }
+            
+            // Color based on slip progress (blue to red)
+            const hue = 240 * (1 - slipProgress); // 240 is blue, 0 is red
+            faultCtx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+            faultCtx.fillRect(cellCanvasX, cellCanvasY, cellCanvasW * 2, cellCanvasH * 2);
+        });
+        
+        // Draw rupture front
+        const radius = params.vr * state.time;
+        const hypoCanvasX = params.hypoX * w;
+        const hypoCanvasY = params.hypoY * h;
+        faultCtx.beginPath();
+        faultCtx.arc(hypoCanvasX, hypoCanvasY, (radius / params.length) * w, 0, 2 * Math.PI);
+        faultCtx.strokeStyle = 'white';
+        faultCtx.lineWidth = 2;
+        faultCtx.stroke();
+
+        // Draw hypocenter
+        faultCtx.fillStyle = 'yellow';
+        faultCtx.fillText('⭐', hypoCanvasX - 8, hypoCanvasY + 6);
+        faultCtx.font = '24px sans-serif';
+
+        return momentRateThisStep;
+    }
+
+    function animationLoop() {
+        if (!state.isRunning) return;
+        
+        const dt = 0.1;
+        state.time += dt;
+
+        const momentRate = draw();
+        
+        // Update STF Chart
+        stfChart.data.labels.push(state.time.toFixed(1));
+        stfChart.data.datasets[0].data.push(momentRate);
+        stfChart.update();
+        
+        // Stop condition (approximate)
+        const maxDist = Math.sqrt(params.length**2 + params.width**2);
+        const totalDuration = maxDist / params.vr + params.riseTime;
+        if (state.time > totalDuration) {
+            stopAnimation();
+        }
+
+        animationFrameId = requestAnimationFrame(animationLoop);
+    }
+    
+    function resetSimulation() {
+        stopAnimation();
+        readAndUpdateParams();
+        createFaultGrid();
+        state.time = 0;
+        stfChart.data.labels = [];
+        stfChart.data.datasets[0].data = [];
+        stfChart.update();
+        draw();
+    }
+    
+    function stopAnimation() {
+        state.isRunning = false;
+        startBtn.textContent = '▶ Play';
+        cancelAnimationFrame(animationFrameId);
+    }
+    
+    // --- Event Listeners ---
+    Object.values(sliders).forEach(s => s.addEventListener('input', () => {
+        readAndUpdateParams();
+        if (!state.isRunning) { // Allow changing params and seeing initial state
+            createFaultGrid();
+            draw();
+        }
+    }));
+    
+    startBtn.addEventListener('click', () => {
+        if (state.isRunning) {
+            stopAnimation();
+        } else {
+            state.isRunning = true;
+            startBtn.textContent = '❚❚ Pause';
+            animationLoop();
+        }
+    });
+    
+    resetBtn.addEventListener('click', resetSimulation);
+
+    // --- Initial setup ---
+    resetSimulation();
+});
+</script>
+
+</body>
+</html>

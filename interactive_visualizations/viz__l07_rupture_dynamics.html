@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Rupture Dynamics Explorer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 1em auto;
+            background: #fff;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            text-align: center;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5em;
+            margin-top: 0;
+            color: #34495e;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2em;
+            margin-top: 1em;
+        }
+        .controls { padding: 1em; background: #f9f9f9; border-radius: 8px; }
+        .control-group { margin-bottom: 1.5em; }
+        .control-group label { font-weight: bold; display: block; margin-bottom: 0.5em; }
+        .controls button {
+            width: 100%; padding: 12px; font-size: 1.1em; border-radius: 5px; border: none; cursor: pointer;
+            background-color: #3498db; color: white; transition: background-color 0.3s;
+        }
+        .controls button:hover { opacity: 0.8; }
+        .visualization-area {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: auto auto;
+            gap: 1.5em;
+        }
+        #animation-canvas {
+            grid-column: 1 / -1;
+            width: 100%;
+            aspect-ratio: 2 / 1;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        .plot-container { border: 1px solid #eee; border-radius: 8px; padding: 0.5em; }
+        .interpretation { margin-top: 1em; padding: 1em; border-left: 5px solid #e67e22; background-color: #fdf3e6; }
+        @media (max-width: 1200px) { .main-layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Interactive Rupture Dynamics Explorer 🌋</h1>
+    <div class="main-layout">
+        <div class="controls">
+            <h2>Parameters</h2>
+            <div class="control-group">
+                <label>Hypocenter Location: <span id="hypo-val">20</span>%</label>
+                <input type="range" id="hypo-slider" min="0" max="100" step="1" value="20">
+            </div>
+            <div class="control-group">
+                <label>Rupture Direction</label>
+                <select id="direction-select" style="width:100%; padding: 8px;">
+                    <option value="unilateral-right">Unilateral →</option>
+                    <option value="unilateral-left">← Unilateral</option>
+                    <option value="bilateral">Bilateral ↔</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Rupture Velocity (Vᵣ): <span id="vr-val">2.8</span> km/s</label>
+                <input type="range" id="vr-slider" min="1.0" max="8.0" step="0.1" value="2.8">
+            </div>
+            <div class="control-group">
+                <label><input type="checkbox" id="pulse-toggle"> Heaton's Slip-Pulse Model</label>
+            </div>
+            <div class="control-group">
+                <label><input type="checkbox" id="supershear-toggle"> Supershear Mach Front</label>
+            </div>
+            <button id="start-btn">▶ Start Simulation</button>
+            <div class="interpretation">
+                <h3>Key Concepts</h3>
+                <p><strong>Directivity:</strong> Seismic waves "pile up" in the direction of rupture, causing short, high-amplitude shaking. In the opposite direction, waves are spread out, causing longer, weaker shaking.</p>
+                <p><strong>Supershear Rupture:</strong> When Vᵣ > Vₛ, the rupture outpaces its own shear waves, creating a seismic boom (Mach front) similar to a supersonic jet.</p>
+            </div>
+        </div>
+
+        <div class="visualization-area">
+            <canvas id="animation-canvas"></canvas>
+            <div class="plot-container">
+                <h3>Station A (Forward)</h3>
+                <canvas id="plot-a"></canvas>
+            </div>
+            <div class="plot-container">
+                <h3>Station B (Backward)</h3>
+                <canvas id="plot-b"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Config & DOM Elements ---
+    const WAVE_SPEED = 3.5; 
+    const SHEAR_WAVE_SPEED = 3.0; 
+    const FAULT_LENGTH = 100; // km
+    const sliders = {
+        hypo: document.getElementById('hypo-slider'),
+        vr: document.getElementById('vr-slider')
+    };
+    const vals = {
+        hypo: document.getElementById('hypo-val'),
+        vr: document.getElementById('vr-val')
+    };
+    const directionSelect = document.getElementById('direction-select');
+    const pulseToggle = document.getElementById('pulse-toggle');
+    const supershearToggle = document.getElementById('supershear-toggle');
+    const startBtn = document.getElementById('start-btn');
+    const animCanvas = document.getElementById('animation-canvas'), animCtx = animCanvas.getContext('2d');
+    
+    // Set canvas resolution
+    animCanvas.width = 800;
+    animCanvas.height = 400;
+
+    let params = {};
+    let state = { isRunning: false, time: 0 };
+    let wavefronts = [], stations = [], ruptureFronts = [];
+    let animationFrameId;
+
+    const charts = {};
+    function createChart(id, label) {
+        const ctx = document.getElementById(id).getContext('2d');
+        charts[label] = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'Ground Velocity', data: [], borderColor: '#c0392b', borderWidth: 2, pointRadius: 0 }] },
+            options: {
+                scales: { 
+                    x: { title: { display: true, text: 'Time (s)' }, min: 0, max: 50 },
+                    y: { title: { display: true, text: 'Velocity' } }
+                },
+                plugins: { legend: { display: false } },
+                animation: { duration: 0 }
+            }
+        });
+    }
+    createChart('plot-a', 'A');
+    createChart('plot-b', 'B');
+
+    function readAndUpdateParams() {
+        params = {
+            hypo: parseFloat(sliders.hypo.value) / 100,
+            vr: parseFloat(sliders.vr.value),
+            direction: directionSelect.value,
+            isPulse: pulseToggle.checked,
+            isSupershear: supershearToggle.checked
+        };
+        vals.hypo.textContent = (params.hypo * 100).toFixed(0);
+        vals.vr.textContent = params.vr.toFixed(1);
+    }
+
+    function resetSimulation() {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        state = { isRunning: false, time: 0 };
+        readAndUpdateParams();
+        wavefronts = [];
+        stations = [
+            { name: 'A', x: 0.95, y: 0.25, groundMotion: [] },
+            { name: 'B', x: 0.05, y: 0.25, groundMotion: [] }
+        ];
+        
+        const hypoX = params.hypo * animCanvas.width;
+        ruptureFronts = [];
+        if(params.direction === 'unilateral-right' || params.direction === 'bilateral'){
+            ruptureFronts.push({ x: hypoX, active: true, direction: 1 });
+        }
+        if(params.direction === 'unilateral-left' || params.direction === 'bilateral'){
+            ruptureFronts.push({ x: hypoX, active: true, direction: -1 });
+        }
+        
+        Object.values(charts).forEach(chart => {
+            chart.data.labels = [];
+            chart.data.datasets[0].data = [];
+            chart.update();
+        });
+
+        draw();
+        startBtn.textContent = '▶ Start Simulation';
+    }
+
+    function draw() {
+        const w = animCanvas.width, h = animCanvas.height;
+        animCtx.clearRect(0, 0, w, h);
+
+        const faultY = h * 0.5;
+        animCtx.strokeStyle = '#333';
+        animCtx.lineWidth = 4;
+        animCtx.beginPath();
+        animCtx.moveTo(0, faultY);
+        animCtx.lineTo(w, faultY);
+        animCtx.stroke();
+        
+        stations.forEach(s => {
+            animCtx.fillStyle = '#27ae60';
+            const sx = s.x * w, sy = s.y * h;
+            animCtx.beginPath();
+            animCtx.moveTo(sx - 8, sy);
+            animCtx.lineTo(sx + 8, sy);
+            animCtx.lineTo(sx, sy - 12);
+            animCtx.closePath();
+            animCtx.fill();
+            animCtx.fillText(s.name, sx - 4, sy + 12);
+        });
+        
+        wavefronts.forEach(wf => {
+            animCtx.strokeStyle = 'rgba(231, 76, 60, 0.5)';
+            animCtx.lineWidth = 1.5;
+            
+            if (wf.isMach) {
+                const angle = Math.acos(SHEAR_WAVE_SPEED / params.vr);
+                animCtx.beginPath();
+                animCtx.moveTo(wf.x, wf.y);
+                animCtx.lineTo(wf.x - wf.radius * Math.cos(angle) * wf.direction, wf.y + wf.radius * Math.sin(angle));
+                animCtx.moveTo(wf.x, wf.y);
+                animCtx.lineTo(wf.x - wf.radius * Math.cos(angle) * wf.direction, wf.y - wf.radius * Math.sin(angle));
+                animCtx.stroke();
+            } else {
+                animCtx.beginPath();
+                animCtx.arc(wf.x, wf.y, wf.radius, 0, 2 * Math.PI);
+                animCtx.stroke();
+            }
+        });
+        
+        animCtx.fillStyle = params.isPulse ? 'rgba(255, 255, 255, 0)' : 'rgba(231, 76, 60, 0.3)';
+        const hypoX = params.hypo * w;
+        if (ruptureFronts.length > 1) { // Bilateral
+            animCtx.fillRect(ruptureFronts[1].x, faultY - 5, ruptureFronts[0].x - ruptureFronts[1].x, 10);
+        } else if (ruptureFronts.length > 0) { // Unilateral
+            const startX = Math.min(hypoX, ruptureFronts[0].x);
+            const endX = Math.max(hypoX, ruptureFronts[0].x);
+            animCtx.fillRect(startX, faultY - 5, endX - startX, 10);
+        }
+
+        animCtx.fillStyle = '#e74c3c';
+        ruptureFronts.forEach(rf => {
+            if (params.isPulse) {
+                animCtx.fillRect(rf.x - 5, faultY - 5, 10, 10);
+            } else {
+                animCtx.fillRect(rf.x - 2, faultY - 5, 4, 10);
+            }
+        });
+    }
+
+    function simulationLoop() {
+        if (!state.isRunning) return;
+        
+        // **FIX:** Get canvas dimensions inside the loop
+        const w = animCanvas.width;
+        const h = animCanvas.height;
+
+        const dt = 0.1;
+        state.time += dt;
+
+        const dx = params.vr * (w / FAULT_LENGTH) * dt;
+        ruptureFronts.forEach(rf => {
+            if (!rf.active) return;
+            
+            rf.x += dx * rf.direction;
+            
+            if (rf.x > w || rf.x < 0) rf.active = false;
+
+            const isMachWave = params.isSupershear && params.vr > SHEAR_WAVE_SPEED;
+            wavefronts.push({ x: rf.x, y: h * 0.5, radius: 0, isMach: isMachWave, direction: rf.direction });
+        });
+        
+        const wave_dx = WAVE_SPEED * (w / FAULT_LENGTH) * dt;
+        wavefronts.forEach(wf => wf.radius += wave_dx);
+        
+        stations.forEach(s => {
+            const sx = s.x * w, sy = s.y * h;
+            let hits = 0;
+            wavefronts.forEach(wf => {
+                const dist = Math.sqrt((sx - wf.x)**2 + (sy - wf.y)**2);
+                if (Math.abs(dist - wf.radius) < wave_dx) {
+                    hits++;
+                }
+            });
+            if (hits > 0) {
+                const chart = charts[s.name];
+                if (chart.data.labels.length === 0 || chart.data.labels[chart.data.labels.length - 1] < state.time.toFixed(1)) {
+                    chart.data.labels.push(state.time.toFixed(1));
+                    chart.data.datasets[0].data.push({x: state.time, y: hits**1.5});
+                }
+                chart.update();
+            }
+        });
+
+        draw();
+        animationFrameId = requestAnimationFrame(simulationLoop);
+    }
+    
+    startBtn.addEventListener('click', () => {
+        if (state.isRunning) {
+            state.isRunning = false;
+            startBtn.textContent = '▶ Resume Simulation';
+            cancelAnimationFrame(animationFrameId);
+        } else {
+            if (state.time === 0) resetSimulation();
+            state.isRunning = true;
+            startBtn.textContent = '❚❚ Pause Simulation';
+            simulationLoop();
+        }
+    });
+
+    [sliders.hypo, sliders.vr, directionSelect, pulseToggle, supershearToggle].forEach(el => {
+        el.addEventListener('input', resetSimulation);
+    });
+
+    resetSimulation();
+});
+</script>
+</body>
+</html>

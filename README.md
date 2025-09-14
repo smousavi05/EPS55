@@ -64,4 +64,9 @@ Understand the physics - why normal stress increases shear resistance
   <img src="interactive_visualizations/viz__l06_timepredictable_slippredictable.png" alt="Interactive Figure Preview" width="500">
 </a>
 
+#### Rate-and-State Friction Explorer!
+<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_rate_and_state.html">
+  <img src="interactive_visualizations/viz__l06_rate_and_state.png" alt="Interactive Figure Preview" width="500">
+</a>
+
 ---------------------------------------------------------

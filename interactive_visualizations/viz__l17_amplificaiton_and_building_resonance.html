@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Amplification & Resonance Simulator</title>
+    <style>
+        :root {
+            --bg-color: #f0f4f8; --panel-bg: #ffffff; --text-color: #1e2a3a;
+            --primary: #0077b6; --accent: #e63946;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px;
+        }
+        h1, h2 { text-align: center; }
+        .main-container {
+            display: flex; flex-wrap: wrap; gap: 20px; max-width: 1400px; margin: auto;
+        }
+        .controls-panel {
+            flex: 1; min-width: 350px; background: var(--panel-bg); padding: 20px;
+            border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); align-self: flex-start;
+        }
+        .viewer-panel {
+            flex: 2; min-width: 700px;
+        }
+        .viz-container {
+            position: relative; background: var(--panel-bg); padding: 15px; border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .viz-container canvas { display: block; width: 100%; height: auto; background-color: #f8f9fa; border-radius: 5px; }
+        .control-group { margin-bottom: 25px; }
+        .control-group legend {
+            font-size: 1.2em; font-weight: bold; color: var(--primary);
+            border-bottom: 2px solid var(--primary); margin-bottom: 10px; padding-bottom: 5px;
+        }
+        button#btn-shaker {
+            width: 100%; padding: 12px; border: none; border-radius: 5px; color: white;
+            font-size: 1.1em; font-weight: bold; cursor: pointer; transition: background-color: 0.2s;
+            background-color: var(--accent);
+        }
+        #resonance-alert {
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--accent); color: white; padding: 10px 20px;
+            font-size: 2em; font-weight: bold; border-radius: 10px;
+            opacity: 0; pointer-events: none;
+            animation: flash 1s infinite;
+        }
+        @keyframes flash { 50% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <h1>Site Amplification & Resonance Simulator 🏢</h1>
+    <div class="main-container">
+        <div class="controls-panel">
+            <div class="control-group">
+                <legend>1. Ground Type</legend>
+                <div id="ground-selector"></div>
+            </div>
+            <div class="control-group">
+                <legend>2. Building Type</legend>
+                <div id="building-selector"></div>
+            </div>
+            <div class="control-group">
+                <legend>3. Earthquake Shaker</legend>
+                <label for="period-slider">Incoming Wave Period: <span id="period-value">1.0</span> s</label>
+                <input type="range" id="period-slider" min="0.1" max="3.0" value="1.0" step="0.1" style="width: 100%;">
+                <button id="btn-shaker">Shake!</button>
+            </div>
+        </div>
+        <div class="viewer-panel">
+            <div class="viz-container">
+                <h2>Site Response</h2>
+                <canvas id="main-canvas" width="800" height="400"></canvas>
+                <div id="resonance-alert" style="display:none;">RESONANCE!</div>
+            </div>
+            <div style="display: flex; gap: 20px; margin-top: 20px;">
+                <div class="viz-container" style="flex:1">
+                    <h3>Input Wave</h3>
+                    <canvas id="input-graph" width="400" height="100"></canvas>
+                </div>
+                <div class="viz-container" style="flex:1">
+                    <h3>Building Response</h3>
+                    <canvas id="output-graph" width="400" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- 1. SETUP & STATE MANAGEMENT ---
+const mainCanvas = document.getElementById('main-canvas');
+const mainCtx = mainCanvas.getContext('2d');
+const inputGraph = document.getElementById('input-graph').getContext('2d');
+const outputGraph = document.getElementById('output-graph').getContext('2d');
+const resonanceAlert = document.getElementById('resonance-alert');
+
+const GROUND_TYPES = {
+    rock: { name: "Hard Rock", period: 0.1, amp: 1.2, color: '#6c757d', liquefies: false },
+    soft_soil: { name: "Shallow Soft Soil", period: 0.5, amp: 3.0, color: '#c9a27e', liquefies: false },
+    basin: { name: "Deep Sedimentary Basin", period: 2.0, amp: 5.0, color: '#a68a64', liquefies: false },
+    liquefiable: { name: "Liquefiable Soil", period: 0.8, amp: 4.0, color: '#e0c4a2', liquefies: true }
+};
+const BUILDING_TYPES = {
+    short: { name: "Short, Stiff Building (1-story)", period: 0.2, height: 50, width: 60 },
+    tall: { name: "Tall, Flexible Building (20-story)", period: 2.0, height: 200, width: 40 }
+};
+
+let sim = {
+    ground: GROUND_TYPES.rock,
+    building: BUILDING_TYPES.short,
+    inputPeriod: 1.0,
+    time: 0,
+    isShaking: false,
+    liquefaction: 0,
+    animationFrameId: null
+};
+
+// --- 2. ANIMATION & CALCULATION LOGIC ---
+function animate() {
+    sim.time += 0.1;
+    
+    // Wave envelope to make it start and stop
+    const envelope = Math.min(1, sim.time / 20) * (1 - Math.tanh(Math.max(0, sim.time - 50) / 20));
+    if (envelope < 0.01 && sim.time > 50) {
+        stopShaking();
+        return;
+    }
+
+    const inputMotion = Math.sin(sim.time / sim.inputPeriod) * envelope;
+    
+    // Calculate ground amplification (resonance formula)
+    const groundAmpFactor = 1 + (sim.ground.amp - 1) * (1 / (1 + Math.pow((sim.inputPeriod - sim.ground.period) / 0.1, 2)));
+    const groundMotion = inputMotion * groundAmpFactor;
+    
+    // Calculate building amplification
+    const buildingAmpFactor = 1 + 5 * (1 / (1 + Math.pow((sim.inputPeriod - sim.building.period) / 0.1, 2)));
+    const buildingSway = groundMotion * buildingAmpFactor;
+
+    // Check for resonance
+    if (buildingAmpFactor > 4.5 && envelope > 0.5) {
+        resonanceAlert.style.display = 'block';
+    } else {
+        resonanceAlert.style.display = 'none';
+    }
+
+    // Handle liquefaction
+    if (sim.ground.liquefies && Math.abs(groundMotion) > 1.5) {
+        sim.liquefaction = Math.min(1, sim.liquefaction + 0.005);
+    }
+    
+    draw(inputMotion, groundMotion, buildingSway);
+    sim.animationFrameId = requestAnimationFrame(animate);
+}
+
+function stopShaking() {
+    cancelAnimationFrame(sim.animationFrameId);
+    sim.isShaking = false;
+    sim.time = 0;
+    sim.liquefaction = 0;
+    resonanceAlert.style.display = 'none';
+    draw(0,0,0); // Draw final static state
+}
+
+// --- 3. DRAWING FUNCTIONS ---
+function draw(input, ground, building) {
+    const w = mainCanvas.width, h = mainCanvas.height;
+    mainCtx.clearRect(0, 0, w, h);
+
+    // Draw Ground
+    const groundLevel = h * 0.8;
+    mainCtx.fillStyle = sim.ground.color;
+    mainCtx.beginPath();
+    mainCtx.moveTo(0, groundLevel);
+    for (let x = 0; x <= w; x += 10) {
+        mainCtx.lineTo(x, groundLevel + Math.sin(x/30 + sim.time*2) * ground);
+    }
+    mainCtx.lineTo(w, h);
+    mainCtx.lineTo(0, h);
+    mainCtx.closePath();
+    mainCtx.fill();
+
+    if (sim.liquefaction > 0) {
+        mainCtx.fillStyle = `rgba(100, 150, 255, ${sim.liquefaction * 0.5})`;
+        mainCtx.fill();
+    }
+
+    // Draw Building
+    const b = sim.building;
+    const foundationY = groundLevel - sim.liquefaction * (b.height * 0.2);
+    const foundationAngle = sim.liquefaction * 0.1;
+    
+    mainCtx.save();
+    mainCtx.translate(w/2, foundationY);
+    mainCtx.rotate(foundationAngle);
+    
+    mainCtx.beginPath();
+    const swayOffset = building * 5;
+    mainCtx.moveTo(-b.width/2, 0);
+    mainCtx.lineTo(-b.width/2 + swayOffset, -b.height);
+    mainCtx.lineTo( b.width/2 + swayOffset, -b.height);
+    mainCtx.lineTo( b.width/2, 0);
+    mainCtx.closePath();
+    mainCtx.fillStyle = '#adb5bd';
+    mainCtx.fill();
+    mainCtx.stroke();
+    mainCtx.restore();
+
+    // Draw Graphs
+    drawGraph(inputGraph, input);
+    drawGraph(outputGraph, building);
+}
+
+function drawGraph(ctx, value) {
+    const w = ctx.canvas.width, h = ctx.canvas.height;
+    // Shift old data left
+    const imageData = ctx.getImageData(1, 0, w - 1, h);
+    ctx.putImageData(imageData, 0, 0);
+    // Clear the last pixel column
+    ctx.clearRect(w - 1, 0, 1, h);
+    // Draw the new data point
+    const y = h/2 - value * (h/2 * 0.8);
+    ctx.beginPath();
+    ctx.moveTo(w-1, y);
+    ctx.lineTo(w, y);
+    ctx.strokeStyle = 'black';
+    ctx.stroke();
+}
+
+// --- 4. UI & EVENT LISTENERS ---
+function setupControls() {
+    const groundSelector = document.getElementById('ground-selector');
+    Object.keys(GROUND_TYPES).forEach((key, index) => {
+        groundSelector.innerHTML += `<label><input type="radio" name="ground" value="${key}" ${index === 0 ? 'checked' : ''}> ${GROUND_TYPES[key].name}</label><br>`;
+    });
+    const buildingSelector = document.getElementById('building-selector');
+    Object.keys(BUILDING_TYPES).forEach((key, index) => {
+        buildingSelector.innerHTML += `<label><input type="radio" name="building" value="${key}" ${index === 0 ? 'checked' : ''}> ${BUILDING_TYPES[key].name}</label><br>`;
+    });
+
+    document.querySelectorAll('input[name="ground"]').forEach(r => r.addEventListener('change', (e) => { sim.ground = GROUND_TYPES[e.target.value]; stopShaking(); }));
+    document.querySelectorAll('input[name="building"]').forEach(r => r.addEventListener('change', (e) => { sim.building = BUILDING_TYPES[e.target.value]; stopShaking(); }));
+    
+    const periodSlider = document.getElementById('period-slider');
+    periodSlider.addEventListener('input', (e) => {
+        sim.inputPeriod = parseFloat(e.target.value);
+        document.getElementById('period-value').textContent = sim.inputPeriod.toFixed(1);
+    });
+}
+
+document.getElementById('btn-shaker').addEventListener('click', () => {
+    if (!sim.isShaking) {
+        stopShaking(); // Reset everything first
+        sim.isShaking = true;
+        animate();
+    }
+});
+
+// --- 5. INITIALIZATION ---
+setupControls();
+draw(0,0,0); // Initial static draw
+</script>
+</body>
+</html>

@@ -456,6 +456,26 @@ Understand the physics - why normal stress increases shear resistance
   </tr>
 </table>
 
+<table>
+  <tr align="center">
+    <th>Interactive 3D Seismic Moment Calculator!</th>
+    <th>Interactive Magnitude Scale Simulator!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l14_3d_seismic_moment_calculator.html">
+        <img src="interactive_visualizations/viz__l14_3d_seismic_moment_calculator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l14_magnitude_scale_simulator.html">
+        <img src="interactive_visualizations/viz__l14_magnitude_scale_simulator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
+
 ---------------------------------------------------------
 
 ## Lecture 15: Quake’s Focal Point

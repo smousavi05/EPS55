@@ -514,6 +514,7 @@ Understand the physics - why normal stress increases shear resistance
     <th>Seismic Wave Effects in Sedimentary Layers!</th>
     <th>Building Failure Encyclopedia!</th>
     <th>Interactive ShakeMap Simulator!</th>
+    <th>Site Amplification & Resonance Simulator!</th>
   </tr>
   
   <tr align="center">
@@ -535,6 +536,11 @@ Understand the physics - why normal stress increases shear resistance
     <td>
       <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l17_shakemap_simulator.html">
         <img src="interactive_visualizations/viz__l17_shakemap_simulator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l17_amplificaiton_and_building_resonance.html">
+        <img src="interactive_visualizations/viz__l17_amplificaiton_and_building_resonance.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
   </tr>

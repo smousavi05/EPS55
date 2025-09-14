@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Fault & Beachball Simulator</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f8; color: #1e2a3a; margin: 0; padding: 20px;
+        }
+        h1, h2 { text-align: center; }
+        .main-container {
+            display: flex; flex-wrap: wrap; gap: 20px; max-width: 1400px; margin: auto;
+        }
+        .controls-panel {
+            flex: 1; min-width: 400px; background: #ffffff; padding: 20px;
+            border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); align-self: flex-start;
+        }
+        .viewer-panel {
+            flex: 1.5; min-width: 600px; display: flex; flex-direction: column; gap: 20px;
+        }
+        .viz-container {
+            background: #ffffff; padding: 15px; border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;
+        }
+        #viewer-3d { height: 400px; background: #eaf2f8; border-radius: 5px; }
+        .control-group legend {
+            font-size: 1.2em; font-weight: bold; color: #0077b6;
+            border-bottom: 2px solid #0077b6; margin-bottom: 10px; padding-bottom: 5px;
+        }
+        .param-slider { margin-bottom: 15px; }
+        .param-slider label { display: block; margin-bottom: 5px; }
+        .param-slider input { width: 100%; }
+        #fault-type-box {
+            background-color: #e9ecef; padding: 15px; border-radius: 5px; text-align: center;
+            font-size: 1.5em; font-weight: bold; color: #e63946;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Interactive 3D Fault & Beachball Simulator</h1>
+    <div class="main-container">
+        <div class="controls-panel">
+            <div class="control-group">
+                <legend>1. Fault Parameters</legend>
+                <div class="param-slider">
+                    <label for="strike-slider">Strike: <span id="strike-value">45</span>°</label>
+                    <input type="range" id="strike-slider" min="0" max="360" value="45" step="1">
+                </div>
+                <div class="param-slider">
+                    <label for="dip-slider">Dip: <span id="dip-value">60</span>°</label>
+                    <input type="range" id="dip-slider" min="0" max="90" value="60" step="1">
+                </div>
+                <div class="param-slider">
+                    <label for="rake-slider">Rake (Slip Angle): <span id="rake-value">-90</span>°</label>
+                    <input type="range" id="rake-slider" min="-180" max="180" value="-90" step="1">
+                </div>
+            </div>
+            <div class="control-group">
+                <legend>2. Display Options</legend>
+                 <label><input type="checkbox" id="axes-toggle"> Show P, T, B Axes</label>
+            </div>
+            <div class="control-group">
+                <legend>3. Fault Type</legend>
+                <div id="fault-type-box">Normal</div>
+            </div>
+        </div>
+        <div class="viewer-panel">
+            <div class="viz-container">
+                <h2>3D Fault Motion</h2>
+                <div id="viewer-3d"></div>
+            </div>
+            <div class="viz-container">
+                 <h2>2D Beachball Diagram</h2>
+                <canvas id="beachball-canvas" width="300" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- 1. SETUP THREE.JS SCENE ---
+const container3D = document.getElementById('viewer-3d');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, container3D.clientWidth / container3D.clientHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(container3D.clientWidth, container3D.clientHeight);
+container3D.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const light = new THREE.DirectionalLight(0xffffff, 0.6);
+light.position.set(10, 20, 15);
+scene.add(light);
+
+const faultGroup = new THREE.Group();
+const crustMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, transparent: true, opacity: 0.5 });
+const footwall = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 5), crustMaterial);
+const hangingwall = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 5), crustMaterial);
+footwall.position.z = -2.5; hangingwall.position.z = 2.5;
+faultGroup.add(footwall, hangingwall);
+scene.add(faultGroup);
+
+const p_axis = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 6, 0xe63946);
+const t_axis = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), 6, 0x0077b6);
+const b_axis = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,0), 6, 0x000000);
+p_axis.visible = t_axis.visible = b_axis.visible = false;
+scene.add(p_axis, t_axis, b_axis);
+
+camera.position.set(10, 8, 20);
+camera.lookAt(0,0,0);
+
+function animate3D() { requestAnimationFrame(animate3D); renderer.render(scene, camera); }
+animate3D();
+
+// --- 2. GET CONTROLS & INITIAL STATE ---
+const sliders = { strike: document.getElementById('strike-slider'), dip: document.getElementById('dip-slider'), rake: document.getElementById('rake-slider') };
+const axesToggle = document.getElementById('axes-toggle');
+const beachballCanvas = document.getElementById('beachball-canvas');
+const bbCtx = beachballCanvas.getContext('2d');
+
+const toRad = (deg) => deg * Math.PI / 180;
+const toDeg = (rad) => rad * 180 / Math.PI;
+
+// --- 3. CORE UPDATE LOGIC ---
+function updateSimulation() {
+    const strike = parseFloat(sliders.strike.value), dip = parseFloat(sliders.dip.value), rake = parseFloat(sliders.rake.value);
+
+    document.getElementById('strike-value').textContent = `${strike}°`;
+    document.getElementById('dip-value').textContent = `${dip}°`;
+    document.getElementById('rake-value').textContent = `${rake}°`;
+    p_axis.visible = t_axis.visible = b_axis.visible = axesToggle.checked;
+
+    faultGroup.rotation.order = 'ZYX';
+    faultGroup.rotation.z = -toRad(strike);
+    faultGroup.rotation.x = -toRad(dip);
+    
+    const slipVector = new THREE.Vector3(Math.cos(toRad(rake)), Math.sin(toRad(rake)), 0);
+    slipVector.multiplyScalar(2.0);
+    hangingwall.position.set(slipVector.x, slipVector.y, 2.5);
+    footwall.position.set(-slipVector.x, -slipVector.y, -2.5);
+
+    drawBeachball(strike, dip, rake);
+    document.getElementById('fault-type-box').textContent = classifyFault(dip, rake);
+}
+
+// --- 4. BEACHBALL & AXES LOGIC ---
+
+// --- FIX: This entire section has been rewritten with a standard, robust algorithm. ---
+function drawBeachball(strike, dip, rake) {
+    const R = beachballCanvas.width / 2;
+    const s = toRad(strike), d = toRad(dip), r = toRad(rake);
+
+    bbCtx.clearRect(0, 0, 2*R, 2*R);
+    bbCtx.save();
+    bbCtx.translate(R, R);
+
+    // Calculate normals using the correct vector math
+    const { n1, n2 } = calculatePlaneNormals(s, d, r);
+
+    // Shading
+    bbCtx.beginPath();
+    bbCtx.arc(0, 0, R - 1, 0, 2 * Math.PI);
+    bbCtx.clip();
+    bbCtx.fillStyle = '#1e2a3a'; // Assume compressional is the fill
+    
+    for (let i = 0; i < 2; i++) {
+        bbCtx.beginPath();
+        const norm = (i === 0) ? n1 : n2;
+        const dip_direction = Math.atan2(norm.x, norm.y);
+        const dip_angle = Math.acos(norm.z);
+
+        if (Math.sin(dip_angle) !== 0) {
+            const radius = R / Math.tan(dip_angle);
+            const cx = -radius * Math.cos(dip_direction);
+            const cy = radius * Math.sin(dip_direction);
+            bbCtx.arc(cx, cy, R / Math.sin(dip_angle), -dip_direction - Math.PI / 2, -dip_direction + Math.PI / 2);
+        } else {
+             bbCtx.moveTo(-R * Math.sin(dip_direction), -R * Math.cos(dip_direction));
+             bbCtx.lineTo(R * Math.sin(dip_direction), R * Math.cos(dip_direction));
+        }
+        
+        bbCtx.arc(0, 0, R, -dip_direction + Math.PI / 2, -dip_direction - Math.PI / 2, true);
+        bbCtx.closePath();
+        bbCtx.fill();
+    }
+    
+    // Check if the center should be white instead
+    const is_center_white = (Math.cos(r) < 0 && Math.sin(d) < 0) || (Math.cos(d) < 0 && Math.sin(r) > 0);
+    if ((Math.sin(2*d)*Math.sin(r) > 0) ^ (bbCtx.fillStyle == 'white')) {
+        bbCtx.globalCompositeOperation = 'difference';
+        bbCtx.fillStyle = 'white';
+        bbCtx.fillRect(-R, -R, 2*R, 2*R);
+    }
+    
+    bbCtx.restore();
+    
+    // Outlines
+    bbCtx.save();
+    bbCtx.translate(R, R);
+    bbCtx.lineWidth = 2;
+    bbCtx.strokeStyle = 'black';
+    bbCtx.beginPath();
+    bbCtx.arc(0, 0, R - 1, 0, 2 * Math.PI);
+    bbCtx.clip();
+    
+    [n1, n2].forEach(norm => {
+        const dip_direction = Math.atan2(norm.x, norm.y);
+        const dip_angle = Math.acos(norm.z);
+        bbCtx.beginPath();
+        if (Math.sin(dip_angle) !== 0) {
+            const radius = R / Math.tan(dip_angle);
+            const cx = -radius * Math.cos(dip_direction);
+            const cy = radius * Math.sin(dip_direction);
+            bbCtx.arc(cx, cy, R / Math.sin(dip_angle), -dip_direction - Math.PI / 2, -dip_direction + Math.PI / 2);
+        } else {
+             bbCtx.moveTo(-R * Math.sin(dip_direction), -R * Math.cos(dip_direction));
+             bbCtx.lineTo(R * Math.sin(dip_direction), R * Math.cos(dip_direction));
+        }
+        bbCtx.stroke();
+    });
+
+    bbCtx.restore();
+    bbCtx.save();
+    bbCtx.translate(R, R);
+    bbCtx.beginPath();
+    bbCtx.arc(0, 0, R-1, 0, 2 * Math.PI);
+    bbCtx.stroke();
+    
+    // Axes
+    if (axesToggle.checked) {
+        const {P, T} = calculateAxesVectors(s,d,r);
+        plotAxisOnBeachball(P, 'P', '#e63946');
+        plotAxisOnBeachball(T, 'T', '#0077b6');
+    }
+    bbCtx.restore();
+}
+
+function plotAxisOnBeachball(axisVec, label, color) {
+    const R = beachballCanvas.width / 2;
+    if (axisVec.z < -0.01) return;
+    const takeoff = Math.acos(axisVec.z);
+    const r_proj = R * Math.tan(takeoff / 2);
+    const azi = Math.atan2(axisVec.x, axisVec.y);
+    const x = r_proj * Math.sin(azi);
+    const y = r_proj * Math.cos(azi);
+    
+    bbCtx.beginPath();
+    bbCtx.arc(x, y, 5, 0, 2 * Math.PI);
+    bbCtx.fillStyle = color;
+    bbCtx.fill();
+    bbCtx.fillStyle = 'black';
+    bbCtx.font = 'bold 14px Arial';
+    bbCtx.fillText(label, x + 8, y + 5);
+}
+
+// --- 5. HELPER FUNCTIONS ---
+function classifyFault(dip, rake) {
+    if (rake >= -45 && rake <= 45) return "Right-Lateral Strike-Slip";
+    if (rake >= 135 || rake <= -135) return "Left-Lateral Strike-Slip";
+    if (rake > 45 && rake < 135) return "Thrust / Reverse";
+    if (rake < -45 && rake > -135) return "Normal";
+    return "Oblique";
+}
+
+function calculateAxesVectors(s, d, r) {
+    const n = new THREE.Vector3(-Math.sin(s)*Math.sin(d), Math.cos(s)*Math.sin(d), -Math.cos(d));
+    const u = new THREE.Vector3(Math.cos(r)*Math.cos(s) + Math.sin(r)*Math.sin(s)*Math.cos(d), Math.cos(r)*Math.sin(s) - Math.sin(r)*Math.cos(s)*Math.cos(d), Math.sin(r)*Math.sin(d));
+    const T = new THREE.Vector3().subVectors(u, n).normalize();
+    const P = new THREE.Vector3().addVectors(u, n).normalize().negate();
+    const B = new THREE.Vector3().crossVectors(n, u).normalize();
+    p_axis.setDirection(P); t_axis.setDirection(T); b_axis.setDirection(B);
+    return {P, T, B};
+}
+
+function calculatePlaneNormals(s,d,r) {
+    const u = new THREE.Vector3(Math.cos(r)*Math.cos(s) + Math.sin(r)*Math.sin(s)*Math.cos(d), Math.cos(r)*Math.sin(s) - Math.sin(r)*Math.cos(s)*Math.cos(d), Math.sin(r)*Math.sin(d));
+    const n1 = new THREE.Vector3(-Math.sin(s)*Math.sin(d), Math.cos(s)*Math.sin(d), -Math.cos(d));
+    const n2 = u; // The slip vector is the normal to the auxiliary plane.
+    const { P, T } = calculateAxesVectors(s,d,r);
+    return { P, T, n1, n2 };
+}
+
+// --- 6. EVENT LISTENERS ---
+Object.values(sliders).forEach(slider => slider.addEventListener('input', updateSimulation));
+axesToggle.addEventListener('change', updateSimulation);
+window.addEventListener('resize', () => {
+    camera.aspect = container3D.clientWidth / container3D.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container3D.clientWidth, container3D.clientHeight);
+});
+
+// --- 7. INITIALIZATION ---
+updateSimulation();
+</script>
+</body>
+</html>

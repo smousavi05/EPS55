@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Moment Tensor Decomposer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f8; color: #1e2a3a; margin: 0; padding: 20px;
+        }
+        h1, h2 { text-align: center; }
+        .main-container {
+            display: flex; flex-wrap: wrap; gap: 20px; max-width: 1200px; margin: auto;
+        }
+        .controls-panel {
+            flex: 1; min-width: 350px; background: #ffffff; padding: 20px;
+            border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); align-self: flex-start;
+        }
+        .viewer-panel {
+            flex: 1.5; min-width: 600px;
+        }
+        .viz-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+        }
+        .viz-container {
+            background: #ffffff; padding: 15px; border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center;
+        }
+        .viz-container canvas { display: block; width: 100%; height: auto; background-color: #f8f9fa; border-radius: 5px; }
+        .control-group legend {
+            font-size: 1.2em; font-weight: bold; color: #0077b6;
+            border-bottom: 2px solid #0077b6; margin-bottom: 10px; padding-bottom: 5px;
+        }
+        .param-slider { margin-bottom: 15px; }
+        .param-slider label { display: block; margin-bottom: 5px; }
+        .param-slider input { width: 100%; }
+        #interp-box {
+            background-color: #e9ecef; padding: 15px; border-radius: 5px;
+            min-height: 80px; font-style: italic; color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Interactive Moment Tensor Decomposer ⚛️</h1>
+    <div class="main-container">
+        <div class="controls-panel">
+            <div class="control-group">
+                <legend>1. Adjust Components</legend>
+                <div class="param-slider">
+                    <label for="iso-slider">Isotropic (ISO): <span id="iso-value">0</span>%</label>
+                    <input type="range" class="component-slider" id="iso-slider" min="0" max="100" value="0" step="1">
+                </div>
+                <div class="param-slider">
+                    <label for="dc-slider">Double-Couple (DC): <span id="dc-value">100</span>%</label>
+                    <input type="range" class="component-slider" id="dc-slider" min="0" max="100" value="100" step="1">
+                </div>
+                <div class="param-slider">
+                    <label for="clvd-slider">CLVD: <span id="clvd-value">0</span>%</label>
+                    <input type="range" class="component-slider" id="clvd-slider" min="0" max="100" value="0" step="1">
+                </div>
+            </div>
+            <div class="control-group">
+                <legend>2. Physical Interpretation</legend>
+                <div id="interp-box"></div>
+            </div>
+        </div>
+        <div class="viewer-panel">
+            <div class="viz-grid">
+                <div class="viz-container">
+                    <h3>Isotropic (ISO)</h3>
+                    <canvas id="iso-canvas" width="300" height="300"></canvas>
+                </div>
+                <div class="viz-container">
+                    <h3>Double-Couple (DC)</h3>
+                    <canvas id="dc-canvas" width="300" height="300"></canvas>
+                </div>
+                <div class="viz-container">
+                    <h3>CLVD</h3>
+                    <canvas id="clvd-canvas" width="300" height="300"></canvas>
+                </div>
+                <div class="viz-container">
+                    <h2>Composite Beachball</h2>
+                    <canvas id="beachball-canvas" width="300" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- 1. SETUP & STATE MANAGEMENT ---
+const sliders = {
+    iso: document.getElementById('iso-slider'),
+    dc: document.getElementById('dc-slider'),
+    clvd: document.getElementById('clvd-slider'),
+};
+const displays = {
+    iso: document.getElementById('iso-value'),
+    dc: document.getElementById('dc-value'),
+    clvd: document.getElementById('clvd-value'),
+};
+const interpBox = document.getElementById('interp-box');
+
+const canvases = {
+    iso: document.getElementById('iso-canvas').getContext('2d'),
+    dc: document.getElementById('dc-canvas').getContext('2d'),
+    clvd: document.getElementById('clvd-canvas').getContext('2d'),
+    beachball: document.getElementById('beachball-canvas').getContext('2d'),
+};
+
+let percentages = { iso: 0, dc: 100, clvd: 0 };
+let animationTime = 0;
+
+// --- 2. COMPONENT ANIMATIONS ---
+function drawComponentAnimations(time) {
+    const w = 300, h = 300, R = w / 2;
+    const animOffset = Math.sin(time * 3) * 10;
+
+    // ISO
+    canvases.iso.clearRect(0,0,w,h);
+    const isoRadius = 40 + animOffset * (percentages.iso / 100);
+    canvases.iso.beginPath();
+    canvases.iso.arc(R, R, isoRadius, 0, 2 * Math.PI);
+    canvases.iso.fillStyle = 'rgba(230, 57, 70, 0.5)';
+    canvases.iso.fill();
+    canvases.iso.strokeStyle = '#e63946';
+    canvases.iso.stroke();
+
+    // DC
+    canvases.dc.clearRect(0,0,w,h);
+    const dcOffset = animOffset * (percentages.dc / 100);
+    drawArrow(canvases.dc, R-50, R-50, R-50+dcOffset, R-50+dcOffset);
+    drawArrow(canvases.dc, R+50, R+50, R+50-dcOffset, R+50-dcOffset);
+    drawArrow(canvases.dc, R-50, R+50, R-50+dcOffset, R+50-dcOffset);
+    drawArrow(canvases.dc, R+50, R-50, R+50-dcOffset, R-50+dcOffset);
+
+    // CLVD
+    canvases.clvd.clearRect(0,0,w,h);
+    const clvdOffset = animOffset * (percentages.clvd / 100);
+    drawArrow(canvases.clvd, R, R-50, R, R-50-clvdOffset*2); // Main dipole
+    drawArrow(canvases.clvd, R, R+50, R, R+50+clvdOffset*2);
+    drawArrow(canvases.clvd, R-50, R, R-50+clvdOffset, R); // Compensating
+    drawArrow(canvases.clvd, R+50, R, R+50-clvdOffset, R);
+
+}
+
+function drawArrow(ctx, fromx, fromy, tox, toy) {
+    const headlen = 10;
+    const dx = tox - fromx;
+    const dy = toy - fromy;
+    const angle = Math.atan2(dy, dx);
+    ctx.beginPath();
+    ctx.moveTo(fromx, fromy);
+    ctx.lineTo(tox, toy);
+    ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+    ctx.moveTo(tox, toy);
+    ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+    ctx.strokeStyle = '#1d3557';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
+
+// --- 3. COMPOSITE BEACHBALL LOGIC ---
+function drawCompositeBeachball() {
+    const w = 300, h = 300, R = w / 2;
+    const ctx = canvases.beachball;
+    const imageData = ctx.createImageData(w, h);
+    const data = imageData.data;
+
+    const p_iso = percentages.iso / 100.0;
+    const p_dc = percentages.dc / 100.0;
+    const p_clvd = percentages.clvd / 100.0;
+
+    for (let i = 0; i < w; i++) {
+        for (let j = 0; j < h; j++) {
+            const x = (i - R) / R;
+            const y = (j - R) / R;
+            const r_sq = x*x + y*y;
+
+            if (r_sq <= 1) {
+                const r = Math.sqrt(r_sq);
+                const takeoff = 2 * Math.atan(r);
+                const azimuth = Math.atan2(x, y);
+
+                // P-wave radiation patterns for canonical components
+                const rad_iso = 1.0;
+                const rad_dc = Math.sin(2 * takeoff) * Math.sin(2 * azimuth); // Vertical strike-slip
+                const rad_clvd = 1 - 3 * Math.cos(takeoff)**2; // Vertical CLVD
+
+                const total_radiation = p_iso * rad_iso + p_dc * rad_dc + p_clvd * rad_clvd;
+                
+                const index = (j * w + i) * 4;
+                if (total_radiation >= 0) { // Compression
+                    data[index] = 30; data[index+1] = 42; data[index+2] = 58; data[index+3] = 255;
+                } else { // Dilation
+                    data[index] = 255; data[index+1] = 255; data[index+2] = 255; data[index+3] = 255;
+                }
+            }
+        }
+    }
+    ctx.putImageData(imageData, 0, 0);
+
+    // Draw outline
+    ctx.beginPath();
+    ctx.arc(R, R, R-1, 0, 2*Math.PI);
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
+
+// --- 4. UI & INTERPRETATION ---
+function handleSliderInput(changedSliderId) {
+    const slidersArray = Object.values(sliders);
+    let total = slidersArray.reduce((sum, s) => sum + parseFloat(s.value), 0);
+
+    slidersArray.forEach(s => {
+        const value = parseFloat(s.value);
+        const percentage = total > 0 ? (value / total * 100) : (s.id === changedSliderId ? 100 : 0);
+        const key = s.id.replace('-slider', '');
+        percentages[key] = percentage;
+        displays[key].textContent = `${percentage.toFixed(0)}%`;
+    });
+    
+    // Normalize slider positions to reflect percentages
+    sliders.iso.value = percentages.iso;
+    sliders.dc.value = percentages.dc;
+    sliders.clvd.value = percentages.clvd;
+
+    drawCompositeBeachball();
+    updateInterpretation();
+}
+
+function updateInterpretation() {
+    let text = "Source Type: ";
+    if (percentages.dc > 75) text += "Predominantly **Double-Couple**, indicating simple shear faulting.";
+    else if (percentages.iso > 25) text += "Strong **Isotropic** component, suggesting an explosion or collapse.";
+    else if (percentages.clvd > 25) text += "Strong **CLVD** component, indicating complex faulting like tensile cracking or dike intrusion.";
+    else text += "A **composite source** with mixed faulting types.";
+
+    interpBox.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+}
+
+// --- 5. MAIN LOOP & EVENT LISTENERS ---
+function animate() {
+    animationTime += 0.02;
+    drawComponentAnimations(animationTime);
+    requestAnimationFrame(animate);
+}
+
+Object.values(sliders).forEach(slider => {
+    slider.addEventListener('input', () => handleSliderInput(slider.id));
+});
+
+
+// --- 6. INITIALIZATION ---
+handleSliderInput('dc-slider'); // Set initial state
+animate(); // Start component animations
+
+</script>
+</body>
+</html>

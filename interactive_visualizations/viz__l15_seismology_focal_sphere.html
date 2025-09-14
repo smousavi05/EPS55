@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seismologist Focal Sphere Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .focal-sphere-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .focal-sphere {
+            width: 500px;
+            height: 500px;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, #f8f9fa 0%, #e9ecef 100%);
+            position: relative;
+            cursor: crosshair;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .focal-sphere::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #ccc;
+            transform: translateY(-50%);
+        }
+
+        .focal-sphere::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #ccc;
+            transform: translateX(-50%);
+        }
+
+        .station {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+            border: 2px solid #333;
+            z-index: 10;
+        }
+
+        .station.compression {
+            background: #ff4757;
+        }
+
+        .station.dilation {
+            background: transparent;
+            border: 3px solid #2f3542;
+        }
+
+        .nodal-plane {
+            position: absolute;
+            stroke: #2c2c54;
+            stroke-width: 3;
+            fill: none;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .beach-ball-quadrant {
+            position: absolute;
+            z-index: 1;
+            opacity: 0.7;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(5px);
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+        }
+
+        .control-section h3 {
+            margin-bottom: 15px;
+            color: #fff;
+            font-size: 1.2em;
+        }
+
+        .button {
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin: 5px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button.active {
+            background: linear-gradient(145deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .polarity-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .status-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .fault-type {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ffd700;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .ambiguity-warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .real-data-section {
+            border-top: 2px solid rgba(255, 255, 255, 0.3);
+            padding-top: 20px;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-symbol {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+
+        .legend-symbol.compression {
+            background: #ff4757;
+        }
+
+        .legend-symbol.dilation {
+            background: transparent;
+        }
+
+        @media (max-width: 1200px) {
+            .game-area {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .focal-sphere {
+                width: 400px;
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Seismologist Focal Sphere Tool</h1>
+        
+        <div class="game-area">
+            <div class="focal-sphere-container">
+                <div class="focal-sphere" id="focalSphere">
+                    <svg id="nodalPlanes" width="500" height="500" style="position: absolute; top: 0; left: 0;">
+                    </svg>
+                </div>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-symbol compression"></div>
+                        <span>Compression (Up)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-symbol dilation"></div>
+                        <span>Dilation (Down)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="control-section">
+                    <h3>Station Placement</h3>
+                    <p>Click on the focal sphere to place seismic stations, then assign polarity.</p>
+                    
+                    <div class="polarity-buttons">
+                        <button class="button" id="compressionBtn" onclick="setPolarity('compression')">
+                            🔴 Compression (Up)
+                        </button>
+                        <button class="button" id="dilationBtn" onclick="setPolarity('dilation')">
+                            ⚪ Dilation (Down)
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="control-section">
+                    <h3>Analysis Tools</h3>
+                    <button class="button" onclick="toggleNodalPlaneMode()">
+                        📐 Draw Nodal Planes
+                    </button>
+                    <button class="button" onclick="generateBeachBall()">
+                        🏐 Generate Beach Ball
+                    </button>
+                    <button class="button" onclick="clearAll()">
+                        🗑️ Clear All
+                    </button>
+                </div>
+                
+                <div class="status-panel">
+                    <h3>Analysis Status</h3>
+                    <div class="status-item">
+                        <span>Stations Placed:</span>
+                        <span id="stationCount">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Compression:</span>
+                        <span id="compressionCount">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Dilation:</span>
+                        <span id="dilationCount">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Nodal Planes:</span>
+                        <span id="nodalPlaneCount">0</span>
+                    </div>
+                </div>
+                
+                <div class="fault-type" id="faultType">
+                    Place stations to begin analysis
+                </div>
+                
+                <div id="ambiguityWarning" class="ambiguity-warning" style="display: none;">
+                    ⚠️ Solution poorly constrained - need more stations or better distribution
+                </div>
+                
+                <div class="real-data-section">
+                    <h3>Real Data Examples</h3>
+                    <button class="button" onclick="loadRealData('normal')">
+                        Load Normal Fault Example
+                    </button>
+                    <button class="button" onclick="loadRealData('thrust')">
+                        Load Thrust Fault Example
+                    </button>
+                    <button class="button" onclick="loadRealData('strikeslip')">
+                        Load Strike-Slip Example
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class FocalSphereApp {
+            constructor() {
+                this.stations = [];
+                this.nodalPlanes = [];
+                this.currentPolarity = 'compression';
+                this.isDrawingNodalPlane = false;
+                this.currentNodalPlanePath = null;
+                this.beachBallQuadrants = [];
+                
+                this.initEventListeners();
+                this.updateStatus();
+            }
+            
+            initEventListeners() {
+                const sphere = document.getElementById('focalSphere');
+                sphere.addEventListener('click', (e) => this.handleSphereClick(e));
+                
+                // Set default polarity
+                document.getElementById('compressionBtn').classList.add('active');
+            }
+            
+            handleSphereClick(e) {
+                const rect = e.target.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Check if click is within the circle
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const radius = Math.min(centerX, centerY) - 3; // Account for border
+                const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                
+                if (distance <= radius) {
+                    if (this.isDrawingNodalPlane) {
+                        this.addNodalPlanePoint(x, y);
+                    } else {
+                        this.addStation(x, y);
+                    }
+                }
+            }
+            
+            addStation(x, y) {
+                const station = {
+                    id: Date.now(),
+                    x: x,
+                    y: y,
+                    polarity: this.currentPolarity
+                };
+                
+                this.stations.push(station);
+                this.renderStation(station);
+                this.updateStatus();
+                this.analyzeData();
+            }
+            
+            renderStation(station) {
+                const sphere = document.getElementById('focalSphere');
+                const stationElement = document.createElement('div');
+                stationElement.className = `station ${station.polarity}`;
+                stationElement.style.left = station.x + 'px';
+                stationElement.style.top = station.y + 'px';
+                stationElement.dataset.stationId = station.id;
+                
+                stationElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleStationPolarity(station.id);
+                });
+                
+                sphere.appendChild(stationElement);
+            }
+            
+            toggleStationPolarity(stationId) {
+                const station = this.stations.find(s => s.id === stationId);
+                if (station) {
+                    station.polarity = station.polarity === 'compression' ? 'dilation' : 'compression';
+                    
+                    const stationElement = document.querySelector(`[data-station-id="${stationId}"]`);
+                    stationElement.className = `station ${station.polarity}`;
+                    
+                    this.updateStatus();
+                    this.analyzeData();
+                }
+            }
+            
+            setPolarity(polarity) {
+                this.currentPolarity = polarity;
+                
+                document.getElementById('compressionBtn').classList.remove('active');
+                document.getElementById('dilationBtn').classList.remove('active');
+                document.getElementById(`${polarity}Btn`).classList.add('active');
+            }
+            
+            toggleNodalPlaneMode() {
+                this.isDrawingNodalPlane = !this.isDrawingNodalPlane;
+                
+                if (this.isDrawingNodalPlane) {
+                    document.getElementById('focalSphere').style.cursor = 'crosshair';
+                    this.currentNodalPlanePath = [];
+                } else {
+                    document.getElementById('focalSphere').style.cursor = 'default';
+                    if (this.currentNodalPlanePath && this.currentNodalPlanePath.length > 1) {
+                        this.finalizeNodalPlane();
+                    }
+                }
+            }
+            
+            addNodalPlanePoint(x, y) {
+                if (!this.currentNodalPlanePath) {
+                    this.currentNodalPlanePath = [];
+                }
+                
+                this.currentNodalPlanePath.push({x, y});
+                
+                if (this.currentNodalPlanePath.length >= 2) {
+                    this.renderCurrentNodalPlane();
+                }
+            }
+            
+            renderCurrentNodalPlane() {
+                const svg = document.getElementById('nodalPlanes');
+                
+                // Remove previous temporary path
+                const tempPath = svg.querySelector('.temp-nodal-plane');
+                if (tempPath) {
+                    tempPath.remove();
+                }
+                
+                // Create smooth curve through points
+                const pathData = this.createSmoothPath(this.currentNodalPlanePath);
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('class', 'nodal-plane temp-nodal-plane');
+                path.setAttribute('stroke', '#2c2c54');
+                path.setAttribute('stroke-width', '3');
+                path.setAttribute('fill', 'none');
+                
+                svg.appendChild(path);
+            }
+            
+            finalizeNodalPlane() {
+                if (this.currentNodalPlanePath && this.currentNodalPlanePath.length > 1) {
+                    this.nodalPlanes.push([...this.currentNodalPlanePath]);
+                    
+                    // Remove temp class
+                    const tempPath = document.querySelector('.temp-nodal-plane');
+                    if (tempPath) {
+                        tempPath.classList.remove('temp-nodal-plane');
+                    }
+                    
+                    this.currentNodalPlanePath = null;
+                    this.updateStatus();
+                    this.analyzeData();
+                }
+            }
+            
+            createSmoothPath(points) {
+                if (points.length < 2) return '';
+                
+                let path = `M ${points[0].x} ${points[0].y}`;
+                
+                for (let i = 1; i < points.length; i++) {
+                    const prevPoint = points[i - 1];
+                    const currentPoint = points[i];
+                    
+                    if (i === 1) {
+                        path += ` Q ${prevPoint.x} ${prevPoint.y} ${(prevPoint.x + currentPoint.x) / 2} ${(prevPoint.y + currentPoint.y) / 2}`;
+                    } else {
+                        path += ` T ${currentPoint.x} ${currentPoint.y}`;
+                    }
+                }
+                
+                return path;
+            }
+            
+            generateBeachBall() {
+                if (this.nodalPlanes.length < 2) {
+                    alert('Please draw at least 2 nodal planes first!');
+                    return;
+                }
+                
+                this.clearBeachBall();
+                
+                // Simplified beach ball generation - shade compression quadrants
+                const compressionStations = this.stations.filter(s => s.polarity === 'compression');
+                
+                compressionStations.forEach(station => {
+                    this.addBeachBallQuadrant(station.x, station.y);
+                });
+                
+                this.analyzeData();
+            }
+            
+            addBeachBallQuadrant(centerX, centerY) {
+                const sphere = document.getElementById('focalSphere');
+                const quadrant = document.createElement('div');
+                quadrant.className = 'beach-ball-quadrant';
+                quadrant.style.left = (centerX - 25) + 'px';
+                quadrant.style.top = (centerY - 25) + 'px';
+                quadrant.style.width = '50px';
+                quadrant.style.height = '50px';
+                quadrant.style.background = 'rgba(255, 71, 87, 0.3)';
+                quadrant.style.borderRadius = '50%';
+                
+                sphere.appendChild(quadrant);
+                this.beachBallQuadrants.push(quadrant);
+            }
+            
+            clearBeachBall() {
+                // Remove SVG beach ball overlay
+                const beachBallSvg = document.getElementById('beachBallSvg');
+                if (beachBallSvg) {
+                    beachBallSvg.remove();
+                }
+                
+                // Remove any remaining quadrant elements
+                this.beachBallQuadrants.forEach(quadrant => {
+                    if (quadrant && quadrant.remove) {
+                        quadrant.remove();
+                    }
+                });
+                this.beachBallQuadrants = [];
+            }
+            
+            analyzeData() {
+                const compressionCount = this.stations.filter(s => s.polarity === 'compression').length;
+                const dilationCount = this.stations.filter(s => s.polarity === 'dilation').length;
+                const totalStations = this.stations.length;
+                
+                // Determine fault type based on station distribution
+                let faultType = 'Unknown';
+                let showAmbiguity = false;
+                
+                if (totalStations >= 4 && this.nodalPlanes.length >= 1) {
+                    const compressionRatio = compressionCount / totalStations;
+                    
+                    if (compressionRatio > 0.7) {
+                        faultType = 'Thrust Fault (Reverse)';
+                    } else if (compressionRatio < 0.3) {
+                        faultType = 'Normal Fault';
+                    } else if (Math.abs(compressionRatio - 0.5) < 0.2) {
+                        faultType = 'Strike-Slip Fault';
+                    } else {
+                        faultType = 'Mixed Mechanism';
+                    }
+                    
+                    // Check for ambiguity
+                    if (totalStations < 6 || this.isStationDistributionPoor()) {
+                        showAmbiguity = true;
+                    }
+                } else if (totalStations > 0) {
+                    faultType = 'Need more data';
+                    showAmbiguity = totalStations < 4;
+                }
+                
+                document.getElementById('faultType').textContent = faultType;
+                document.getElementById('ambiguityWarning').style.display = showAmbiguity ? 'block' : 'none';
+            }
+            
+            isStationDistributionPoor() {
+                // Simple check for station distribution
+                const centerX = 250;
+                const centerY = 250;
+                
+                let quadrants = [0, 0, 0, 0]; // NE, NW, SW, SE
+                
+                this.stations.forEach(station => {
+                    const relX = station.x - centerX;
+                    const relY = station.y - centerY;
+                    
+                    if (relX >= 0 && relY <= 0) quadrants[0]++; // NE
+                    else if (relX < 0 && relY <= 0) quadrants[1]++; // NW
+                    else if (relX < 0 && relY > 0) quadrants[2]++; // SW
+                    else quadrants[3]++; // SE
+                });
+                
+                // Poor distribution if any quadrant is empty
+                return quadrants.some(count => count === 0);
+            }
+            
+            updateStatus() {
+                const compressionCount = this.stations.filter(s => s.polarity === 'compression').length;
+                const dilationCount = this.stations.filter(s => s.polarity === 'dilation').length;
+                
+                document.getElementById('stationCount').textContent = this.stations.length;
+                document.getElementById('compressionCount').textContent = compressionCount;
+                document.getElementById('dilationCount').textContent = dilationCount;
+                document.getElementById('nodalPlaneCount').textContent = this.nodalPlanes.length;
+            }
+            
+            clearAll() {
+                // Remove all stations
+                this.stations = [];
+                document.querySelectorAll('.station').forEach(el => el.remove());
+                
+                // Clear nodal planes
+                this.nodalPlanes = [];
+                document.getElementById('nodalPlanes').innerHTML = '';
+                
+                // Clear beach ball
+                this.clearBeachBall();
+                
+                // Reset state
+                this.isDrawingNodalPlane = false;
+                this.currentNodalPlanePath = null;
+                document.getElementById('focalSphere').style.cursor = 'crosshair';
+                
+                this.updateStatus();
+                this.analyzeData();
+            }
+            
+            loadRealData(faultType) {
+                this.clearAll();
+                
+                const datasets = {
+                    normal: [
+                        {x: 150, y: 100, polarity: 'dilation'},
+                        {x: 350, y: 100, polarity: 'dilation'},
+                        {x: 100, y: 250, polarity: 'compression'},
+                        {x: 400, y: 250, polarity: 'compression'},
+                        {x: 150, y: 400, polarity: 'dilation'},
+                        {x: 350, y: 400, polarity: 'dilation'},
+                        {x: 250, y: 150, polarity: 'dilation'},
+                        {x: 250, y: 350, polarity: 'dilation'}
+                    ],
+                    thrust: [
+                        {x: 150, y: 100, polarity: 'compression'},
+                        {x: 350, y: 100, polarity: 'compression'},
+                        {x: 100, y: 250, polarity: 'dilation'},
+                        {x: 400, y: 250, polarity: 'dilation'},
+                        {x: 150, y: 400, polarity: 'compression'},
+                        {x: 350, y: 400, polarity: 'compression'},
+                        {x: 250, y: 150, polarity: 'compression'},
+                        {x: 250, y: 350, polarity: 'compression'}
+                    ],
+                    strikeslip: [
+                        {x: 150, y: 150, polarity: 'compression'},
+                        {x: 350, y: 150, polarity: 'dilation'},
+                        {x: 150, y: 350, polarity: 'dilation'},
+                        {x: 350, y: 350, polarity: 'compression'},
+                        {x: 250, y: 100, polarity: 'compression'},
+                        {x: 250, y: 400, polarity: 'compression'},
+                        {x: 100, y: 250, polarity: 'dilation'},
+                        {x: 400, y: 250, polarity: 'dilation'}
+                    ]
+                };
+                
+                const data = datasets[faultType];
+                data.forEach(station => {
+                    const stationObj = {
+                        id: Date.now() + Math.random(),
+                        x: station.x,
+                        y: station.y,
+                        polarity: station.polarity
+                    };
+                    this.stations.push(stationObj);
+                    this.renderStation(stationObj);
+                });
+                
+                this.updateStatus();
+                this.analyzeData();
+            }
+        }
+        
+        // Global functions for button handlers
+        let app;
+        
+        function setPolarity(polarity) {
+            app.setPolarity(polarity);
+        }
+        
+        function toggleNodalPlaneMode() {
+            app.toggleNodalPlaneMode();
+        }
+        
+        function generateBeachBall() {
+            app.generateBeachBall();
+        }
+        
+        function clearAll() {
+            app.clearAll();
+        }
+        
+        function loadRealData(faultType) {
+            app.loadRealData(faultType);
+        }
+        
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new FocalSphereApp();
+        });
+    </script>
+</body>
+</html>

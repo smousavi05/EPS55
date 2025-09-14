@@ -580,7 +580,7 @@ Understand the physics - why normal stress increases shear resistance
 
 ---------------------------------------------------------
 
-## Lecture 13: Earthquake Location
+## Lecture 18: Earthquake Interactions
 
 <table>
   <tr align="center">

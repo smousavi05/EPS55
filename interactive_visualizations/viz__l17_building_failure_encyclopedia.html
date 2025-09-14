@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building Failure Encyclopedia</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+        }
+
+        .failure-selector {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            height: fit-content;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .failure-selector h3 {
+            margin-bottom: 20px;
+            color: #ffd700;
+            font-size: 1.3em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .failure-button {
+            display: block;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        .failure-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .failure-button.active {
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            border-color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .failure-button strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 15px;
+        }
+
+        .failure-button small {
+            opacity: 0.8;
+            font-size: 12px;
+        }
+
+        .visualization-area {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .building-stage {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(180deg, #87CEEB 0%, #98D982 50%, #8B4513 100%);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(180deg, #654321 0%, #8B4513 100%);
+        }
+
+        .building {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: all 0.5s ease;
+        }
+
+        /* Building Styles */
+        .soft-story-building {
+            width: 80px;
+            transform-origin: bottom center;
+        }
+
+        .floor {
+            width: 80px;
+            height: 40px;
+            background: linear-gradient(180deg, #4169E1 0%, #191970 100%);
+            border: 2px solid #fff;
+            border-bottom: none;
+            position: relative;
+        }
+
+        .ground-floor {
+            height: 60px;
+            background: linear-gradient(180deg, #FF6347 0%, #DC143C 100%);
+            border-bottom: 2px solid #fff;
+        }
+
+        .pancake-building {
+            width: 100px;
+            transform-origin: bottom center;
+        }
+
+        .pancake-floor {
+            width: 100px;
+            height: 35px;
+            background: linear-gradient(180deg, #4169E1 0%, #191970 100%);
+            border: 2px solid #fff;
+            border-bottom: none;
+            position: relative;
+            transition: all 0.8s ease;
+        }
+
+        .masonry-building {
+            width: 90px;
+            height: 200px;
+            background: linear-gradient(180deg, #B22222 0%, #8B0000 100%);
+            border: 2px solid #fff;
+            position: relative;
+            transform-origin: bottom center;
+        }
+
+        .brick-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 18px,
+                    rgba(255,255,255,0.3) 18px,
+                    rgba(255,255,255,0.3) 20px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 28px,
+                    rgba(255,255,255,0.3) 28px,
+                    rgba(255,255,255,0.3) 30px
+                );
+        }
+
+        .foundation-building {
+            width: 80px;
+            height: 160px;
+            background: linear-gradient(180deg, #4169E1 0%, #191970 100%);
+            border: 2px solid #fff;
+            transform-origin: bottom center;
+        }
+
+        .foundation {
+            position: absolute;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 20px;
+            background: #696969;
+            border: 2px solid #fff;
+        }
+
+        .liquefaction-soil {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(180deg, #4682B4 0%, #191970 100%);
+            opacity: 0;
+            transition: all 1s ease;
+        }
+
+        /* Animation Classes */
+        .shaking {
+            animation: shake 0.2s ease-in-out infinite;
+        }
+
+        .collapsing-soft-story .ground-floor {
+            height: 20px;
+            background: linear-gradient(180deg, #8B0000 0%, #4B0000 100%);
+        }
+
+        .pancake-collapsed .pancake-floor {
+            height: 8px;
+            margin-top: -20px;
+        }
+
+        .masonry-failed {
+            transform: rotate(15deg);
+        }
+
+        .masonry-failed::before {
+            content: '';
+            position: absolute;
+            top: 30%;
+            left: -10px;
+            width: 20px;
+            height: 40px;
+            background: #B22222;
+            transform: rotate(-45deg);
+        }
+
+        .foundation-failed {
+            transform: translateX(-50%) rotate(-10deg) translateY(30px);
+        }
+
+        .liquefaction-active .liquefaction-soil {
+            opacity: 0.8;
+        }
+
+        .liquefaction-tilted {
+            transform: translateX(-50%) rotate(-15deg) translateY(40px);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            25% { transform: translateX(-52%) translateY(-2px); }
+            50% { transform: translateX(-48%) translateY(2px); }
+            75% { transform: translateX(-52%) translateY(-1px); }
+        }
+
+        .info-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .characteristics-panel, .solutions-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .characteristics-panel h4, .solutions-panel h4 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .seismogram {
+            width: 100%;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .wave-pattern {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #00ff00;
+            transform: translateY(-50%);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .control-button {
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-button.active {
+            background: linear-gradient(145deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .failure-description {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .reinforcement-visual {
+            position: absolute;
+            opacity: 0;
+            transition: all 0.5s ease;
+        }
+
+        .shear-wall {
+            position: absolute;
+            bottom: 100px;
+            left: calc(50% - 45px);
+            width: 10px;
+            height: 200px;
+            background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%);
+            border: 2px solid #fff;
+        }
+
+        .base-isolator {
+            position: absolute;
+            bottom: 95px;
+            left: calc(50% - 50px);
+            width: 100px;
+            height: 10px;
+            background: repeating-linear-gradient(
+                90deg,
+                #FF4500 0px,
+                #FF4500 10px,
+                #000 10px,
+                #000 20px
+            );
+            border: 2px solid #fff;
+        }
+
+        .steel-frame {
+            position: absolute;
+            bottom: 100px;
+            left: calc(50% - 40px);
+            width: 80px;
+            height: 160px;
+            border: 3px solid #C0C0C0;
+            background: none;
+        }
+
+        .steel-frame::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #C0C0C0;
+        }
+
+        .deep-foundation {
+            position: absolute;
+            bottom: 50px;
+            left: calc(50% - 5px);
+            width: 10px;
+            height: 80px;
+            background: #696969;
+            border: 2px solid #fff;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .info-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏗️ Building Failure Encyclopedia</h1>
+            <p class="subtitle">Interactive guide to earthquake-induced structural failures and reinforcement solutions</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="failure-selector">
+                <h3>Failure Types</h3>
+                
+                <button class="failure-button active" data-failure="soft-story">
+                    <strong>Soft-Story Collapse</strong>
+                    <small>Ground floor weakness leads to buckling</small>
+                </button>
+                
+                <button class="failure-button" data-failure="pancake">
+                    <strong>Pancake Collapse</strong>
+                    <small>Progressive floor-by-floor failure</small>
+                </button>
+                
+                <button class="failure-button" data-failure="masonry">
+                    <strong>Unreinforced Masonry</strong>
+                    <small>Brick walls crack and fall outward</small>
+                </button>
+                
+                <button class="failure-button" data-failure="foundation">
+                    <strong>Foundation Failure</strong>
+                    <small>Structural tilting due to foundation issues</small>
+                </button>
+                
+                <button class="failure-button" data-failure="liquefaction">
+                    <strong>Liquefaction Tilting</strong>
+                    <small>Ground liquefies, causing sinking/tilting</small>
+                </button>
+            </div>
+            
+            <div class="visualization-area">
+                <div class="failure-description" id="failure-description">
+                    <h3 id="failure-title">Soft-Story Collapse</h3>
+                    <p id="failure-text">Occurs when the ground floor is significantly weaker than upper floors, often due to large openings (garages, storefronts) or fewer walls. During earthquake shaking, the weak story concentrates deformation and eventually collapses.</p>
+                </div>
+                
+                <div class="controls">
+                    <button class="control-button active" id="show-original">Original Building</button>
+                    <button class="control-button" id="start-shaking">Start Earthquake</button>
+                    <button class="control-button" id="show-failure">Show Failure</button>
+                    <button class="control-button" id="show-solution">Reinforcement</button>
+                </div>
+                
+                <div class="building-stage" id="building-stage">
+                    <div class="ground"></div>
+                    <div class="liquefaction-soil"></div>
+                    <div class="foundation"></div>
+                    
+                    <!-- Soft-Story Building -->
+                    <div class="building soft-story-building" id="building">
+                        <div class="floor"></div>
+                        <div class="floor"></div>
+                        <div class="floor"></div>
+                        <div class="ground-floor"></div>
+                    </div>
+                    
+                    <!-- Reinforcement Elements -->
+                    <div class="reinforcement-visual shear-wall" id="shear-wall"></div>
+                    <div class="reinforcement-visual base-isolator" id="base-isolator"></div>
+                    <div class="reinforcement-visual steel-frame" id="steel-frame"></div>
+                    <div class="reinforcement-visual deep-foundation" id="deep-foundation"></div>
+                </div>
+                
+                <div class="info-panel">
+                    <div class="characteristics-panel">
+                        <h4>📊 Ground Motion Characteristics</h4>
+                        <div class="seismogram">
+                            <canvas id="seismogram-canvas" width="300" height="80"></canvas>
+                        </div>
+                        <div id="motion-description">
+                            <strong>Typical Conditions:</strong><br>
+                            • Strong lateral forces<br>
+                            • Medium to long duration shaking<br>
+                            • Inter-story drift concentration
+                        </div>
+                    </div>
+                    
+                    <div class="solutions-panel">
+                        <h4>🔧 Reinforcement Solutions</h4>
+                        <div id="solution-description">
+                            <strong>Recommended Retrofits:</strong><br>
+                            • Add shear walls to weak story<br>
+                            • Install moment-resisting frames<br>
+                            • Strengthen existing columns<br>
+                            • Add steel bracing systems
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class BuildingFailureEncyclopedia {
+            constructor() {
+                this.currentFailure = 'soft-story';
+                this.currentState = 'original';
+                this.animationActive = false;
+                
+                // Failure type data
+                this.failureData = {
+                    'soft-story': {
+                        title: 'Soft-Story Collapse',
+                        description: 'Occurs when the ground floor is significantly weaker than upper floors, often due to large openings (garages, storefronts) or fewer walls. During earthquake shaking, the weak story concentrates deformation and eventually collapses.',
+                        motionType: 'Strong lateral forces with medium to long duration shaking causing inter-story drift concentration',
+                        solutions: 'Add shear walls to weak story; Install moment-resisting frames; Strengthen existing columns; Add steel bracing systems',
+                        buildingClass: 'soft-story-building',
+                        reinforcement: 'shear-wall'
+                    },
+                    'pancake': {
+                        title: 'Pancake Collapse',
+                        description: 'Progressive failure where floors sequentially collapse onto each other, typically due to inadequate column strength or poor construction quality. Each floor failure increases load on the floor below.',
+                        motionType: 'High vertical accelerations combined with lateral forces causing progressive structural failure',
+                        solutions: 'Strengthen columns and connections; Add redundant load paths; Improve concrete quality; Install base isolation systems',
+                        buildingClass: 'pancake-building',
+                        reinforcement: 'base-isolator'
+                    },
+                    'masonry': {
+                        title: 'Unreinforced Masonry Failure',
+                        description: 'Brick or stone walls crack and fall outward due to lack of steel reinforcement. Mortar joints are particularly weak in tension, leading to out-of-plane wall failures during lateral shaking.',
+                        motionType: 'Lateral forces causing out-of-plane bending in unreinforced walls with brittle mortar failure',
+                        solutions: 'Add steel reinforcement and tie rods; Install moment frames; Apply surface reinforcement; Improve wall-to-diaphragm connections',
+                        buildingClass: 'masonry-building',
+                        reinforcement: 'steel-frame'
+                    },
+                    'foundation': {
+                        title: 'Foundation Failure',
+                        description: 'Building tilts or settles due to foundation inadequacy, differential settlement, or bearing capacity failure. Often occurs on poor soils or when foundations are undersized for seismic loads.',
+                        motionType: 'Strong ground motion causing foundation bearing failure or differential settlement',
+                        solutions: 'Install deep foundations; Improve soil bearing capacity; Add foundation underpinning; Implement ground improvement techniques',
+                        buildingClass: 'foundation-building',
+                        reinforcement: 'deep-foundation'
+                    },
+                    'liquefaction': {
+                        title: 'Liquefaction-Induced Tilting',
+                        description: 'Saturated loose soils lose strength and behave like liquid during shaking, causing buildings to sink, tilt, or float. Most common in coastal areas and river deltas with sandy soils.',
+                        motionType: 'Prolonged shaking in saturated sandy soils causing complete loss of soil bearing capacity',
+                        solutions: 'Install deep foundations to stable layers; Implement ground improvement (vibro-compaction); Use base isolation; Dewater saturated soils',
+                        buildingClass: 'foundation-building',
+                        reinforcement: 'deep-foundation'
+                    }
+                };
+                
+                this.initializeCanvas();
+                this.bindEvents();
+                this.loadFailureType('soft-story');
+            }
+            
+            initializeCanvas() {
+                this.canvas = document.getElementById('seismogram-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.drawSeismogram();
+            }
+            
+            bindEvents() {
+                // Failure type selection
+                document.querySelectorAll('.failure-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        document.querySelectorAll('.failure-button').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.loadFailureType(e.target.dataset.failure);
+                    });
+                });
+                
+                // Control buttons
+                document.getElementById('show-original').addEventListener('click', () => {
+                    this.showOriginal();
+                });
+                
+                document.getElementById('start-shaking').addEventListener('click', () => {
+                    this.startShaking();
+                });
+                
+                document.getElementById('show-failure').addEventListener('click', () => {
+                    this.showFailure();
+                });
+                
+                document.getElementById('show-solution').addEventListener('click', () => {
+                    this.showSolution();
+                });
+            }
+            
+            loadFailureType(failureType) {
+                this.currentFailure = failureType;
+                const data = this.failureData[failureType];
+                
+                // Update description
+                document.getElementById('failure-title').textContent = data.title;
+                document.getElementById('failure-text').textContent = data.description;
+                document.getElementById('motion-description').innerHTML = 
+                    `<strong>Typical Conditions:</strong><br>${data.motionType}`;
+                document.getElementById('solution-description').innerHTML = 
+                    `<strong>Recommended Retrofits:</strong><br>${data.solutions}`;
+                
+                // Reset building state
+                this.showOriginal();
+                this.drawSeismogram();
+            }
+            
+            showOriginal() {
+                this.currentState = 'original';
+                this.updateControlButtons('show-original');
+                
+                const building = document.getElementById('building');
+                const stage = document.getElementById('building-stage');
+                
+                // Reset all states
+                building.className = `building ${this.failureData[this.currentFailure].buildingClass}`;
+                stage.classList.remove('liquefaction-active');
+                
+                // Hide all reinforcements
+                document.querySelectorAll('.reinforcement-visual').forEach(el => {
+                    el.style.opacity = '0';
+                });
+                
+                // Update building structure based on type
+                this.updateBuildingStructure();
+            }
+            
+            updateBuildingStructure() {
+                const building = document.getElementById('building');
+                const data = this.failureData[this.currentFailure];
+                
+                // Clear existing content
+                building.innerHTML = '';
+                
+                switch(this.currentFailure) {
+                    case 'soft-story':
+                        building.innerHTML = `
+                            <div class="floor"></div>
+                            <div class="floor"></div>
+                            <div class="floor"></div>
+                            <div class="ground-floor"></div>
+                        `;
+                        break;
+                    case 'pancake':
+                        building.innerHTML = `
+                            <div class="pancake-floor"></div>
+                            <div class="pancake-floor"></div>
+                            <div class="pancake-floor"></div>
+                            <div class="pancake-floor"></div>
+                            <div class="pancake-floor"></div>
+                        `;
+                        break;
+                    case 'masonry':
+                        building.innerHTML = `<div class="brick-pattern"></div>`;
+                        break;
+                    case 'foundation':
+                    case 'liquefaction':
+                        building.innerHTML = '';
+                        break;
+                }
+            }
+            
+            startShaking() {
+                this.currentState = 'shaking';
+                this.updateControlButtons('start-shaking');
+                
+                const building = document.getElementById('building');
+                building.classList.add('shaking');
+                
+                // Stop shaking after 3 seconds
+                setTimeout(() => {
+                    building.classList.remove('shaking');
+                }, 3000);
+                
+                this.animateSeismogram();
+            }
+            
+            showFailure() {
+                this.currentState = 'failure';
+                this.updateControlButtons('show-failure');
+                
+                const building = document.getElementById('building');
+                const stage = document.getElementById('building-stage');
+                
+                building.classList.remove('shaking');
+                
+                switch(this.currentFailure) {
+                    case 'soft-story':
+                        building.classList.add('collapsing-soft-story');
+                        break;
+                    case 'pancake':
+                        building.classList.add('pancake-collapsed');
+                        break;
+                    case 'masonry':
+                        building.classList.add('masonry-failed');
+                        break;
+                    case 'foundation':
+                        building.classList.add('foundation-failed');
+                        break;
+                    case 'liquefaction':
+                        stage.classList.add('liquefaction-active');
+                        setTimeout(() => {
+                            building.classList.add('liquefaction-tilted');
+                        }, 1000);
+                        break;
+                }
+            }
+            
+            showSolution() {
+                this.currentState = 'solution';
+                this.updateControlButtons('show-solution');
+                
+                // Reset to original state first
+                this.showOriginal();
+                
+                // Show appropriate reinforcement
+                const reinforcementId = this.failureData[this.currentFailure].reinforcement;
+                const reinforcement = document.getElementById(reinforcementId);
+                
+                setTimeout(() => {
+                    reinforcement.style.opacity = '1';
+                }, 500);
+            }
+            
+            updateControlButtons(activeButton) {
+                document.querySelectorAll('.control-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.getElementById(activeButton).classList.add('active');
+            }
+            
+            drawSeismogram() {
+                const canvas = this.canvas;
+                const ctx = this.ctx;
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw background grid
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i <= 10; i++) {
+                    const x = (i / 10) * canvas.width;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                
+                for (let i = 0; i <= 4; i++) {
+                    const y = (i / 4) * canvas.height;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+                
+                // Draw seismogram based on failure type
+                this.drawSpecificSeismogram();
+            }
+            
+            drawSpecificSeismogram() {
+                const ctx = this.ctx;
+                const centerY = this.canvas.height / 2;
+                
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                // Different wave patterns for different failure types
+                for (let x = 0; x < this.canvas.width; x++) {
+                    let y = centerY;
+                    
+                    switch(this.currentFailure) {
+                        case 'soft-story':
+                            // Strong lateral forces
+                            y += 20 * Math.sin(x / 10) * Math.exp(-x / 100);
+                            break;
+                        case 'pancake':
+                            // High vertical accelerations
+                            y += 25 * Math.sin(x / 8) * Math.sin(x / 30) * Math.exp(-x / 120);
+                            break;
+                        case 'masonry':
+                            // Brittle failure pattern
+                            y += 15 * Math.sin(x / 12) * (1 + Math.sin(x / 50)) * Math.exp(-x / 80);
+                            break;
+                        case 'foundation':
+                            // Strong ground motion
+                            y += 30 * Math.sin(x / 15) * Math.exp(-x / 150);
+                            break;
+                        case 'liquefaction':
+                            // Prolonged shaking
+                            y += 18 * Math.sin(x / 12) * Math.exp(-x / 200);
+                            break;
+                    }
+                    
+                    if (x === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+            
+            animateSeismogram() {
+                let frame = 0;
+                const maxFrames = 60;
+                
+                const animate = () => {
+                    if (frame < maxFrames) {
+                        this.drawAnimatedSeismogram(frame / maxFrames);
+                        frame++;
+                        requestAnimationFrame(animate);
+                    } else {
+                        this.drawSeismogram();
+                    }
+                };
+                
+                animate();
+            }
+            
+            drawAnimatedSeismogram(progress) {
+                const ctx = this.ctx;
+                const centerY = this.canvas.height / 2;
+                
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw background grid
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i <= 10; i++) {
+                    const x = (i / 10) * this.canvas.width;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, this.canvas.height);
+                    ctx.stroke();
+                }
+                
+                // Draw animated wave
+                ctx.strokeStyle = '#ff4444';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                
+                const time = progress * 10;
+                for (let x = 0; x < this.canvas.width; x++) {
+                    let y = centerY;
+                    const amplitude = 25 * (1 - progress * 0.7);
+                    
+                    y += amplitude * Math.sin((x / 15) + time) * Math.exp(-(x / this.canvas.width) * 2);
+                    
+                    if (x === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                ctx.stroke();
+            }
+        }
+        
+        // Initialize encyclopedia when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new BuildingFailureEncyclopedia();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seismic Wave Effects in Sedimentary Layers</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b35, #f7931e);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .canvas-container {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        canvas {
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+            background: #000;
+        }
+
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .effect-card {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .effect-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .effect-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .status-panel {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-family: monospace;
+        }
+
+        .status-item {
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .status-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #00ffff;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            button {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Seismic Wave Effects in Sedimentary Layers</h1>
+        
+        <div class="controls">
+            <button onclick="startWave()">🚀 Generate Seismic Wave</button>
+            <button onclick="toggleAnimation()">⏸️ Pause/Resume</button>
+            <button onclick="resetSimulation()">🔄 Reset</button>
+            <button onclick="startSingleWave()">📐 Single Wave Demo</button>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="seismicCanvas" width="900" height="600"></canvas>
+            <div class="status-panel">
+                <div class="status-item">
+                    <div class="status-label">Wave Angle</div>
+                    <div class="status-value" id="angleDisplay">--°</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Amplitude</div>
+                    <div class="status-value" id="amplitudeDisplay">--</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Current Layer</div>
+                    <div class="status-value" id="layerDisplay">--</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Velocity</div>
+                    <div class="status-value" id="velocityDisplay">--</div>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8B4513;"></div>
+                    <span>Sediments (Low Velocity)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #555;"></div>
+                    <span>Basement Rock (High Velocity)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff0000;"></div>
+                    <span>Earthquake Source</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00ffff;"></div>
+                    <span>Normal Waves</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffff00;"></div>
+                    <span>Amplified/Trapped Waves</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <div class="effect-card">
+                <div class="effect-title">📈 Amplitude Increase</div>
+                <p>Watch the wave size dramatically increase when entering sediments! Waves become 3-4x larger due to impedance contrast. The slower velocity concentrates energy, creating much stronger ground motion.</p>
+            </div>
+            
+            <div class="effect-card">
+                <div class="effect-title">📐 Vertical Bending (Refraction)</div>
+                <p>See the wave path bend sharply toward vertical when hitting the boundary! Angles can change by 30-50 degrees. This refraction follows Snell's law and focuses seismic energy upward.</p>
+            </div>
+            
+            <div class="effect-card">
+                <div class="effect-title">🔒 Wave Trapping</div>
+                <p>Energy bounces between layers, creating prolonged shaking. Trapped waves (yellow) show how sedimentary basins can shake much longer than bedrock sites during earthquakes.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('seismicCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let animationId;
+        let isAnimating = false;
+        let waves = [];
+        let time = 0;
+        let focusWave = null; // Track one wave for status display
+        
+        // Layer properties with more dramatic contrasts
+        const sedimentLayer = {
+            top: 150,
+            height: 200,
+            velocity: 0.3, // Much slower
+            color: '#8B4513',
+            amplificationFactor: 4.0 // Much higher amplification
+        };
+        
+        const basementLayer = {
+            top: 350,
+            height: 250,
+            velocity: 1.2, // Faster
+            color: '#555',
+            amplificationFactor: 1.0
+        };
+        
+        const earthquakeSource = {
+            x: 150,
+            y: 450
+        };
+
+        class SeismicWave {
+            constructor(x, y, angle, amplitude, velocity) {
+                this.x = x;
+                this.y = y;
+                this.originalAngle = angle;
+                this.angle = angle;
+                this.originalAmplitude = amplitude;
+                this.amplitude = amplitude;
+                this.velocity = velocity;
+                this.trail = [];
+                this.maxTrailLength = 25;
+                this.inSediment = false;
+                this.trapped = false;
+                this.reflectionCount = 0;
+                this.amplificationHistory = [];
+                this.angleHistory = [];
+                this.justEnteredSediment = false;
+                this.transitionPoint = null;
+                this.hasRefracted = false; // Prevent multiple refractions
+                this.originalAngleStored = false;
+            }
+            
+            update() {
+                // Store position and properties in trail
+                this.trail.push({
+                    x: this.x, 
+                    y: this.y, 
+                    amplitude: this.amplitude,
+                    angle: this.angle
+                });
+                if (this.trail.length > this.maxTrailLength) {
+                    this.trail.shift();
+                }
+                
+                // Determine current and next layer positions
+                const currentInBasement = this.y >= basementLayer.top;
+                const currentInSediment = this.y >= sedimentLayer.top && this.y <= sedimentLayer.top + sedimentLayer.height;
+                
+                // Move wave
+                const moveDistance = this.velocity * 4;
+                this.x += Math.cos(this.angle) * moveDistance;
+                this.y += Math.sin(this.angle) * moveDistance;
+                
+                // Check what layer we're in after movement
+                const nowInBasement = this.y >= basementLayer.top;
+                const nowInSediment = this.y >= sedimentLayer.top && this.y <= sedimentLayer.top + sedimentLayer.height;
+                
+                // Crossing FROM basement INTO sediment (upward movement)
+                if (currentInBasement && nowInSediment && !this.hasRefracted) {
+                    this.transitionPoint = {x: this.x, y: sedimentLayer.top + sedimentLayer.height};
+                    this.justEnteredSediment = true;
+                    this.hasRefracted = true;
+                    
+                    // Store original angle for visualization
+                    if (!this.originalAngleStored) {
+                        this.originalAngleStored = this.angle;
+                        this.originalAngleStored = true;
+                    }
+                    
+                    // Apply Snell's law
+                    const incidentAngle = Math.abs(this.angle);
+                    const n1 = basementLayer.velocity; // Fast medium
+                    const n2 = sedimentLayer.velocity;  // Slow medium
+                    
+                    const sinTheta2 = (n1 * Math.sin(incidentAngle)) / n2;
+                    
+                    if (sinTheta2 <= 1) {
+                        const refractedAngle = Math.asin(sinTheta2);
+                        // More vertical in slower medium
+                        this.angle = this.angle < 0 ? -refractedAngle : refractedAngle;
+                    }
+                    
+                    // Amplitude increase and velocity change
+                    this.amplitude = this.originalAmplitude * sedimentLayer.amplificationFactor;
+                    this.velocity = sedimentLayer.velocity;
+                }
+                // Crossing FROM sediment back INTO basement (downward movement)  
+                else if (currentInSediment && nowInBasement && this.angle > 0) {
+                    // Reset for potential future refractions
+                    this.hasRefracted = false;
+                    
+                    // Reverse Snell's law
+                    const incidentAngle = Math.abs(this.angle);
+                    const n1 = sedimentLayer.velocity;
+                    const n2 = basementLayer.velocity;
+                    
+                    const sinTheta2 = (n1 * Math.sin(incidentAngle)) / n2;
+                    if (sinTheta2 <= 1) {
+                        const refractedAngle = Math.asin(sinTheta2);
+                        this.angle = refractedAngle; // More horizontal in faster medium
+                    }
+                    
+                    this.amplitude = this.originalAmplitude;
+                    this.velocity = basementLayer.velocity;
+                }
+                
+                // Update current layer status
+                this.inSediment = nowInSediment;
+                
+                // Store amplitude and angle history
+                this.amplificationHistory.push(this.amplitude);
+                this.angleHistory.push(this.angle * 180 / Math.PI);
+                if (this.amplificationHistory.length > 50) {
+                    this.amplificationHistory.shift();
+                    this.angleHistory.shift();
+                }
+                
+                // Handle reflections and trapping
+                this.handleReflections();
+                
+                // Update focus wave display
+                if (focusWave === this) {
+                    this.updateStatusDisplay();
+                }
+                
+                // Remove waves that go off screen
+                return this.x < canvas.width + 100 && this.y < canvas.height + 100 && this.x > -100;
+            }
+            
+            updateStatusDisplay() {
+                document.getElementById('angleDisplay').textContent = 
+                    Math.round(this.angle * 180 / Math.PI) + '°';
+                document.getElementById('amplitudeDisplay').textContent = 
+                    this.amplitude.toFixed(1) + 'x';
+                document.getElementById('layerDisplay').textContent = 
+                    this.inSediment ? 'Sediment' : 'Basement';
+                document.getElementById('velocityDisplay').textContent = 
+                    this.velocity.toFixed(1) + ' km/s';
+            }
+            
+            handleReflections() {
+                // Reflection at sediment-basement boundary
+                if (this.y >= sedimentLayer.top + sedimentLayer.height && this.angle > 0) {
+                    this.angle = -this.angle * 0.9;
+                    this.y = sedimentLayer.top + sedimentLayer.height;
+                    this.reflectionCount++;
+                    this.trapped = this.reflectionCount > 1;
+                }
+                
+                // Reflection at surface
+                if (this.y <= sedimentLayer.top && this.angle < 0) {
+                    this.angle = -this.angle * 0.95;
+                    this.y = sedimentLayer.top;
+                    this.reflectionCount++;
+                    this.trapped = this.reflectionCount > 1;
+                }
+                
+                // Wave trapping effect
+                if (this.trapped) {
+                    this.angle *= 0.98; // Gradually become more vertical
+                    this.amplitude *= 1.02; // Slight amplitude increase when trapped
+                }
+            }
+            
+            draw() {
+                // Draw dramatic amplitude visualization
+                this.drawAmplitudeVisualization();
+                
+                // Draw angle change visualization
+                this.drawAngleVisualization();
+                
+                // Draw wave trail with amplitude scaling
+                for (let i = 0; i < this.trail.length; i++) {
+                    const point = this.trail[i];
+                    const alpha = (i / this.trail.length) * 0.7;
+                    const size = Math.max(2, (point.amplitude * 1.5) * (i / this.trail.length));
+                    
+                    ctx.save();
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = this.trapped ? '#ffff00' : (this.inSediment ? '#00ff88' : '#00ffff');
+                    ctx.shadowColor = this.trapped ? '#ffff00' : (this.inSediment ? '#00ff88' : '#00ffff');
+                    ctx.shadowBlur = size;
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                
+                // Draw main wave with dramatic size differences
+                ctx.save();
+                const waveColor = this.trapped ? '#ffff00' : (this.inSediment ? '#00ff88' : '#00ffff');
+                ctx.fillStyle = waveColor;
+                ctx.shadowColor = waveColor;
+                ctx.shadowBlur = this.amplitude * 3;
+                
+                const pulseSize = this.amplitude * 2 + Math.sin(time * 0.3) * (this.amplitude * 0.3);
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, pulseSize, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw dramatic direction arrow
+                this.drawDirectionArrow();
+                
+                ctx.restore();
+            }
+            
+            drawAmplitudeVisualization() {
+                if (this.justEnteredSediment && this.transitionPoint) {
+                    // Show dramatic size comparison
+                    ctx.save();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    
+                    // Original size circle (smaller)
+                    ctx.beginPath();
+                    ctx.arc(this.transitionPoint.x - 30, this.transitionPoint.y, this.originalAmplitude * 2, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Current amplified size circle (much larger)
+                    ctx.setLineDash([]);
+                    ctx.strokeStyle = '#00ff88';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.amplitude * 2, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Draw amplification factor text
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText(`${(this.amplitude/this.originalAmplitude).toFixed(1)}x AMPLIFIED!`, 
+                               this.transitionPoint.x + 40, this.transitionPoint.y - 20);
+                    
+                    ctx.restore();
+                }
+            }
+            
+            drawAngleVisualization() {
+                if (this.justEnteredSediment && this.transitionPoint) {
+                    ctx.save();
+                    
+                    // Draw boundary line at transition point
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(this.transitionPoint.x - 80, this.transitionPoint.y);
+                    ctx.lineTo(this.transitionPoint.x + 80, this.transitionPoint.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Draw incident ray (from basement - red)
+                    if (this.originalAngleStored) {
+                        ctx.strokeStyle = '#ff4444';
+                        ctx.lineWidth = 4;
+                        ctx.beginPath();
+                        ctx.moveTo(
+                            this.transitionPoint.x - Math.cos(this.originalAngleStored) * 50,
+                            this.transitionPoint.y - Math.sin(this.originalAngleStored) * 50
+                        );
+                        ctx.lineTo(this.transitionPoint.x, this.transitionPoint.y);
+                        ctx.stroke();
+                    
+                        // Draw refracted ray (into sediment - green)
+                        ctx.strokeStyle = '#44ff44';
+                        ctx.lineWidth = 4;
+                        ctx.beginPath();
+                        ctx.moveTo(this.transitionPoint.x, this.transitionPoint.y);
+                        ctx.lineTo(
+                            this.transitionPoint.x + Math.cos(this.angle) * 50,
+                            this.transitionPoint.y + Math.sin(this.angle) * 50
+                        );
+                        ctx.stroke();
+                        
+                        // Labels with angle values
+                        const incidentAngle = Math.abs(this.originalAngleStored) * 180 / Math.PI;
+                        const refractedAngle = Math.abs(this.angle) * 180 / Math.PI;
+                        
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 11px Arial';
+                        ctx.fillText(`θ₁=${incidentAngle.toFixed(0)}°`, 
+                                   this.transitionPoint.x - 80, this.transitionPoint.y - 30);
+                        ctx.fillText(`θ₂=${refractedAngle.toFixed(0)}°`, 
+                                   this.transitionPoint.x + 20, this.transitionPoint.y + 35);
+                    }
+                    
+                    // Draw normal line (vertical dashed)
+                    ctx.strokeStyle = '#cccccc';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.moveTo(this.transitionPoint.x, this.transitionPoint.y - 50);
+                    ctx.lineTo(this.transitionPoint.x, this.transitionPoint.y + 50);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.fillText('BASEMENT→SEDIMENT', 
+                               this.transitionPoint.x - 70, this.transitionPoint.y + 15);
+                    
+                    ctx.restore();
+                }
+            }
+            
+            drawDirectionArrow() {
+                const arrowLength = 25 + this.amplitude * 2;
+                const arrowWidth = 8;
+                
+                ctx.save();
+                ctx.strokeStyle = this.trapped ? '#ffff00' : (this.inSediment ? '#00ff88' : '#ffffff');
+                ctx.fillStyle = this.trapped ? '#ffff00' : (this.inSediment ? '#00ff88' : '#ffffff');
+                ctx.lineWidth = 3;
+                
+                // Arrow line
+                const endX = this.x + Math.cos(this.angle) * arrowLength;
+                const endY = this.y + Math.sin(this.angle) * arrowLength;
+                
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+                
+                // Arrow head
+                const headAngle = this.angle + Math.PI;
+                ctx.beginPath();
+                ctx.moveTo(endX, endY);
+                ctx.lineTo(
+                    endX + Math.cos(headAngle + 0.3) * arrowWidth,
+                    endY + Math.sin(headAngle + 0.3) * arrowWidth
+                );
+                ctx.moveTo(endX, endY);
+                ctx.lineTo(
+                    endX + Math.cos(headAngle - 0.3) * arrowWidth,
+                    endY + Math.sin(headAngle - 0.3) * arrowWidth
+                );
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+        
+        function drawLayers() {
+            // Clear canvas with gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#000022');
+            gradient.addColorStop(0.3, '#000011');
+            gradient.addColorStop(1, '#000000');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw sediment layer with texture
+            ctx.fillStyle = sedimentLayer.color;
+            ctx.fillRect(0, sedimentLayer.top, canvas.width, sedimentLayer.height);
+            
+            // Draw basement layer
+            ctx.fillStyle = basementLayer.color;
+            ctx.fillRect(0, basementLayer.top, canvas.width, basementLayer.height);
+            
+            // Add detailed texture
+            ctx.save();
+            ctx.globalAlpha = 0.4;
+            for (let i = 0; i < canvas.width; i += 15) {
+                for (let j = sedimentLayer.top; j < sedimentLayer.top + sedimentLayer.height; j += 12) {
+                    ctx.fillStyle = Math.random() > 0.5 ? '#A0522D' : '#CD853F';
+                    ctx.fillRect(i + Math.random() * 5, j + Math.random() * 3, 8, 6);
+                }
+            }
+            
+            for (let i = 0; i < canvas.width; i += 20) {
+                for (let j = basementLayer.top; j < canvas.height; j += 15) {
+                    ctx.fillStyle = Math.random() > 0.5 ? '#666' : '#777';
+                    ctx.fillRect(i + Math.random() * 5, j + Math.random() * 3, 12, 8);
+                }
+            }
+            ctx.restore();
+            
+            // Draw prominent boundary line
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([10, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, sedimentLayer.top);
+            ctx.lineTo(canvas.width, sedimentLayer.top);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0, sedimentLayer.top + sedimentLayer.height);
+            ctx.lineTo(canvas.width, sedimentLayer.top + sedimentLayer.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw velocity labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 18px Arial';
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 3;
+            ctx.fillText(`Sediments: ${sedimentLayer.velocity} km/s (SLOW)`, 20, sedimentLayer.top + 40);
+            ctx.fillText(`Basement: ${basementLayer.velocity} km/s (FAST)`, 20, basementLayer.top + 40);
+            
+            // Draw earthquake source
+            ctx.save();
+            ctx.fillStyle = '#ff0000';
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 25;
+            drawStar(earthquakeSource.x, earthquakeSource.y, 6, 20, 12);
+            ctx.restore();
+            
+            // Add title text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Watch for: AMPLITUDE INCREASE & VERTICAL BENDING', canvas.width/2, 30);
+            ctx.textAlign = 'start';
+        }
+        
+        function drawStar(cx, cy, spikes, outerRadius, innerRadius) {
+            let rot = Math.PI / 2 * 3;
+            let x = cx;
+            let y = cy;
+            const step = Math.PI / spikes;
+            
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+                
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        function startWave() {
+            waves = []; // Clear existing waves
+            focusWave = null;
+            
+            // Generate waves starting from basement, traveling upward to show proper refraction
+            const startY = 480; // Deep in basement
+            const angles = [-Math.PI/8, -Math.PI/6, -Math.PI/4, -Math.PI/3, -Math.PI/2.2];
+            
+            angles.forEach((angle, index) => {
+                setTimeout(() => {
+                    const wave = new SeismicWave(
+                        150 + index * 30, // Spread out horizontally
+                        startY,
+                        angle,
+                        6, // Base amplitude
+                        basementLayer.velocity
+                    );
+                    waves.push(wave);
+                    
+                    // Set first wave as focus for status display
+                    if (index === 0) {
+                        focusWave = wave;
+                    }
+                }, index * 150);
+            });
+            
+            if (!isAnimating) {
+                isAnimating = true;
+                animate();
+            }
+        }
+        
+        function startSingleWave() {
+            waves = [];
+            focusWave = null;
+            
+            // Single wave starting from basement, traveling upward toward sediment
+            const wave = new SeismicWave(
+                200, // Start deeper in basement
+                500, // Start in basement layer
+                -Math.PI/3, // 60 degree angle upward
+                5,
+                basementLayer.velocity
+            );
+            waves.push(wave);
+            focusWave = wave;
+            
+            if (!isAnimating) {
+                isAnimating = true;
+                animate();
+            }
+        }
+        
+        function animate() {
+            if (!isAnimating) return;
+            
+            time++;
+            drawLayers();
+            
+            // Update and draw waves
+            waves = waves.filter(wave => {
+                const alive = wave.update();
+                if (alive) {
+                    wave.draw();
+                    
+                    // Reset transition flag after some time
+                    if (wave.justEnteredSediment && time % 120 === 0) {
+                        wave.justEnteredSediment = false;
+                    }
+                }
+                return alive;
+            });
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function toggleAnimation() {
+            isAnimating = !isAnimating;
+            const button = document.querySelector('button[onclick="toggleAnimation()"]');
+            if (isAnimating) {
+                animate();
+                button.textContent = '⏸️ Pause';
+            } else {
+                cancelAnimationFrame(animationId);
+                button.textContent = '▶️ Resume';
+            }
+        }
+        
+        function resetSimulation() {
+            waves = [];
+            focusWave = null;
+            time = 0;
+            isAnimating = false;
+            cancelAnimationFrame(animationId);
+            
+            // Reset status display
+            document.getElementById('angleDisplay').textContent = '--°';
+            document.getElementById('amplitudeDisplay').textContent = '--';
+            document.getElementById('layerDisplay').textContent = '--';
+            document.getElementById('velocityDisplay').textContent = '--';
+            
+            const button = document.querySelector('button[onclick="toggleAnimation()"]');
+            button.textContent = '⏸️ Pause/Resume';
+            drawLayers();
+        }
+        
+        // Initialize
+        drawLayers();
+    </script>
+</body>
+</html>

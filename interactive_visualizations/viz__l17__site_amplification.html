@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Amplification: Two Physical Mechanisms</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .visualization-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            color: #333;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(238, 90, 36, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(238, 90, 36, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .canvas-container {
+            position: relative;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #87CEEB 0%, #4682B4 30%, #8B4513 30%, #654321 100%);
+        }
+
+        .info-panels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .info-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+        }
+
+        .info-panel h3 {
+            margin-top: 0;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 10px;
+        }
+
+        .wave-properties {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .property {
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 5px;
+            min-width: 120px;
+        }
+
+        .property-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+
+        .equation {
+            background: rgba(0,0,0,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            margin: 15px 0;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .wave-properties {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Site Amplification: Two Physical Mechanisms</h1>
+        <p class="subtitle">Impedance Contrast + Ray Angle Effects on Seismic Wave Recording</p>
+        
+        <div class="visualization-container">
+            <div class="controls">
+                <button onclick="startAnimation()">Start Wave</button>
+                <button onclick="pauseAnimation()">Pause</button>
+                <button onclick="resetAnimation()">Reset</button>
+                <button onclick="toggleMode()" id="modeButton">Show Sensor Projections</button>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #696969;"></div>
+                    <span>Hard Bedrock (3000 m/s, High Z)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #B8860B;"></div>
+                    <span>Soil Type 1 - Medium (800 m/s, Medium Z)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #A0522D;"></div>
+                    <span>Soil Type 2 - Soft (400 m/s, Low Z)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF4444;"></div>
+                    <span>Seismic Waves + 3-Component Sensors</span>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="seismicCanvas" width="800" height="400"></canvas>
+            </div>
+
+            <div class="wave-properties">
+                <div class="property">
+                    <div>Bedrock Velocity</div>
+                    <div class="property-value">3000 m/s</div>
+                </div>
+                <div class="property">
+                    <div>Soil Type 1 Velocity</div>
+                    <div class="property-value">800 m/s</div>
+                </div>
+                <div class="property">
+                    <div>Soil Type 2 Velocity</div>
+                    <div class="property-value">400 m/s</div>
+                </div>
+                <div class="property">
+                    <div>Total Amplification</div>
+                    <div class="property-value">7.5x</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panels">
+            <div class="info-panel">
+                <h3>Mechanism 1: Impedance Contrast</h3>
+                <p>When seismic waves cross from high impedance (Z = ρv) to low impedance materials, amplitude increases due to energy conservation at the interface.</p>
+                
+                <div class="equation">
+                    Transmission Coefficient: T = 2Z₁/(Z₁+Z₂)
+                </div>
+                
+                <p><strong>Key characteristics:</strong></p>
+                <ul>
+                    <li>Primarily affects <strong>high-frequency</strong> energy</li>
+                    <li>Depends on density (ρ) and velocity (v) contrast</li>
+                    <li>Energy conservation requires amplitude increase when velocity decreases</li>
+                    <li>More pronounced with larger impedance contrasts</li>
+                </ul>
+            </div>
+
+            <div class="info-panel">
+                <h3>Mechanism 2: Ray Angle Effect</h3>
+                <p>Sensors record wave <strong>projections</strong>, not true amplitudes. As waves refract to more vertical paths in softer soils, the vertical component (Z) recording increases.</p>
+                
+                <div class="equation">
+                    Recorded: Z = A·cos(θ), H = A·sin(θ)
+                </div>
+                
+                <p><strong>Key characteristics:</strong></p>
+                <ul>
+                    <li>Affects <strong>all frequencies</strong> based on geometry</li>
+                    <li>Purely geometric projection effect</li>
+                    <li>Smaller angles (more vertical) → larger Z recordings</li>
+                    <li>Can create apparent amplification without energy increase</li>
+                </ul>
+            </div>
+
+            <div class="info-panel">
+                <h3>Combined Effects & Observations</h3>
+                <p>Both mechanisms work together in real earthquakes:</p>
+                <ul>
+                    <li><strong>High-frequency waves:</strong> Impedance contrast dominates</li>
+                    <li><strong>Low-frequency waves:</strong> Ray angle effect more important</li>
+                    <li><strong>Site amplification factors:</strong> Range from 2x to 10x+</li>
+                    <li><strong>Frequency dependent:</strong> Different amplification at different frequencies</li>
+                </ul>
+                
+                <div class="equation">
+                    Total Amplification = Impedance Effect × Geometric Effect
+                </div>
+                
+                <p>Toggle between modes to see each mechanism separately. Understanding both is crucial for accurate seismic hazard assessment.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        var canvas = document.getElementById('seismicCanvas');
+        var ctx = canvas.getContext('2d');
+        var animationId = null;
+        var time = 0;
+        var isAnimating = false;
+        var showSensorProjections = false;
+        
+        // Layer boundaries
+        var groundSurface = canvas.height * 0.15;
+        var soilType2Bottom = canvas.height * 0.4;
+        var soilType1Bottom = canvas.height * 0.65;
+        var bedrockTop = soilType1Bottom;
+        
+        // Soil properties
+        var soilType2Velocity = 400;
+        var soilType1Velocity = 800;
+        var bedrockVelocity = 3000;
+        var frequency = 3;
+        
+        // Global functions accessible to buttons
+        function startAnimation() {
+            isAnimating = true;
+            animate();
+        }
+        
+        function pauseAnimation() {
+            isAnimating = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function resetAnimation() {
+            pauseAnimation();
+            time = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+        }
+        
+        function toggleMode() {
+            showSensorProjections = !showSensorProjections;
+            var button = document.getElementById('modeButton');
+            button.textContent = showSensorProjections ? 'Show Impedance Effects' : 'Show Sensor Projections';
+        }
+        
+        function animate() {
+            if (!isAnimating) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawWave();
+            
+            time += 0.001;
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function drawBackground() {
+            // Sky/air above ground
+            var skyGradient = ctx.createLinearGradient(0, 0, 0, groundSurface);
+            skyGradient.addColorStop(0, '#87CEEB');
+            skyGradient.addColorStop(1, '#B0E0E6');
+            
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, groundSurface);
+            
+            // Soil Type 2 (softest, top layer)
+            var soil2Gradient = ctx.createLinearGradient(0, groundSurface, 0, soilType2Bottom);
+            soil2Gradient.addColorStop(0, '#CD5C5C');
+            soil2Gradient.addColorStop(1, '#A0522D');
+            
+            ctx.fillStyle = soil2Gradient;
+            ctx.fillRect(0, groundSurface, canvas.width, soilType2Bottom - groundSurface);
+            
+            // Soil Type 1
+            var soil1Gradient = ctx.createLinearGradient(0, soilType2Bottom, 0, soilType1Bottom);
+            soil1Gradient.addColorStop(0, '#DAA520');
+            soil1Gradient.addColorStop(1, '#B8860B');
+            
+            ctx.fillStyle = soil1Gradient;
+            ctx.fillRect(0, soilType2Bottom, canvas.width, soilType1Bottom - soilType2Bottom);
+            
+            // Hard bedrock
+            var bedrockGradient = ctx.createLinearGradient(0, bedrockTop, 0, canvas.height);
+            bedrockGradient.addColorStop(0, '#A9A9A9');
+            bedrockGradient.addColorStop(1, '#696969');
+            
+            ctx.fillStyle = bedrockGradient;
+            ctx.fillRect(0, bedrockTop, canvas.width, canvas.height - bedrockTop);
+            
+            // Layer boundaries
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 4]);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, groundSurface);
+            ctx.lineTo(canvas.width, groundSurface);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0, soilType2Bottom);
+            ctx.lineTo(canvas.width, soilType2Bottom);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0, soilType1Bottom);
+            ctx.lineTo(canvas.width, soilType1Bottom);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            
+            // Add sensors
+            drawSeismicSensor(canvas.width * 0.25, groundSurface);
+            drawSeismicSensor(canvas.width * 0.75, groundSurface);
+            
+            // Layer labels
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'left';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            
+            ctx.strokeText('Soil Type 2', 10, groundSurface + 25);
+            ctx.fillText('Soil Type 2', 10, groundSurface + 25);
+            
+            ctx.strokeText('Soil Type 1', 10, soilType2Bottom + 25);
+            ctx.fillText('Soil Type 1', 10, soilType2Bottom + 25);
+            
+            ctx.strokeText('Bedrock', 10, bedrockTop + 25);
+            ctx.fillText('Bedrock', 10, bedrockTop + 25);
+        }
+        
+        function drawSeismicSensor(x, baseY) {
+            ctx.fillStyle = '#333';
+            ctx.fillRect(x - 15, baseY - 10, 30, 10);
+            
+            ctx.fillStyle = '#666';
+            ctx.fillRect(x - 8, baseY - 25, 16, 15);
+            
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(x - 6, baseY - 23, 4, 8);
+            ctx.fillStyle = '#00FF00';
+            ctx.fillRect(x - 1, baseY - 23, 4, 8);
+            ctx.fillStyle = '#0000FF';
+            ctx.fillRect(x + 4, baseY - 23, 4, 8);
+            
+            ctx.fillStyle = 'white';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('3C Sensor', x, baseY + 15);
+        }
+        
+        function drawWave() {
+            // Add earthquake source
+            var sourceX = 50;
+            var sourceY = canvas.height - 50;
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('✱', sourceX - 8, sourceY + 6);
+            ctx.font = '10px Arial';
+            ctx.fillText('Earthquake source', sourceX - 15, sourceY + 20);
+            
+            if (showSensorProjections) {
+                // Show sensor projection mode
+                drawSensorProjectionMode();
+            } else {
+                // Show impedance contrast mode
+                drawImpedanceContrastMode();
+            }
+        }
+        
+        function drawImpedanceContrastMode() {
+            // Draw wave rays showing refraction
+            ctx.strokeStyle = 'rgba(255, 255, 0, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            
+            for (var i = 0; i < 4; i++) {
+                var rayX = 150 + i * 150;
+                var sourceX = 50 + i * 50;
+                var sourceY = canvas.height - 50;
+                
+                // Ray path through layers
+                ctx.beginPath();
+                ctx.moveTo(sourceX, sourceY);
+                ctx.lineTo(rayX, bedrockTop);
+                ctx.lineTo(rayX + 20, soilType2Bottom);
+                ctx.lineTo(rayX + 30, groundSurface);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            
+            // Draw wave fronts with increasing amplitude
+            drawWavesFront(bedrockTop, canvas.height, 1.0, '#FF6666', 'A₀');
+            drawWavesFront(soilType2Bottom, bedrockTop, 3.75, '#FF4444', '3.8A₀');
+            drawWavesFront(groundSurface, soilType2Bottom, 7.5, '#FF0000', '7.5A₀');
+            
+            // Add impedance information
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillRect(10, groundSurface + 60, 250, 50);
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Mechanism 1: Impedance Contrast', 15, groundSurface + 75);
+            ctx.font = '10px Arial';
+            ctx.fillText('Z = ρv, Higher amplitude in lower impedance', 15, groundSurface + 87);
+            ctx.fillText('Affects high-frequency energy most', 15, groundSurface + 100);
+        }
+        
+        function drawSensorProjectionMode() {
+            // Draw wave vectors and projections
+            var sensorPositions = [canvas.width * 0.25, canvas.width * 0.75];
+            
+            // Incident angles (degrees from vertical)
+            var bedrockAngle = 35;
+            var soil1Angle = 15;
+            var soil2Angle = 5;
+            
+            // Draw wave vectors at different layers
+            drawWaveVector(sensorPositions[0], groundSurface - 40, soil2Angle, 'Soil 2');
+            drawWaveVector(sensorPositions[1], (soilType2Bottom + bedrockTop) / 2, soil1Angle, 'Soil 1');
+            drawWaveVector(sensorPositions[0] + 100, bedrockTop + 50, bedrockAngle, 'Bedrock');
+            
+            // Add sensor projection information
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillRect(10, groundSurface + 60, 280, 50);
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Mechanism 2: Ray Angle Effect', 15, groundSurface + 75);
+            ctx.font = '10px Arial';
+            ctx.fillText('Z = A·cos(θ), H = A·sin(θ)', 15, groundSurface + 87);
+            ctx.fillText('Smaller θ → Larger vertical recording', 15, groundSurface + 100);
+        }
+        
+        function drawWaveVector(x, y, angleFromVertical, label) {
+            var angleRad = angleFromVertical * Math.PI / 180;
+            var vectorLength = 50;
+            
+            // Wave vector (orange arrow)
+            var vectorEndX = x + vectorLength * Math.sin(angleRad);
+            var vectorEndY = y - vectorLength * Math.cos(angleRad);
+            
+            ctx.strokeStyle = '#FF6600';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(vectorEndX, vectorEndY);
+            ctx.stroke();
+            
+            // Arrow head
+            ctx.fillStyle = '#FF6600';
+            ctx.save();
+            ctx.translate(vectorEndX, vectorEndY);
+            ctx.rotate(-angleRad + Math.PI);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-6, -3);
+            ctx.lineTo(-6, 3);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+            
+            // Vertical projection (Z component - red dashed)
+            ctx.strokeStyle = '#FF0000';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, vectorEndY);
+            ctx.stroke();
+            
+            // Horizontal projection (H component - green dashed)
+            ctx.strokeStyle = '#00FF00';
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(vectorEndX, y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Labels
+            ctx.fillStyle = 'white';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            
+            var verticalComp = Math.cos(angleRad);
+            var horizontalComp = Math.sin(angleRad);
+            
+            ctx.fillStyle = '#FF0000';
+            ctx.fillText('Z=' + verticalComp.toFixed(2) + 'A', x - 20, vectorEndY - 5);
+            ctx.fillStyle = '#00FF00';
+            ctx.fillText('H=' + horizontalComp.toFixed(2) + 'A', vectorEndX, y + 15);
+            ctx.fillStyle = 'white';
+            ctx.fillText(label + ' θ=' + angleFromVertical + '°', x, y + 30);
+        }
+        
+        function drawWavesFront(topY, bottomY, amplification, color, amplitudeLabel) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2 + amplification;
+            
+            var centerY = (topY + bottomY) / 2;
+            var amplitude = 8 * amplification;
+            
+            ctx.beginPath();
+            for (var x = 0; x < canvas.width; x += 4) {
+                var phase = time * frequency * 2 * Math.PI - (x / 30) * 2 * Math.PI;
+                var y = centerY + amplitude * Math.sin(phase);
+                if (x === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+            
+            // Add amplitude labels only in impedance mode
+            if (!showSensorProjections && amplitudeLabel) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(amplitudeLabel, canvas.width - 20, centerY);
+            }
+        }
+        
+        // Initialize
+        drawBackground();
+        setTimeout(startAnimation, 1000);
+    </script>
+</body>
+</html>

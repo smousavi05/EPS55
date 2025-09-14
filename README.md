@@ -227,8 +227,64 @@ Understand the physics - why normal stress increases shear resistance
       </a>
     </td>
     <td>
-      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l09_gps_vs_insarhtml">
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l09_gps_vs_insar.html">
         <img src="interactive_visualizations/viz__l09_gps_vs_insar.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
+
+---------------------------------------------------------
+
+## Lecture 11: Reading Seismograms
+
+<table>
+  <tr align="center">
+    <th>Seismic Cross-over Distance!</th>
+    <th>Direct Waves vs Head Waves!</th>
+    <th>Lg Wave - Crustally Guided Seismic Wave!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/viz__l11_crossover_distance.html">
+        <img src="interactive_visualizations/viz__l11_crossover_distance.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l11_direct-vs-head-waves.html">
+        <img src="interactive_visualizations/viz__l11_direct-vs-head-waves.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l11_lg_wave.html">
+        <img src="interactive_visualizations/viz__l11_lg_wave.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr align="center">
+    <th>Rayleigh Wave Creation and Propagation!</th>
+    <th>Interactive Seismogram Viewer!</th>
+    <th>Travel Time Curves & Seismic Phase Identification!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/viz__l11_rayleigh-wave.html">
+        <img src="interactive_visualizations/viz__l11_rayleigh-wave.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l11_seismogram_viewer.html">
+        <img src="interactive_visualizations/viz__l11_seismogram_viewer.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l11_travel-time-curves.html">
+        <img src="interactive_visualizations/viz__l11_travel-time-curves.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
   </tr>

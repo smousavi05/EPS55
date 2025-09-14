@@ -17,6 +17,7 @@
 ---------------------------------------------------------
 ## Lecture 2: Geological Faults
 
+<table>
   <tr align="center">
     <th>Fault types!</th>
     <th>Fault orientations (Strike, Dip, and Rake angles)!</th>

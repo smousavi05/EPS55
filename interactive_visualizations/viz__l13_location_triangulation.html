@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Epicenter Triangulation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        #canvas-container {
+            position: relative;
+            background: #ecf0f1;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 16px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        button.secondary {
+            background: #95a5a6;
+        }
+        
+        button.secondary:hover {
+            background: #7f8c8d;
+        }
+        
+        button.danger {
+            background: #e74c3c;
+        }
+        
+        button.danger:hover {
+            background: #c0392b;
+        }
+        
+        .station-info {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        
+        .station-info strong {
+            color: #2c3e50;
+        }
+        
+        .instructions {
+            background: #e8f4f8;
+            border: 1px solid #b8e0eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+        
+        .limitations {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .limitations h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+        
+        .limitations ul {
+            margin: 10px 0;
+            padding-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .limitations li {
+            margin-bottom: 8px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .speed-display {
+            text-align: center;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Earthquake Epicenter Triangulation</h1>
+        <p class="subtitle">Interactive demonstration of locating earthquake epicenters using seismic wave arrival times</p>
+        
+        <div class="instructions">
+            <strong>How to use:</strong> Click anywhere on the map to simulate an earthquake. The system will show how P-waves and S-waves propagate to different seismic stations, and then use the arrival time differences to triangulate the epicenter location.
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e74c3c;"></div>
+                <span>Actual Epicenter</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #3498db;"></div>
+                <span>Seismic Station</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2ecc71;"></div>
+                <span>Estimated Epicenter</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(52, 152, 219, 0.3); border-style: dashed;"></div>
+                <span>Distance Circles</span>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div id="canvas-container">
+                <canvas id="triangulationCanvas" width="800" height="600"></canvas>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <h3>Simulation Controls</h3>
+                    <button onclick="startAnimation()">Start Animation</button>
+                    <button class="secondary" onclick="pauseAnimation()">Pause</button>
+                    <button class="danger" onclick="resetSimulation()">Reset</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Wave Speed</h3>
+                    <div class="speed-display">Animation Speed: <span id="speedValue">1.0</span>x</div>
+                    <input type="range" id="speedSlider" min="0.1" max="3" step="0.1" value="1" onchange="updateSpeed()">
+                </div>
+                
+                <div class="control-group">
+                    <h3>Station Information</h3>
+                    <div id="stationInfo"></div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Options</h3>
+                    <button onclick="toggleWaveType()">Toggle Wave Display</button>
+                    <button onclick="addRandomStation()">Add Station</button>
+                    <button class="secondary" onclick="removeLastStation()">Remove Station</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="limitations">
+            <h3>⚠️ Limitations of Triangulation Method</h3>
+            <ul>
+                <li><strong>Minimum Station Requirement:</strong> At least 3 seismic stations are needed for 2D epicenter location; 4+ stations needed for depth estimation</li>
+                <li><strong>Assumes Uniform Earth:</strong> Method assumes seismic waves travel at constant speeds through homogeneous material, but Earth's structure is complex and layered</li>
+                <li><strong>Timing Accuracy:</strong> Requires precise time synchronization between stations; small timing errors can lead to significant location errors</li>
+                <li><strong>Wave Identification:</strong> Difficulty in accurately identifying P and S wave arrivals, especially for weak or distant earthquakes</li>
+                <li><strong>Depth Ambiguity:</strong> Poor constraint on earthquake depth without stations directly above the epicenter</li>
+                <li><strong>Station Geometry:</strong> Accuracy depends heavily on station distribution; poor geometry (e.g., all stations on one side) leads to large uncertainties</li>
+                <li><strong>Local Velocity Variations:</strong> Regional geological differences affect wave speeds, introducing systematic errors</li>
+                <li><strong>Multiple Events:</strong> Cannot easily distinguish between closely spaced earthquakes occurring at similar times</li>
+                <li><strong>Ocean Floor Events:</strong> Limited station coverage in oceanic regions reduces accuracy for submarine earthquakes</li>
+                <li><strong>Model Assumptions:</strong> Assumes straight-line wave paths, but actual paths curve due to Earth's velocity structure</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('triangulationCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let stations = [
+            { x: 200, y: 150, name: 'Station A', color: '#3498db' },
+            { x: 600, y: 200, name: 'Station B', color: '#9b59b6' },
+            { x: 400, y: 450, name: 'Station C', color: '#f39c12' }
+        ];
+        
+        let epicenter = null;
+        let animationId = null;
+        let animationStartTime = 0;
+        let isPaused = false;
+        let animationSpeed = 1;
+        let showPWaves = true;
+        let showSWaves = true;
+        
+        const P_WAVE_SPEED = 6; // km/s (scaled for visualization)
+        const S_WAVE_SPEED = 3.5; // km/s (scaled for visualization)
+        const SCALE = 0.1; // pixels per km
+        
+        // Draw background grid
+        function drawGrid() {
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            
+            for (let x = 0; x < canvas.width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y < canvas.height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Draw scale
+            ctx.fillStyle = '#666';
+            ctx.font = '12px Arial';
+            ctx.fillText('Scale: 1 grid = 50 km', 10, canvas.height - 10);
+        }
+        
+        // Draw seismic stations
+        function drawStations() {
+            stations.forEach(station => {
+                // Station triangle
+                ctx.fillStyle = station.color;
+                ctx.beginPath();
+                ctx.moveTo(station.x, station.y - 15);
+                ctx.lineTo(station.x - 10, station.y + 5);
+                ctx.lineTo(station.x + 10, station.y + 5);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Station label
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(station.name, station.x, station.y + 20);
+            });
+        }
+        
+        // Draw epicenter
+        function drawEpicenter() {
+            if (!epicenter) return;
+            
+            ctx.fillStyle = '#e74c3c';
+            ctx.beginPath();
+            ctx.arc(epicenter.x, epicenter.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw cross
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(epicenter.x - 12, epicenter.y);
+            ctx.lineTo(epicenter.x + 12, epicenter.y);
+            ctx.moveTo(epicenter.x, epicenter.y - 12);
+            ctx.lineTo(epicenter.x, epicenter.y + 12);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Epicenter', epicenter.x, epicenter.y - 20);
+        }
+        
+        // Calculate distance between two points
+        function distance(p1, p2) {
+            return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+        }
+        
+        // Draw wave propagation
+        function drawWaves(elapsedTime) {
+            if (!epicenter) return;
+            
+            ctx.lineWidth = 2;
+            
+            // P-waves (faster)
+            if (showPWaves) {
+                ctx.strokeStyle = 'rgba(52, 152, 219, 0.6)';
+                const pRadius = P_WAVE_SPEED * elapsedTime / SCALE;
+                ctx.beginPath();
+                ctx.arc(epicenter.x, epicenter.y, pRadius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#3498db';
+                ctx.font = '10px Arial';
+                ctx.fillText('P', epicenter.x + pRadius + 5, epicenter.y);
+            }
+            
+            // S-waves (slower)
+            if (showSWaves) {
+                ctx.strokeStyle = 'rgba(231, 76, 60, 0.6)';
+                const sRadius = S_WAVE_SPEED * elapsedTime / SCALE;
+                ctx.beginPath();
+                ctx.arc(epicenter.x, epicenter.y, sRadius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#e74c3c';
+                ctx.font = '10px Arial';
+                ctx.fillText('S', epicenter.x + sRadius + 5, epicenter.y);
+            }
+        }
+        
+        // Draw distance circles for triangulation
+        function drawTriangulation(elapsedTime) {
+            if (!epicenter) return;
+            
+            ctx.strokeStyle = 'rgba(52, 152, 219, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            
+            let intersectionPoints = [];
+            let circles = [];
+            
+            stations.forEach(station => {
+                const dist = distance(epicenter, station);
+                const pArrivalTime = dist * SCALE / P_WAVE_SPEED;
+                const sArrivalTime = dist * SCALE / S_WAVE_SPEED;
+                
+                if (elapsedTime > sArrivalTime) {
+                    // Draw distance circle
+                    ctx.beginPath();
+                    ctx.arc(station.x, station.y, dist, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    circles.push({ center: station, radius: dist });
+                    
+                    // Update station info
+                    station.pArrival = pArrivalTime.toFixed(2);
+                    station.sArrival = sArrivalTime.toFixed(2);
+                    station.distance = (dist * SCALE).toFixed(1);
+                }
+            });
+            
+            ctx.setLineDash([]);
+            
+            // Find intersections between circles
+            if (circles.length >= 2) {
+                for (let i = 0; i < circles.length - 1; i++) {
+                    for (let j = i + 1; j < circles.length; j++) {
+                        const points = getCircleIntersections(circles[i], circles[j]);
+                        intersectionPoints = intersectionPoints.concat(points);
+                    }
+                }
+                
+                // Draw estimated epicenter (average of intersections)
+                if (intersectionPoints.length > 0) {
+                    let avgX = intersectionPoints.reduce((sum, p) => sum + p.x, 0) / intersectionPoints.length;
+                    let avgY = intersectionPoints.reduce((sum, p) => sum + p.y, 0) / intersectionPoints.length;
+                    
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.beginPath();
+                    ctx.arc(avgX, avgY, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#333';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Estimated', avgX, avgY - 15);
+                    
+                    // Draw error circle
+                    const error = distance({ x: avgX, y: avgY }, epicenter);
+                    ctx.strokeStyle = 'rgba(231, 76, 60, 0.5)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.arc(avgX, avgY, error, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+        }
+        
+        // Get intersection points of two circles
+        function getCircleIntersections(c1, c2) {
+            const d = distance(c1.center, c2.center);
+            
+            if (d > c1.radius + c2.radius || d < Math.abs(c1.radius - c2.radius)) {
+                return [];
+            }
+            
+            const a = (c1.radius * c1.radius - c2.radius * c2.radius + d * d) / (2 * d);
+            const h = Math.sqrt(c1.radius * c1.radius - a * a);
+            
+            const cx = c1.center.x + a * (c2.center.x - c1.center.x) / d;
+            const cy = c1.center.y + a * (c2.center.y - c1.center.y) / d;
+            
+            const intersectionX1 = cx + h * (c2.center.y - c1.center.y) / d;
+            const intersectionY1 = cy - h * (c2.center.x - c1.center.x) / d;
+            const intersectionX2 = cx - h * (c2.center.y - c1.center.y) / d;
+            const intersectionY2 = cy + h * (c2.center.x - c1.center.x) / d;
+            
+            return [
+                { x: intersectionX1, y: intersectionY1 },
+                { x: intersectionX2, y: intersectionY2 }
+            ];
+        }
+        
+        // Update station information display
+        function updateStationInfo() {
+            const infoDiv = document.getElementById('stationInfo');
+            infoDiv.innerHTML = '';
+            
+            stations.forEach(station => {
+                const info = document.createElement('div');
+                info.className = 'station-info';
+                info.innerHTML = `
+                    <strong>${station.name}</strong><br>
+                    P-wave arrival: ${station.pArrival || '--'} s<br>
+                    S-wave arrival: ${station.sArrival || '--'} s<br>
+                    Distance: ${station.distance || '--'} km
+                `;
+                infoDiv.appendChild(info);
+            });
+        }
+        
+        // Animation loop
+        function animate(timestamp) {
+            if (!animationStartTime || isPaused) {
+                animationStartTime = timestamp - (pausedTime || 0);
+            }
+            
+            const elapsedTime = ((timestamp - animationStartTime) / 1000) * animationSpeed;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawGrid();
+            drawStations();
+            drawEpicenter();
+            drawWaves(elapsedTime);
+            drawTriangulation(elapsedTime);
+            updateStationInfo();
+            
+            if (!isPaused && elapsedTime < 20) {
+                animationId = requestAnimationFrame(animate);
+            } else if (elapsedTime >= 20) {
+                // Animation complete
+                animationId = null;
+                isPaused = true;
+            }
+        }
+        
+        // Event handlers
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            epicenter = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+            resetAnimation();
+            draw();
+        });
+        
+        let pausedTime = 0;
+        
+        function startAnimation() {
+            if (!epicenter) {
+                alert('Click on the map to set an earthquake epicenter first!');
+                return;
+            }
+            
+            if (isPaused && animationId) {
+                // Resume from pause
+                isPaused = false;
+                animationId = requestAnimationFrame(animate);
+            } else if (!animationId) {
+                // Start new animation
+                isPaused = false;
+                animationStartTime = 0;
+                pausedTime = 0;
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        function pauseAnimation() {
+            if (animationId && !isPaused) {
+                isPaused = true;
+                pausedTime = (performance.now() - animationStartTime) / 1000 * animationSpeed;
+            }
+        }
+        
+        function resetAnimation() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            isPaused = false;
+            animationStartTime = 0;
+            pausedTime = 0;
+            stations.forEach(station => {
+                station.pArrival = null;
+                station.sArrival = null;
+                station.distance = null;
+            });
+            draw();
+        }
+        
+        function resetSimulation() {
+            epicenter = null;
+            resetAnimation();
+        }
+        
+        function updateSpeed() {
+            animationSpeed = parseFloat(document.getElementById('speedSlider').value);
+            document.getElementById('speedValue').textContent = animationSpeed.toFixed(1);
+        }
+        
+        function toggleWaveType() {
+            if (showPWaves && showSWaves) {
+                showPWaves = true;
+                showSWaves = false;
+            } else if (showPWaves && !showSWaves) {
+                showPWaves = false;
+                showSWaves = true;
+            } else {
+                showPWaves = true;
+                showSWaves = true;
+            }
+            draw();
+        }
+        
+        function addRandomStation() {
+            if (stations.length >= 6) {
+                alert('Maximum 6 stations allowed for clarity');
+                return;
+            }
+            const colors = ['#e67e22', '#16a085', '#8e44ad', '#d35400'];
+            stations.push({
+                x: Math.random() * (canvas.width - 100) + 50,
+                y: Math.random() * (canvas.height - 100) + 50,
+                name: `Station ${String.fromCharCode(65 + stations.length)}`,
+                color: colors[stations.length % colors.length]
+            });
+            draw();
+        }
+        
+        function removeLastStation() {
+            if (stations.length > 3) {
+                stations.pop();
+                draw();
+            } else {
+                alert('Minimum 3 stations required for triangulation');
+            }
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            drawStations();
+            drawEpicenter();
+            updateStationInfo();
+        }
+        
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>

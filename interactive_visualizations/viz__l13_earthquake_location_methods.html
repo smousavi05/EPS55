@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Location Simulation Tool</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a2332 25%, #2d4059 50%, #1a2332 75%, #0f1419 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.5em;
+        }
+        
+        .control-header {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .control-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(78, 205, 196, 0.3);
+        }
+        
+        .section-title {
+            color: #4ecdc4;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .main-display {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .map-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .map-canvas-container {
+            background: #000;
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            height: 500px;
+        }
+        
+        .map-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 5px;
+            cursor: crosshair;
+        }
+        
+        .coordinates-display {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #4ecdc4;
+        }
+        
+        .data-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: fit-content;
+        }
+        
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid transparent;
+        }
+        
+        .mode-btn.active {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            border-color: #4ecdc4;
+        }
+        
+        .velocity-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .velocity-btn {
+            flex: 1;
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid transparent;
+        }
+        
+        .velocity-btn.active {
+            background: rgba(78, 205, 196, 0.3);
+            border-color: #4ecdc4;
+        }
+        
+        .station-data {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        
+        .station-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        
+        .station-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .station-name {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+        
+        .station-distance {
+            color: #ccc;
+            font-size: 10px;
+        }
+        
+        .arrival-times {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            font-size: 11px;
+        }
+        
+        .arrival-time {
+            text-align: center;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        .sp-input {
+            width: 60px;
+            padding: 2px 4px;
+            border: 1px solid #4ecdc4;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-size: 11px;
+            text-align: center;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 12px;
+        }
+        
+        .triangulate-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+        
+        .iterate-btn {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+            color: white;
+        }
+        
+        .reset-btn {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            grid-column: 1 / -1;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .wadati-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .wadati-canvas {
+            width: 100%;
+            height: 200px;
+            background: #000;
+            border-radius: 5px;
+        }
+        
+        .wadati-results {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #ccc;
+        }
+        
+        .iteration-display {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .iteration-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+        
+        .iteration-value {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+        
+        .residuals-list {
+            max-height: 100px;
+            overflow-y: auto;
+            font-size: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            border-radius: 4px;
+        }
+        
+        .results-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .result-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #4ecdc4;
+        }
+        
+        .result-title {
+            color: #4ecdc4;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .result-data {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 11px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+        
+        .legend-symbol {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .instructions {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #3498db;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-display {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-header {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📍 Earthquake Location Simulation</h1>
+        
+        <div class="control-header">
+            <div class="control-section">
+                <div class="section-title">🌍 Earth Model</div>
+                <div class="velocity-toggle">
+                    <button class="velocity-btn active" onclick="setVelocityModel('uniform')" id="uniformBtn">
+                        Uniform Earth
+                    </button>
+                    <button class="velocity-btn" onclick="setVelocityModel('layered')" id="layeredBtn">
+                        Layered Earth
+                    </button>
+                </div>
+                <div style="font-size: 10px; color: #ccc; text-align: center;" id="modelInfo">
+                    Vp = 6.0 km/s, Vs = 3.5 km/s
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">🎯 Location Method</div>
+                <div class="mode-selector">
+                    <button class="mode-btn active" onclick="setMode('manual')" id="manualBtn">
+                        Manual Triangulation
+                    </button>
+                    <button class="mode-btn" onclick="setMode('iterative')" id="iterativeBtn">
+                        Geiger's Method
+                    </button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">📊 Current Status</div>
+                <div style="font-size: 11px;">
+                    <div>Stations: <span style="color: #4ecdc4;" id="stationCount">3</span></div>
+                    <div>Earthquake: <span style="color: #4ecdc4;" id="earthquakeStatus">None</span></div>
+                    <div>Method: <span style="color: #4ecdc4;" id="currentMethod">Manual</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions" id="instructions">
+            📍 <strong>Step 1:</strong> Click on the map to place an earthquake, then drag stations to different locations. The tool will calculate arrival times based on your chosen Earth model.
+        </div>
+        
+        <div class="main-display">
+            <div class="map-container">
+                <h3 style="margin: 0 0 15px 0; color: #4ecdc4; text-align: center;">🗺️ Seismic Network Map</h3>
+                <div class="map-canvas-container">
+                    <canvas class="map-canvas" id="mapCanvas"></canvas>
+                    <div class="coordinates-display" id="coordsDisplay">Click to place earthquake</div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-symbol" style="background: #ff6b6b;"></div>
+                        <span>Earthquake</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-symbol" style="background: #4ecdc4; border: 2px solid white;"></div>
+                        <span>Seismic Station</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-symbol" style="background: transparent; border: 2px dashed #feca57;"></div>
+                        <span>S-P Distance Circle</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-symbol" style="background: #2ecc71;"></div>
+                        <span>Located Epicenter</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="data-panel">
+                <h3 style="margin: 0 0 15px 0; color: #4ecdc4; text-align: center;">📈 Analysis Tools</h3>
+                
+                <div class="station-data" id="stationData">
+                    <div style="text-align: center; color: #888; padding: 20px;">
+                        Place an earthquake to see station data
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button onclick="performTriangulation()" class="triangulate-btn" id="triangulateBtn">
+                        📐 Triangulate
+                    </button>
+                    <button onclick="showWadatiDiagram()" class="triangulate-btn" style="background: linear-gradient(45deg, #feca57, #ff9ff3);">
+                        📊 Wadati Plot
+                    </button>
+                    <button onclick="startIterativeLocation()" class="iterate-btn" id="iterateBtn">
+                        🔄 Start Iteration
+                    </button>
+                    <button onclick="addStation()" class="iterate-btn" style="background: linear-gradient(45deg, #54a0ff, #5f27cd);">
+                        ➕ Add Station
+                    </button>
+                    <button onclick="resetSimulation()" class="reset-btn">
+                        🔄 Reset All
+                    </button>
+                </div>
+                
+                <div class="wadati-container" id="wadatiContainer">
+                    <h4 style="margin: 0 0 10px 0; color: #4ecdc4;">Wadati Diagram</h4>
+                    <canvas class="wadati-canvas" id="wadatiCanvas"></canvas>
+                    <div class="wadati-results" id="wadatiResults">
+                        Click points to fit line and extract Vp/Vs ratio and origin time
+                    </div>
+                </div>
+                
+                <div class="iteration-display" id="iterationDisplay">
+                    <h4 style="margin: 0 0 10px 0; color: #4ecdc4;">Geiger Iteration Progress</h4>
+                    <div class="iteration-info">
+                        <div>Iteration: <span class="iteration-value" id="iterationCount">0</span></div>
+                        <div>RMS Residual: <span class="iteration-value" id="rmsResidual">--</span></div>
+                        <div>X Shift: <span class="iteration-value" id="xShift">--</span></div>
+                        <div>Y Shift: <span class="iteration-value" id="yShift">--</span></div>
+                    </div>
+                    <div style="font-size: 11px; color: #ccc; margin-bottom: 5px;">Station Residuals:</div>
+                    <div class="residuals-list" id="residualsList">
+                        No iterations yet
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="results-panel" id="resultsPanel">
+            <h3 style="margin: 0 0 15px 0; color: #4ecdc4; text-align: center;">🎯 Location Results</h3>
+            <div class="results-grid" id="resultsGrid">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let canvas, ctx;
+        let stations = [];
+        let earthquake = null;
+        let currentMode = 'manual';
+        let velocityModel = 'uniform';
+        let isIterating = false;
+        let iterationCount = 0;
+        let currentGuess = null;
+        let circles = [];
+        let locatedEpicenter = null;
+        
+        // Velocity models
+        const velocityModels = {
+            uniform: {
+                vp: 6.0,
+                vs: 3.5,
+                name: 'Uniform Earth',
+                description: 'Vp = 6.0 km/s, Vs = 3.5 km/s'
+            },
+            layered: {
+                layers: [
+                    { depth: 0, vp: 5.5, vs: 3.2 },    // Crust
+                    { depth: 35, vp: 8.1, vs: 4.6 },   // Upper mantle
+                    { depth: 100, vp: 8.3, vs: 4.8 }   // Lower layer
+                ],
+                name: 'Layered Earth',
+                description: 'Variable velocities with depth'
+            }
+        };
+        
+        // Station class
+        class Station {
+            constructor(id, x, y, name) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.name = name;
+                this.pArrival = null;
+                this.sArrival = null;
+                this.spTime = null;
+                this.distance = null;
+                this.isDragging = false;
+            }
+            
+            calculateArrivals(earthquake) {
+                this.distance = Math.sqrt(
+                    Math.pow(this.x - earthquake.x, 2) + 
+                    Math.pow(this.y - earthquake.y, 2)
+                ) * 0.1; // Convert pixels to km (scale factor)
+                
+                const travelTimes = calculateTravelTimes(this.distance, earthquake.depth);
+                this.pArrival = earthquake.originTime + travelTimes.pTime;
+                this.sArrival = earthquake.originTime + travelTimes.sTime;
+                this.spTime = this.sArrival - this.pArrival;
+            }
+        }
+        
+        // Earthquake class
+        class Earthquake {
+            constructor(x, y, depth = 10, originTime = 0) {
+                this.x = x;
+                this.y = y;
+                this.depth = depth;
+                this.originTime = originTime;
+                this.magnitude = 4.0 + Math.random() * 2.0;
+            }
+        }
+        
+        function init() {
+            canvas = document.getElementById('mapCanvas');
+            ctx = canvas.getContext('2d');
+            
+            resizeCanvas();
+            setupEventListeners();
+            
+            // Initialize with default stations
+            stations = [
+                new Station(1, 150, 150, 'STA1'),
+                new Station(2, 350, 200, 'STA2'),
+                new Station(3, 250, 350, 'STA3')
+            ];
+            
+            drawMap();
+            updateStationCount();
+            
+            window.addEventListener('resize', resizeCanvas);
+        }
+        
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            drawMap();
+        }
+        
+        function setupEventListeners() {
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('mousemove', updateCoordinatesDisplay);
+        }
+        
+        function handleCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Check if clicking on a station
+            const clickedStation = stations.find(station => {
+                const distance = Math.sqrt(Math.pow(x - station.x, 2) + Math.pow(y - station.y, 2));
+                return distance < 15;
+            });
+            
+            if (!clickedStation && !isIterating) {
+                // Place earthquake
+                earthquake = new Earthquake(x, y);
+                calculateAllArrivals();
+                updateStationData();
+                updateInstructions();
+                document.getElementById('earthquakeStatus').textContent = 'Placed';
+                drawMap();
+            }
+        }
+        
+        function handleMouseDown(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Check if clicking on a station
+            const clickedStation = stations.find(station => {
+                const distance = Math.sqrt(Math.pow(x - station.x, 2) + Math.pow(y - station.y, 2));
+                return distance < 15;
+            });
+            
+            if (clickedStation) {
+                clickedStation.isDragging = true;
+                canvas.style.cursor = 'grabbing';
+            }
+        }
+        
+        function handleMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Update dragging station position
+            const draggingStation = stations.find(station => station.isDragging);
+            if (draggingStation) {
+                draggingStation.x = x;
+                draggingStation.y = y;
+                
+                if (earthquake) {
+                    calculateAllArrivals();
+                    updateStationData();
+                }
+                
+                drawMap();
+                return;
+            }
+            
+            // Update cursor
+            const hoveringStation = stations.find(station => {
+                const distance = Math.sqrt(Math.pow(x - station.x, 2) + Math.pow(y - station.y, 2));
+                return distance < 15;
+            });
+            
+            canvas.style.cursor = hoveringStation ? 'grab' : 'crosshair';
+        }
+        
+        function handleMouseUp() {
+            stations.forEach(station => {
+                station.isDragging = false;
+            });
+            canvas.style.cursor = 'crosshair';
+        }
+        
+        function updateCoordinatesDisplay(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Convert to lat/lon (simplified)
+            const lat = (37.0 + (400 - y) / 400 * 2.0).toFixed(3);
+            const lon = (-122.0 - x / 500 * 2.0).toFixed(3);
+            
+            document.getElementById('coordsDisplay').textContent = `${lat}°N, ${Math.abs(lon)}°W`;
+        }
+        
+        function calculateTravelTimes(distance, depth) {
+            if (velocityModel === 'uniform') {
+                const model = velocityModels.uniform;
+                const hypoDistance = Math.sqrt(distance * distance + depth * depth);
+                return {
+                    pTime: hypoDistance / model.vp,
+                    sTime: hypoDistance / model.vs
+                };
+            } else {
+                // Simplified layered model calculation
+                const layers = velocityModels.layered.layers;
+                let pTime = 0, sTime = 0;
+                
+                // For simplicity, use average velocities weighted by depth
+                let avgVp = 0, avgVs = 0, totalDepth = 0;
+                
+                for (let layer of layers) {
+                    if (depth > layer.depth) {
+                        const layerThickness = Math.min(depth - layer.depth, 35);
+                        avgVp += layer.vp * layerThickness;
+                        avgVs += layer.vs * layerThickness;
+                        totalDepth += layerThickness;
+                    }
+                }
+                
+                if (totalDepth > 0) {
+                    avgVp /= totalDepth;
+                    avgVs /= totalDepth;
+                } else {
+                    avgVp = layers[0].vp;
+                    avgVs = layers[0].vs;
+                }
+                
+                const hypoDistance = Math.sqrt(distance * distance + depth * depth);
+                return {
+                    pTime: hypoDistance / avgVp,
+                    sTime: hypoDistance / avgVs
+                };
+            }
+        }
+        
+        function calculateAllArrivals() {
+            if (!earthquake) return;
+            
+            stations.forEach(station => {
+                station.calculateArrivals(earthquake);
+            });
+        }
+        
+        function updateStationData() {
+            const stationDataDiv = document.getElementById('stationData');
+            
+            if (!earthquake || stations.length === 0) {
+                stationDataDiv.innerHTML = '<div style="text-align: center; color: #888; padding: 20px;">Place an earthquake to see station data</div>';
+                return;
+            }
+            
+            stationDataDiv.innerHTML = stations.map(station => `
+                <div class="station-item">
+                    <div class="station-header">
+                        <div class="station-name">${station.name}</div>
+                        <div class="station-distance">${station.distance ? station.distance.toFixed(1) + ' km' : '--'}</div>
+                    </div>
+                    <div class="arrival-times">
+                        <div class="arrival-time">
+                            <div style="color: #ff6b6b;">P-wave</div>
+                            <div>${station.pArrival ? station.pArrival.toFixed(2) + 's' : '--'}</div>
+                        </div>
+                        <div class="arrival-time">
+                            <div style="color: #3742fa;">S-wave</div>
+                            <div>${station.sArrival ? station.sArrival.toFixed(2) + 's' : '--'}</div>
+                        </div>
+                        <div class="arrival-time">
+                            <div style="color: #feca57;">S-P</div>
+                            <input type="number" class="sp-input" value="${station.spTime ? station.spTime.toFixed(2) : ''}" 
+                                   onchange="updateSPTime(${station.id}, this.value)" step="0.01" min="0" max="20">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateSPTime(stationId, value) {
+            const station = stations.find(s => s.id === stationId);
+            if (station) {
+                station.spTime = parseFloat(value) || 0;
+            }
+        }
+        
+        function setMode(mode) {
+            currentMode = mode;
+            
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(mode + 'Btn').classList.add('active');
+            document.getElementById('currentMethod').textContent = mode === 'manual' ? 'Manual' : 'Iterative';
+            
+            // Show/hide relevant panels
+            document.getElementById('wadatiContainer').style.display = 'none';
+            document.getElementById('iterationDisplay').style.display = mode === 'iterative' ? 'block' : 'none';
+            
+            updateInstructions();
+            drawMap();
+        }
+        
+        function setVelocityModel(model) {
+            velocityModel = model;
+            
+            document.querySelectorAll('.velocity-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(model + 'Btn').classList.add('active');
+            document.getElementById('modelInfo').textContent = velocityModels[model].description;
+            
+            if (earthquake) {
+                calculateAllArrivals();
+                updateStationData();
+                drawMap();
+            }
+        }
+        
+        function performTriangulation() {
+            if (!earthquake || stations.length < 3) {
+                alert('Need at least 3 stations with an earthquake placed!');
+                return;
+            }
+            
+            circles = [];
+            
+            // Calculate circles for each station
+            stations.forEach(station => {
+                if (station.spTime > 0) {
+                    // Calculate distance from S-P time
+                    // Using simplified formula: distance ≈ S-P time * (Vp*Vs)/(Vs-Vp)
+                    const model = velocityModel === 'uniform' ? velocityModels.uniform : {
+                        vp: 6.5, vs: 3.7 // Average for layered model
+                    };
+                    
+                    const distance = station.spTime * (model.vp * model.vs) / (model.vs - model.vp);
+                    const radiusPixels = distance * 10; // Convert km to pixels
+                    
+                    circles.push({
+                        x: station.x,
+                        y: station.y,
+                        radius: radiusPixels,
+                        station: station.name
+                    });
+                }
+            });
+            
+            // Find intersection point (simplified - use centroid of circle intersections)
+            if (circles.length >= 3) {
+                locatedEpicenter = findTriangulationPoint();
+                showResults('manual');
+            }
+            
+            drawMap();
+            updateInstructions();
+        }
+        
+        function findTriangulationPoint() {
+            // Simplified triangulation - find point with minimum distance to all circles
+            let bestX = 0, bestY = 0, minError = Infinity;
+            
+            // Search grid
+            for (let x = 50; x < 450; x += 5) {
+                for (let y = 50; y < 350; y += 5) {
+                    let totalError = 0;
+                    
+                    circles.forEach(circle => {
+                        const distToCenter = Math.sqrt(Math.pow(x - circle.x, 2) + Math.pow(y - circle.y, 2));
+                        const error = Math.abs(distToCenter - circle.radius);
+                        totalError += error * error;
+                    });
+                    
+                    if (totalError < minError) {
+                        minError = totalError;
+                        bestX = x;
+                        bestY = y;
+                    }
+                }
+            }
+            
+            return { x: bestX, y: bestY, error: Math.sqrt(minError / circles.length) };
+        }
+        
+        function startIterativeLocation() {
+            if (!earthquake || stations.length < 3) {
+                alert('Need at least 3 stations with an earthquake placed!');
+                return;
+            }
+            
+            isIterating = true;
+            iterationCount = 0;
+            
+            // Start with initial guess (center of stations)
+            const avgX = stations.reduce((sum, s) => sum + s.x, 0) / stations.length;
+            const avgY = stations.reduce((sum, s) => sum + s.y, 0) / stations.length;
+            currentGuess = { x: avgX, y: avgY, originTime: 0 };
+            
+            document.getElementById('iterationDisplay').style.display = 'block';
+            
+            // Start iterations
+            iterateLocation();
+        }
+        
+        function iterateLocation() {
+            if (iterationCount >= 10) {
+                isIterating = false;
+                locatedEpicenter = { x: currentGuess.x, y: currentGuess.y };
+                showResults('iterative');
+                drawMap();
+                return;
+            }
+            
+            iterationCount++;
+            
+            // Calculate residuals and corrections
+            let residuals = [];
+            let totalResidual = 0;
+            
+            stations.forEach(station => {
+                const distance = Math.sqrt(
+                    Math.pow(station.x - currentGuess.x, 2) + 
+                    Math.pow(station.y - currentGuess.y, 2)
+                ) * 0.1;
+                
+                const travelTimes = calculateTravelTimes(distance, 10);
+                const predictedP = currentGuess.originTime + travelTimes.pTime;
+                const residual = station.pArrival - predictedP;
+                
+                residuals.push({
+                    station: station.name,
+                    observed: station.pArrival,
+                    predicted: predictedP,
+                    residual: residual
+                });
+                
+                totalResidual += residual * residual;
+            });
+            
+            const rmsResidual = Math.sqrt(totalResidual / residuals.length);
+            
+            // Calculate corrections (simplified)
+            let xCorrection = 0, yCorrection = 0, tCorrection = 0;
+            
+            residuals.forEach((res, i) => {
+                const station = stations[i];
+                const weight = 1.0 / (1.0 + Math.abs(res.residual));
+                
+                xCorrection += weight * res.residual * (station.x - currentGuess.x) / 1000;
+                yCorrection += weight * res.residual * (station.y - currentGuess.y) / 1000;
+                tCorrection += weight * res.residual * 0.1;
+            });
+            
+            // Apply corrections with damping
+            const damping = 0.5;
+            currentGuess.x += xCorrection * damping;
+            currentGuess.y += yCorrection * damping;
+            currentGuess.originTime += tCorrection * damping;
+            
+            // Update display
+            document.getElementById('iterationCount').textContent = iterationCount;
+            document.getElementById('rmsResidual').textContent = rmsResidual.toFixed(3) + 's';
+            document.getElementById('xShift').textContent = (xCorrection * damping).toFixed(1) + 'px';
+            document.getElementById('yShift').textContent = (yCorrection * damping).toFixed(1) + 'px';
+            
+            const residualsList = document.getElementById('residualsList');
+            residualsList.innerHTML = residuals.map(res => 
+                `${res.station}: ${res.residual.toFixed(3)}s`
+            ).join('<br>');
+            
+            drawMap();
+            
+            // Continue iteration
+            setTimeout(iterateLocation, 1000);
+        }
+        
+        function showWadatiDiagram() {
+            if (!earthquake || stations.length < 3) {
+                alert('Need at least 3 stations with an earthquake placed!');
+                return;
+            }
+            
+            const wadatiContainer = document.getElementById('wadatiContainer');
+            wadatiContainer.style.display = 'block';
+            
+            drawWadatiDiagram();
+        }
+        
+        function drawWadatiDiagram() {
+            const canvas = document.getElementById('wadatiCanvas');
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            
+            ctx.clearRect(0, 0, rect.width, rect.height);
+            
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const x = (i / 10) * rect.width;
+                const y = (i / 10) * rect.height;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, rect.height);
+                ctx.moveTo(0, y);
+                ctx.lineTo(rect.width, y);
+                ctx.stroke();
+            }
+            
+            // Find data ranges
+            const pTimes = stations.map(s => s.pArrival).filter(t => t !== null);
+            const sTimes = stations.map(s => s.sArrival).filter(t => t !== null);
+            
+            if (pTimes.length === 0) return;
+            
+            const minP = Math.min(...pTimes);
+            const maxP = Math.max(...pTimes);
+            const minS = Math.min(...sTimes);
+            const maxS = Math.max(...sTimes);
+            
+            // Draw data points
+            ctx.fillStyle = '#4ecdc4';
+            stations.forEach(station => {
+                if (station.pArrival && station.sArrival) {
+                    const x = ((station.pArrival - minP) / (maxP - minP)) * rect.width * 0.8 + rect.width * 0.1;
+                    const y = rect.height - (((station.sArrival - minS) / (maxS - minS)) * rect.height * 0.8 + rect.height * 0.1);
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(station.name, x + 6, y - 6);
+                    ctx.fillStyle = '#4ecdc4';
+                }
+            });
+            
+            // Draw best fit line (simplified)
+            if (stations.length >= 2) {
+                const slope = 1.73; // Typical Vp/Vs ratio
+                const intercept = minS - slope * minP;
+                
+                const x1 = rect.width * 0.1;
+                const y1 = rect.height - (((intercept + slope * minP) - minS) / (maxS - minS) * rect.height * 0.8 + rect.height * 0.1);
+                const x2 = rect.width * 0.9;
+                const y2 = rect.height - (((intercept + slope * maxP) - minS) / (maxS - minS) * rect.height * 0.8 + rect.height * 0.1);
+                
+                ctx.strokeStyle = '#ff6b6b';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            
+            // Add labels
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.fillText('P-wave arrival time', rect.width / 2, rect.height - 5);
+            ctx.save();
+            ctx.translate(15, rect.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('S-wave arrival time', 0, 0);
+            ctx.restore();
+            
+            // Update results
+            document.getElementById('wadatiResults').innerHTML = `
+                Vp/Vs ratio: ~1.73<br>
+                Origin time intercept: ${minP.toFixed(2)}s<br>
+                <small>Line represents theoretical Vp/Vs = 1.73</small>
+            `;
+        }
+        
+        function addStation() {
+            const stationId = stations.length + 1;
+            const x = 100 + Math.random() * 300;
+            const y = 100 + Math.random() * 200;
+            const name = `STA${stationId}`;
+            
+            stations.push(new Station(stationId, x, y, name));
+            
+            if (earthquake) {
+                calculateAllArrivals();
+                updateStationData();
+            }
+            
+            updateStationCount();
+            drawMap();
+        }
+        
+        function resetSimulation() {
+            earthquake = null;
+            circles = [];
+            locatedEpicenter = null;
+            isIterating = false;
+            iterationCount = 0;
+            currentGuess = null;
+            
+            document.getElementById('earthquakeStatus').textContent = 'None';
+            document.getElementById('wadatiContainer').style.display = 'none';
+            document.getElementById('iterationDisplay').style.display = 'none';
+            document.getElementById('resultsPanel').style.display = 'none';
+            
+            updateStationData();
+            updateInstructions();
+            drawMap();
+        }
+        
+        function updateStationCount() {
+            document.getElementById('stationCount').textContent = stations.length;
+        }
+        
+        function updateInstructions() {
+            const instructions = document.getElementById('instructions');
+            
+            if (!earthquake) {
+                instructions.innerHTML = '📍 <strong>Step 1:</strong> Click on the map to place an earthquake, then drag stations to different locations.';
+            } else if (currentMode === 'manual') {
+                instructions.innerHTML = '📐 <strong>Step 2:</strong> Adjust S-P times if needed, then click "Triangulate" to manually locate the earthquake.';
+            } else {
+                instructions.innerHTML = '🔄 <strong>Step 2:</strong> Click "Start Iteration" to see how Geiger\'s method iteratively improves the location estimate.';
+            }
+        }
+        
+        function showResults(method) {
+            const resultsPanel = document.getElementById('resultsPanel');
+            const resultsGrid = document.getElementById('resultsGrid');
+            
+            resultsPanel.style.display = 'block';
+            
+            const trueLocation = earthquake;
+            const estimatedLocation = locatedEpicenter;
+            
+            const error = Math.sqrt(
+                Math.pow((trueLocation.x - estimatedLocation.x) * 0.1, 2) + 
+                Math.pow((trueLocation.y - estimatedLocation.y) * 0.1, 2)
+            );
+            
+            resultsGrid.innerHTML = `
+                <div class="result-box">
+                    <div class="result-title">🎯 True Location</div>
+                    <div class="result-data">
+                        Latitude: ${(37.0 + (400 - trueLocation.y) / 400 * 2.0).toFixed(3)}°N<br>
+                        Longitude: ${(-122.0 - trueLocation.x / 500 * 2.0).toFixed(3)}°W<br>
+                        Depth: ${trueLocation.depth} km<br>
+                        Origin Time: ${trueLocation.originTime.toFixed(2)}s
+                    </div>
+                </div>
+                
+                <div class="result-box">
+                    <div class="result-title">📍 Estimated Location</div>
+                    <div class="result-data">
+                        Latitude: ${(37.0 + (400 - estimatedLocation.y) / 400 * 2.0).toFixed(3)}°N<br>
+                        Longitude: ${(-122.0 - estimatedLocation.x / 500 * 2.0).toFixed(3)}°W<br>
+                        Method: ${method === 'manual' ? 'Manual Triangulation' : 'Geiger Iteration'}<br>
+                        ${method === 'iterative' ? `Iterations: ${iterationCount}` : ''}
+                    </div>
+                </div>
+                
+                <div class="result-box">
+                    <div class="result-title">📊 Accuracy Assessment</div>
+                    <div class="result-data">
+                        Location Error: ${error.toFixed(2)} km<br>
+                        Stations Used: ${stations.length}<br>
+                        Velocity Model: ${velocityModels[velocityModel].name}<br>
+                        Status: ${error < 5 ? 'Excellent' : error < 15 ? 'Good' : 'Poor'}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function drawMap() {
+            const rect = canvas.getBoundingClientRect();
+            ctx.clearRect(0, 0, rect.width, rect.height);
+            
+            // Draw background
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, rect.width, rect.height);
+            
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 20; i++) {
+                const x = (i / 20) * rect.width;
+                const y = (i / 20) * rect.height;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, rect.height);
+                ctx.moveTo(0, y);
+                ctx.lineTo(rect.width, y);
+                ctx.stroke();
+            }
+            
+            // Draw circles (triangulation)
+            if (circles.length > 0) {
+                ctx.strokeStyle = '#feca57';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                
+                circles.forEach(circle => {
+                    ctx.beginPath();
+                    ctx.arc(circle.x, circle.y, circle.radius, 0, 2 * Math.PI);
+                    ctx.stroke();
+                });
+                
+                ctx.setLineDash([]);
+            }
+            
+            // Draw stations
+            stations.forEach(station => {
+                ctx.fillStyle = '#4ecdc4';
+                ctx.beginPath();
+                ctx.arc(station.x, station.y, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(station.name, station.x, station.y - 15);
+            });
+            
+            // Draw earthquake
+            if (earthquake) {
+                ctx.fillStyle = '#ff6b6b';
+                ctx.beginPath();
+                ctx.arc(earthquake.x, earthquake.y, 10, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw magnitude
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`M${earthquake.magnitude.toFixed(1)}`, earthquake.x, earthquake.y + 20);
+            }
+            
+            // Draw located epicenter
+            if (locatedEpicenter) {
+                ctx.fillStyle = '#2ecc71';
+                ctx.beginPath();
+                ctx.arc(locatedEpicenter.x, locatedEpicenter.y, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw error circle if available
+                if (locatedEpicenter.error) {
+                    ctx.strokeStyle = '#2ecc71';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.arc(locatedEpicenter.x, locatedEpicenter.y, locatedEpicenter.error, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+            
+            // Draw current guess for iteration
+            if (isIterating && currentGuess) {
+                ctx.fillStyle = '#9b59b6';
+                ctx.beginPath();
+                ctx.arc(currentGuess.x, currentGuess.y, 6, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Iter ${iterationCount}`, currentGuess.x, currentGuess.y - 12);
+            }
+        }
+        
+        // Initialize the application
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

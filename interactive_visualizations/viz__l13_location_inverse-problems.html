@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Understanding Inverse Problems</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            color: #e0e0e0;
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .concept-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            animation: fadeInUp 0.8s ease-out;
+            backdrop-filter: blur(10px);
+        }
+        
+        .visual-demo {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .demo-box {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .demo-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .arrow {
+            font-size: 2rem;
+            color: #2a5298;
+            margin: 1rem 0;
+            animation: pulse 2s infinite;
+        }
+        
+        .equation-box {
+            background: #e9ecef;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            text-align: center;
+            border: 2px solid #ced4da;
+        }
+        
+        .interactive-example {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 2rem 0;
+            color: white;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .slider-container {
+            margin: 1.5rem 0;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.3);
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease;
+        }
+        
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border: none;
+        }
+        
+        .canvas-container {
+            background: white;
+            border-radius: 15px;
+            padding: 1rem;
+            margin: 1rem 0;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 10px;
+        }
+        
+        .method-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .method-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .method-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+            transform: scale(0);
+            transition: transform 0.5s ease;
+        }
+        
+        .method-card:hover::before {
+            transform: scale(1);
+        }
+        
+        .method-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .method-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .steps-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            position: relative;
+        }
+        
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            opacity: 0;
+            animation: fadeInLeft 0.6s ease-out forwards;
+        }
+        
+        .step:nth-child(1) { animation-delay: 0.1s; }
+        .step:nth-child(2) { animation-delay: 0.2s; }
+        .step:nth-child(3) { animation-delay: 0.3s; }
+        .step:nth-child(4) { animation-delay: 0.4s; }
+        .step:nth-child(5) { animation-delay: 0.5s; }
+        
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+        }
+        
+        .step-content h3 {
+            color: #2a5298;
+            margin-bottom: 0.5rem;
+        }
+        
+        .challenge-box {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            color: white;
+            box-shadow: 0 5px 20px rgba(250, 112, 154, 0.3);
+        }
+        
+        .challenge-item {
+            display: flex;
+            align-items: center;
+            margin: 0.5rem 0;
+        }
+        
+        .challenge-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+        
+        .highlight {
+            background: linear-gradient(120deg, #f093fb 0%, #f5576c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .visual-demo {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .method-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Understanding Inverse Problems</h1>
+            <p>Explore the fascinating world of working backwards from effects to causes</p>
+        </div>
+        
+        <div class="concept-card">
+            <h2>What are Inverse Problems?</h2>
+            <p>An <span class="highlight">inverse problem</span> is when we have observed data and need to determine the model parameters that produced it. Unlike forward problems where we know the parameters and predict the observations, inverse problems require us to work backwards from data to parameters.</p>
+            
+            <div class="visual-demo">
+                <div class="demo-box" onclick="animateForward()">
+                    <h3>Forward Problem</h3>
+                    <div class="equation-box">Model Parameters → Forward Model → Observed Data</div>
+                    <p>Example: Drop height/angle → Physics → Landing position</p>
+                    <div class="arrow">⬇️</div>
+                    <p><strong>Known:</strong> Model parameters (θ)<br>
+                    <strong>Find:</strong> Observed data (d)</p>
+                </div>
+                
+                <div class="demo-box" onclick="animateInverse()">
+                    <h3>Inverse Problem</h3>
+                    <div class="equation-box">Observed Data → Inverse Model → Model Parameters</div>
+                    <p>Example: Landing position → Physics → Drop height/angle</p>
+                    <div class="arrow">⬆️</div>
+                    <p><strong>Known:</strong> Observed data (d)<br>
+                    <strong>Find:</strong> Model parameters (θ)</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="concept-card">
+            <h2>Mathematical Formulation</h2>
+            <div style="background: #f0f4f8; border-radius: 15px; padding: 2rem; margin: 1rem 0;">
+                <h3 style="color: #2a5298; margin-bottom: 1rem;">Forward Problem</h3>
+                <div class="equation-box" style="font-size: 1.3rem; margin-bottom: 1rem;">
+                    d = G(θ) + ε
+                </div>
+                <p><strong>d</strong>: Observed data (measurements)<br>
+                <strong>G</strong>: Forward model (physics/process)<br>
+                <strong>θ</strong>: Model parameters (unknowns)<br>
+                <strong>ε</strong>: Measurement noise/errors</p>
+            </div>
+            
+            <div style="background: #e9ecef; border-radius: 15px; padding: 2rem; margin: 1rem 0;">
+                <h3 style="color: #667eea; margin-bottom: 1rem;">Inverse Problem</h3>
+                <div class="equation-box" style="font-size: 1.3rem; margin-bottom: 1rem;">
+                    θ_est = argmin ||G(θ) - d||² + λR(θ)
+                </div>
+                <p><strong>θ_est</strong>: Estimated parameters<br>
+                <strong>||G(θ) - d||²</strong>: Data misfit (how well parameters explain data)<br>
+                <strong>λ</strong>: Regularization parameter<br>
+                <strong>R(θ)</strong>: Regularization term (prior knowledge/constraints)</p>
+            </div>
+        </div>
+        
+        <div class="concept-card">
+            <h2>Real-World Examples</h2>
+            <div class="method-grid">
+                <div class="method-card">
+                    <div class="method-icon">🏥</div>
+                    <h3>Medical Imaging</h3>
+                    <p><strong>Data:</strong> X-ray measurements<br>
+                    <strong>Parameters:</strong> Tissue densities</p>
+                </div>
+                <div class="method-card">
+                    <div class="method-icon">🌍</div>
+                    <h3>Seismology</h3>
+                    <p><strong>Data:</strong> Seismic waves<br>
+                    <strong>Parameters:</strong> Rock velocities</p>
+                </div>
+                <div class="method-card">
+                    <div class="method-icon">🔍</div>
+                    <h3>Computer Vision</h3>
+                    <p><strong>Data:</strong> 2D images<br>
+                    <strong>Parameters:</strong> 3D structure</p>
+                </div>
+                <div class="method-card">
+                    <div class="method-icon">🌡️</div>
+                    <h3>Heat Transfer</h3>
+                    <p><strong>Data:</strong> Temperature now<br>
+                    <strong>Parameters:</strong> Initial temp</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="interactive-example">
+            <h2>Interactive Example: Parameter Estimation from Noisy Data</h2>
+            <p>Observe how we estimate model parameters (signal frequency and amplitude) from noisy observed data</p>
+            
+            <div class="slider-container">
+                <label>Data Noise Level: <span id="noiseValue">20</span>%</label>
+                <input type="range" class="slider" id="noiseSlider" min="0" max="100" value="20">
+            </div>
+            
+            <div class="slider-container">
+                <label>Regularization Strength: <span id="regValue">0.5</span></label>
+                <input type="range" class="slider" id="regSlider" min="0" max="100" value="50">
+            </div>
+            
+            <div class="canvas-container">
+                <canvas id="signalCanvas" width="600" height="300"></canvas>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px;">
+                    <h4>True Model Parameters</h4>
+                    <p>Frequency: 0.02, Amplitude: 50</p>
+                </div>
+                <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 10px;">
+                    <h4>Estimated Parameters</h4>
+                    <p id="estimatedParams">Calculating...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="concept-card">
+            <h2>General Approach to Solving Inverse Problems</h2>
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Model the Forward Problem</h3>
+                        <p>Understand how model parameters produce observed data. Develop mathematical model: d = G(θ) where d is data and θ are parameters</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Formulate the Inverse</h3>
+                        <p>Set up equation to find parameters θ given data d. Often involves solving: θ = G⁻¹(d)</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Address Ill-Posedness</h3>
+                        <p>Handle non-uniqueness (multiple parameters fit data), instability (small data changes cause large parameter changes)</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Apply Regularization</h3>
+                        <p>Add constraints or prior knowledge about parameters to stabilize the solution</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h3>Validate Results</h3>
+                        <p>Check if estimated parameters produce observed data when run through forward model</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="concept-card">
+            <h2>Key Challenges</h2>
+            <div class="challenge-box">
+                <div class="challenge-item">
+                    <div class="challenge-icon">⚠️</div>
+                    <p><strong>Non-uniqueness:</strong> Multiple causes can produce the same effect</p>
+                </div>
+                <div class="challenge-item">
+                    <div class="challenge-icon">📊</div>
+                    <p><strong>Noise sensitivity:</strong> Small measurement errors cause large solution errors</p>
+                </div>
+                <div class="challenge-item">
+                    <div class="challenge-icon">💻</div>
+                    <p><strong>Computational cost:</strong> Solutions often require iterative algorithms</p>
+                </div>
+                <div class="challenge-item">
+                    <div class="challenge-icon">🎯</div>
+                    <p><strong>Incomplete data:</strong> Limited measurements constrain reconstruction quality</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="concept-card">
+            <h2>Solution Methods</h2>
+            <div class="method-grid">
+                <div class="method-card">
+                    <div class="method-icon">📐</div>
+                    <h3>Least Squares</h3>
+                    <p>Minimize ||Ax - b||²</p>
+                </div>
+                <div class="method-card">
+                    <div class="method-icon">🎛️</div>
+                    <h3>Tikhonov Regularization</h3>
+                    <p>Add penalty term λ||x||²</p>
+                </div>
+                <div class="method-card">
+                    <div class="method-icon">🎲</div>
+                    <h3>Bayesian Methods</h3>
+                    <p>Use probability and priors</p>
+                </div>
+                <div class="method-card">
+                    <div class="method-icon">🔄</div>
+                    <h3>Iterative Methods</h3>
+                    <p>Gradual refinement</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Interactive signal reconstruction
+        const canvas = document.getElementById('signalCanvas');
+        const ctx = canvas.getContext('2d');
+        const noiseSlider = document.getElementById('noiseSlider');
+        const regSlider = document.getElementById('regSlider');
+        const noiseValue = document.getElementById('noiseValue');
+        const regValue = document.getElementById('regValue');
+        
+        // Original signal
+        function originalSignal(x) {
+            return Math.sin(x * 0.02) * 50 + Math.sin(x * 0.05) * 30 + 100;
+        }
+        
+        // Add noise to signal
+        function addNoise(value, noiseLevel) {
+            return value + (Math.random() - 0.5) * noiseLevel;
+        }
+        
+        // Simple regularization filter
+        function regularize(data, strength) {
+            const result = [...data];
+            const alpha = strength / 100;
+            
+            for (let i = 1; i < result.length - 1; i++) {
+                result[i] = (1 - alpha) * data[i] + alpha * 0.5 * (data[i-1] + data[i+1]);
+            }
+            
+            return result;
+        }
+        
+        function drawSignals() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const noiseLevel = noiseSlider.value;
+            const regStrength = regSlider.value;
+            
+            noiseValue.textContent = noiseLevel;
+            regValue.textContent = (regStrength / 100).toFixed(2);
+            
+            // Generate data
+            const original = [];
+            const noisy = [];
+            
+            for (let x = 0; x < canvas.width; x++) {
+                const y = originalSignal(x);
+                original.push(y);
+                noisy.push(addNoise(y, noiseLevel));
+            }
+            
+            const reconstructed = regularize(noisy, regStrength);
+            
+            // Draw original signal
+            ctx.strokeStyle = '#2a5298';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let x = 0; x < original.length; x++) {
+                if (x === 0) ctx.moveTo(x, canvas.height - original[x]);
+                else ctx.lineTo(x, canvas.height - original[x]);
+            }
+            ctx.stroke();
+            
+            // Draw noisy measurements
+            ctx.strokeStyle = '#fa709a';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            for (let x = 0; x < noisy.length; x++) {
+                if (x === 0) ctx.moveTo(x, canvas.height - noisy[x]);
+                else ctx.lineTo(x, canvas.height - noisy[x]);
+            }
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            
+            // Draw reconstructed signal
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let x = 0; x < reconstructed.length; x++) {
+                if (x === 0) ctx.moveTo(x, canvas.height - reconstructed[x]);
+                else ctx.lineTo(x, canvas.height - reconstructed[x]);
+            }
+            ctx.stroke();
+            
+            // Legend
+            ctx.font = '14px sans-serif';
+            ctx.fillStyle = '#2a5298';
+            ctx.fillText('True Model (Forward Problem)', 10, 20);
+            ctx.fillStyle = '#fa709a';
+            ctx.fillText('Observed Data (with noise)', 10, 40);
+            ctx.fillStyle = '#667eea';
+            ctx.fillText('Estimated Model (Inverse Solution)', 10, 60);
+            
+            // Update parameter estimates
+            const error = Math.sqrt(noiseLevel) * (1 - regStrength/100);
+            const freqEstimate = (0.02 * (1 + error * 0.01)).toFixed(4);
+            const ampEstimate = (50 * (1 + error * 0.005)).toFixed(1);
+            document.getElementById('estimatedParams').textContent = 
+                `Frequency: ${freqEstimate}, Amplitude: ${ampEstimate}`;
+        }
+        
+        noiseSlider.addEventListener('input', drawSignals);
+        regSlider.addEventListener('input', drawSignals);
+        
+        // Initial draw
+        drawSignals();
+        
+        // Animation functions
+        function animateForward() {
+            const box = event.currentTarget;
+            box.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                box.style.transform = 'scale(1)';
+            }, 300);
+        }
+        
+        function animateInverse() {
+            const box = event.currentTarget;
+            box.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                box.style.transform = 'scale(1)';
+            }, 300);
+        }
+        
+        // Add hover effects to method cards
+        document.querySelectorAll('.method-card').forEach(card => {
+            card.addEventListener('click', function() {
+                this.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    this.style.transform = 'translateY(-5px)';
+                }, 200);
+            });
+        });
+    </script>
+</body>
+</html>

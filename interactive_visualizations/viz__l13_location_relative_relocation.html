@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Relative Relocation - HypoDD Concept</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .controls {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .control-group {
+            display: inline-block;
+            margin: 10px 15px;
+            vertical-align: top;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .visualization-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .canvas-container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+        
+        .canvas-container h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            text-align: center;
+            font-size: 1.3em;
+        }
+        
+        canvas {
+            border: 2px solid #34495e;
+            border-radius: 8px;
+            background: white;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .info-panel {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-box {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        @media (max-width: 768px) {
+            .visualization-area {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                text-align: center;
+            }
+            
+            .control-group {
+                display: block;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Earthquake Relative Relocation: HypoDD Method</h1>
+        
+        <div class="info-panel">
+            <h3>Understanding Double-Difference Relocation</h3>
+            <p>The HypoDD method improves earthquake location accuracy by using <strong>relative positioning</strong> instead of absolute positioning. It minimizes location errors by analyzing the differences in travel times between nearby earthquake pairs at common stations.</p>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e74c3c;"></div>
+                    <span>Original Locations (Absolute)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #27ae60;"></div>
+                    <span>Relocated (HypoDD)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3498db;"></div>
+                    <span>Seismic Stations</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f39c12;"></div>
+                    <span>True Locations</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <button onclick="generateData()">🔄 Generate New Dataset</button>
+                <button onclick="startIterativeRelocation()" id="relocateBtn">📍 Start HypoDD Iterations</button>
+                <button onclick="resetView()">🔄 Reset View</button>
+                <button onclick="pauseAnimation()" id="pauseBtn" style="display:none;">⏸️ Pause</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Animation Speed:</label>
+                <input type="range" id="speedSlider" min="100" max="2000" step="100" value="800" onchange="updateSpeed()">
+                <span id="speedValue">800</span> ms
+            </div>
+            
+            <div class="control-group">
+                <label>Location Error (km):</label>
+                <input type="range" id="errorSlider" min="0.5" max="5" step="0.5" value="2" onchange="updateError()">
+                <span id="errorValue">2</span> km
+            </div>
+            
+            <div class="control-group">
+                <label>Number of Earthquakes:</label>
+                <input type="range" id="numEqSlider" min="10" max="50" step="5" value="25" onchange="updateNumEarthquakes()">
+                <span id="numEqValue">25</span>
+            </div>
+        </div>
+        
+        <div class="visualization-area">
+            <div class="canvas-container">
+                <h3>Before Relocation (Absolute Positioning)</h3>
+                <canvas id="beforeCanvas" width="500" height="400"></canvas>
+            </div>
+            
+            <div class="canvas-container">
+                <h3>After HypoDD Relocation (Relative Positioning)</h3>
+                <canvas id="afterCanvas" width="500" height="400"></canvas>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>📊 Relocation Statistics</h3>
+            <div class="stats">
+                <div class="stat-box">
+                    <div>Mean Location Error</div>
+                    <div class="stat-value" id="meanError">--</div>
+                </div>
+                <div class="stat-box">
+                    <div>RMS Improvement</div>
+                    <div class="stat-value" id="rmsImprovement">--</div>
+                </div>
+                <div class="stat-box">
+                    <div>Relocated Events</div>
+                    <div class="stat-value" id="relocatedCount">--</div>
+                </div>
+                <div class="stat-box">
+                    <div>Current Iteration</div>
+                    <div class="stat-value" id="currentIteration">0</div>
+                </div>
+                <div class="stat-box">
+                    <div>Total Iterations</div>
+                    <div class="stat-value" id="totalIterations">--</div>
+                </div>
+                <div class="stat-box">
+                    <div>RMS Residual</div>
+                    <div class="stat-value" id="rmsResidual">--</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>🔬 How HypoDD Works</h3>
+            <p><strong>Double-Difference Principle:</strong> Instead of computing absolute travel times from earthquakes to stations, HypoDD uses the difference between travel time differences. For earthquakes i and j recorded at stations k and l:</p>
+            
+            <p style="text-align: center; font-family: monospace; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px;">
+                dr = (t<sub>ik</sub> - t<sub>jk</sub>) - (t<sub>il</sub> - t<sub>jl</sub>)
+            </p>
+            
+            <p><strong>Key Advantages:</strong></p>
+            <ul>
+                <li>🎯 <strong>Cancels systematic errors:</strong> Velocity model uncertainties and station timing errors are minimized</li>
+                <li>🔗 <strong>Relative constraints:</strong> Uses spatial relationships between nearby events</li>
+                <li>📈 <strong>Improved precision:</strong> Typically achieves sub-kilometer accuracy for clustered events</li>
+                <li>⚡ <strong>Iterative refinement:</strong> Progressively improves locations through multiple iterations</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let earthquakes = [];
+        let stations = [];
+        let relocated = false;
+        let currentError = 2;
+        let numEarthquakes = 25;
+        let isAnimating = false;
+        let animationSpeed = 800;
+        let currentIteration = 0;
+        let totalIterations = 0;
+        let iterationHistory = [];
+        let animationId = null;
+        
+        // Initialize canvases
+        const beforeCanvas = document.getElementById('beforeCanvas');
+        const afterCanvas = document.getElementById('afterCanvas');
+        const beforeCtx = beforeCanvas.getContext('2d');
+        const afterCtx = afterCanvas.getContext('2d');
+        
+        // Generate initial dataset
+        generateData();
+        
+        function generateData() {
+            earthquakes = [];
+            stations = [];
+            relocated = false;
+            isAnimating = false;
+            currentIteration = 0;
+            totalIterations = 0;
+            iterationHistory = [];
+            
+            // Reset button states
+            document.getElementById('relocateBtn').style.display = 'inline-block';
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('relocateBtn').textContent = '📍 Start HypoDD Iterations';
+            
+            // Generate stations around the edges
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * 2 * Math.PI;
+                const radius = 180;
+                stations.push({
+                    x: 250 + radius * Math.cos(angle),
+                    y: 200 + radius * Math.sin(angle),
+                    id: i
+                });
+            }
+            
+            // Generate earthquake cluster with some scattered events
+            for (let i = 0; i < numEarthquakes; i++) {
+                let trueX, trueY;
+                
+                if (i < numEarthquakes * 0.7) {
+                    // Main cluster
+                    trueX = 200 + Math.random() * 100;
+                    trueY = 150 + Math.random() * 100;
+                } else {
+                    // Scattered events
+                    trueX = 100 + Math.random() * 300;
+                    trueY = 100 + Math.random() * 200;
+                }
+                
+                // Add location error for observed positions
+                const errorX = (Math.random() - 0.5) * currentError * 10;
+                const errorY = (Math.random() - 0.5) * currentError * 10;
+                
+                earthquakes.push({
+                    trueX: trueX,
+                    trueY: trueY,
+                    obsX: trueX + errorX,
+                    obsY: trueY + errorY,
+                    relocX: trueX + errorX,
+                    relocY: trueY + errorY,
+                    magnitude: 2 + Math.random() * 3,
+                    id: i
+                });
+            }
+            
+            // Store initial state
+            iterationHistory.push(JSON.parse(JSON.stringify(earthquakes)));
+            
+            drawBefore();
+            drawAfter();
+            updateStats();
+        }
+        
+        function startIterativeRelocation() {
+            if (isAnimating) return;
+            
+            isAnimating = true;
+            relocated = false;
+            currentIteration = 0;
+            totalIterations = 8 + Math.floor(Math.random() * 7); // 8-15 iterations
+            iterationHistory = [JSON.parse(JSON.stringify(earthquakes))];
+            
+            // Update button states
+            document.getElementById('relocateBtn').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'inline-block';
+            
+            // Pre-calculate all iterations
+            calculateAllIterations();
+            
+            // Start animation
+            animateIterations();
+        }
+        
+        function calculateAllIterations() {
+            let workingEarthquakes = JSON.parse(JSON.stringify(earthquakes));
+            
+            for (let iter = 1; iter <= totalIterations; iter++) {
+                // Simulate one HypoDD iteration
+                for (let i = 0; i < workingEarthquakes.length; i++) {
+                    let eq = workingEarthquakes[i];
+                    
+                    // Find nearby earthquakes for relative positioning
+                    let nearbyEvents = workingEarthquakes.filter(other => {
+                        if (other.id === eq.id) return false;
+                        const dist = Math.sqrt(
+                            Math.pow(other.relocX - eq.relocX, 2) + 
+                            Math.pow(other.relocY - eq.relocY, 2)
+                        );
+                        return dist < 60; // Within 60 pixel radius
+                    });
+                    
+                    if (nearbyEvents.length > 0) {
+                        // Apply relative corrections with decreasing strength over iterations
+                        let correctionX = 0;
+                        let correctionY = 0;
+                        const iterationDamping = Math.max(0.1, 1 - (iter / totalIterations) * 0.8);
+                        
+                        for (let nearby of nearbyEvents) {
+                            // Simulate double-difference correction
+                            const weight = 1 / (1 + Math.sqrt(
+                                Math.pow(nearby.relocX - eq.relocX, 2) + 
+                                Math.pow(nearby.relocY - eq.relocY, 2)
+                            ) / 50);
+                            
+                            // Calculate correction towards true position via nearby events
+                            const trueDirection = {
+                                x: eq.trueX - eq.relocX,
+                                y: eq.trueY - eq.relocY
+                            };
+                            
+                            correctionX += weight * trueDirection.x * 0.2 * iterationDamping;
+                            correctionY += weight * trueDirection.y * 0.2 * iterationDamping;
+                        }
+                        
+                        correctionX /= nearbyEvents.length;
+                        correctionY /= nearbyEvents.length;
+                        
+                        eq.relocX += correctionX;
+                        eq.relocY += correctionY;
+                    }
+                }
+                
+                // Store this iteration's result
+                iterationHistory.push(JSON.parse(JSON.stringify(workingEarthquakes)));
+            }
+        }
+        
+        function animateIterations() {
+            if (!isAnimating || currentIteration >= totalIterations) {
+                // Animation complete
+                isAnimating = false;
+                relocated = true;
+                currentIteration = totalIterations;
+                
+                // Update final state
+                earthquakes = JSON.parse(JSON.stringify(iterationHistory[iterationHistory.length - 1]));
+                
+                // Reset button states
+                document.getElementById('relocateBtn').style.display = 'inline-block';
+                document.getElementById('pauseBtn').style.display = 'none';
+                document.getElementById('relocateBtn').textContent = '🔄 Restart HypoDD';
+                
+                drawAfter();
+                updateStats();
+                return;
+            }
+            
+            currentIteration++;
+            
+            // Update earthquake positions to current iteration
+            const currentState = iterationHistory[currentIteration];
+            for (let i = 0; i < earthquakes.length; i++) {
+                earthquakes[i].relocX = currentState[i].relocX;
+                earthquakes[i].relocY = currentState[i].relocY;
+            }
+            
+            drawAfter();
+            updateStats();
+            
+            // Schedule next iteration
+            animationId = setTimeout(() => {
+                animateIterations();
+            }, animationSpeed);
+        }
+        
+        function pauseAnimation() {
+            isAnimating = false;
+            if (animationId) {
+                clearTimeout(animationId);
+                animationId = null;
+            }
+            
+            // Update button states
+            document.getElementById('relocateBtn').style.display = 'inline-block';
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('relocateBtn').textContent = '▶️ Continue HypoDD';
+            
+            // Set up continue function
+            document.getElementById('relocateBtn').onclick = function() {
+                if (currentIteration < totalIterations) {
+                    isAnimating = true;
+                    document.getElementById('relocateBtn').style.display = 'none';
+                    document.getElementById('pauseBtn').style.display = 'inline-block';
+                    animateIterations();
+                } else {
+                    startIterativeRelocation();
+                }
+            };
+        }
+        
+        function drawBefore() {
+            beforeCtx.clearRect(0, 0, beforeCanvas.width, beforeCanvas.height);
+            
+            // Draw background grid
+            drawGrid(beforeCtx);
+            
+            // Draw stations
+            stations.forEach(station => {
+                beforeCtx.fillStyle = '#3498db';
+                beforeCtx.beginPath();
+                beforeCtx.arc(station.x, station.y, 6, 0, 2 * Math.PI);
+                beforeCtx.fill();
+                beforeCtx.fillStyle = 'white';
+                beforeCtx.font = '10px Arial';
+                beforeCtx.textAlign = 'center';
+                beforeCtx.fillText(`S${station.id}`, station.x, station.y + 3);
+            });
+            
+            // Draw true locations (faint)
+            earthquakes.forEach(eq => {
+                beforeCtx.fillStyle = 'rgba(243, 156, 18, 0.3)';
+                beforeCtx.beginPath();
+                beforeCtx.arc(eq.trueX, eq.trueY, Math.max(3, eq.magnitude), 0, 2 * Math.PI);
+                beforeCtx.fill();
+            });
+            
+            // Draw observed locations
+            earthquakes.forEach(eq => {
+                const radius = Math.max(3, eq.magnitude);
+                beforeCtx.fillStyle = '#e74c3c';
+                beforeCtx.beginPath();
+                beforeCtx.arc(eq.obsX, eq.obsY, radius, 0, 2 * Math.PI);
+                beforeCtx.fill();
+                
+                // Draw error ellipse
+                beforeCtx.strokeStyle = 'rgba(231, 76, 60, 0.3)';
+                beforeCtx.lineWidth = 1;
+                beforeCtx.beginPath();
+                beforeCtx.arc(eq.obsX, eq.obsY, currentError * 5, 0, 2 * Math.PI);
+                beforeCtx.stroke();
+            });
+        }
+        
+        function drawAfter() {
+            afterCtx.clearRect(0, 0, afterCanvas.width, afterCanvas.height);
+            
+            // Draw background grid
+            drawGrid(afterCtx);
+            
+            // Draw stations
+            stations.forEach(station => {
+                afterCtx.fillStyle = '#3498db';
+                afterCtx.beginPath();
+                afterCtx.arc(station.x, station.y, 6, 0, 2 * Math.PI);
+                afterCtx.fill();
+                afterCtx.fillStyle = 'white';
+                afterCtx.font = '10px Arial';
+                afterCtx.textAlign = 'center';
+                afterCtx.fillText(`S${station.id}`, station.x, station.y + 3);
+            });
+            
+            // Draw true locations
+            earthquakes.forEach(eq => {
+                afterCtx.fillStyle = '#f39c12';
+                afterCtx.beginPath();
+                afterCtx.arc(eq.trueX, eq.trueY, Math.max(3, eq.magnitude), 0, 2 * Math.PI);
+                afterCtx.fill();
+            });
+            
+            // Draw relocated positions
+            earthquakes.forEach(eq => {
+                const radius = Math.max(3, eq.magnitude);
+                
+                if (currentIteration > 0) {
+                    afterCtx.fillStyle = '#27ae60';
+                    afterCtx.beginPath();
+                    afterCtx.arc(eq.relocX, eq.relocY, radius, 0, 2 * Math.PI);
+                    afterCtx.fill();
+                    
+                    // Draw movement vector from original position
+                    afterCtx.strokeStyle = 'rgba(39, 174, 96, 0.6)';
+                    afterCtx.lineWidth = 1;
+                    afterCtx.beginPath();
+                    afterCtx.moveTo(eq.obsX, eq.obsY);
+                    afterCtx.lineTo(eq.relocX, eq.relocY);
+                    afterCtx.stroke();
+                    
+                    // Draw original position as small circle
+                    afterCtx.fillStyle = 'rgba(231, 76, 60, 0.4)';
+                    afterCtx.beginPath();
+                    afterCtx.arc(eq.obsX, eq.obsY, radius * 0.6, 0, 2 * Math.PI);
+                    afterCtx.fill();
+                } else {
+                    // Show original observed locations
+                    afterCtx.fillStyle = '#e74c3c';
+                    afterCtx.beginPath();
+                    afterCtx.arc(eq.obsX, eq.obsY, radius, 0, 2 * Math.PI);
+                    afterCtx.fill();
+                }
+            });
+            
+            // Draw iteration indicator
+            if (isAnimating || currentIteration > 0) {
+                afterCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                afterCtx.fillRect(10, 10, 150, 30);
+                afterCtx.fillStyle = 'white';
+                afterCtx.font = 'bold 14px Arial';
+                afterCtx.fillText(`Iteration: ${currentIteration}/${totalIterations}`, 20, 30);
+            }
+        }
+        
+        function drawGrid(ctx) {
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.lineWidth = 1;
+            
+            for (let x = 0; x <= 500; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, 400);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y <= 400; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(500, y);
+                ctx.stroke();
+            }
+        }
+        
+        function updateStats() {
+            // Update current iteration display
+            document.getElementById('currentIteration').textContent = currentIteration;
+            document.getElementById('totalIterations').textContent = totalIterations || '--';
+            
+            if (currentIteration === 0) {
+                document.getElementById('meanError').textContent = '--';
+                document.getElementById('rmsImprovement').textContent = '--';
+                document.getElementById('relocatedCount').textContent = '--';
+                document.getElementById('rmsResidual').textContent = '--';
+                return;
+            }
+            
+            // Calculate statistics
+            let totalErrorBefore = 0;
+            let totalErrorAfter = 0;
+            let relocatedCount = 0;
+            let rmsResidual = 0;
+            
+            earthquakes.forEach(eq => {
+                const errorBefore = Math.sqrt(
+                    Math.pow(eq.obsX - eq.trueX, 2) + 
+                    Math.pow(eq.obsY - eq.trueY, 2)
+                );
+                const errorAfter = Math.sqrt(
+                    Math.pow(eq.relocX - eq.trueX, 2) + 
+                    Math.pow(eq.relocY - eq.trueY, 2)
+                );
+                
+                totalErrorBefore += errorBefore;
+                totalErrorAfter += errorAfter;
+                rmsResidual += errorAfter * errorAfter;
+                
+                if (errorAfter < errorBefore) relocatedCount++;
+            });
+            
+            const meanErrorAfter = (totalErrorAfter / earthquakes.length / 10).toFixed(2);
+            const improvement = ((totalErrorBefore - totalErrorAfter) / totalErrorBefore * 100).toFixed(1);
+            const rmsRes = Math.sqrt(rmsResidual / earthquakes.length / 10).toFixed(2);
+            
+            document.getElementById('meanError').textContent = meanErrorAfter + ' km';
+            document.getElementById('rmsImprovement').textContent = improvement + '%';
+            document.getElementById('relocatedCount').textContent = relocatedCount + '/' + earthquakes.length;
+            document.getElementById('rmsResidual').textContent = rmsRes + ' km';
+        }
+        
+        function resetView() {
+            // Stop any running animation
+            isAnimating = false;
+            if (animationId) {
+                clearTimeout(animationId);
+                animationId = null;
+            }
+            generateData();
+        }
+        
+        function updateError() {
+            currentError = parseFloat(document.getElementById('errorSlider').value);
+            document.getElementById('errorValue').textContent = currentError;
+            resetView();
+        }
+        
+        function updateNumEarthquakes() {
+            numEarthquakes = parseInt(document.getElementById('numEqSlider').value);
+            document.getElementById('numEqValue').textContent = numEarthquakes;
+            resetView();
+        }
+        
+        function updateSpeed() {
+            animationSpeed = parseInt(document.getElementById('speedSlider').value);
+            document.getElementById('speedValue').textContent = animationSpeed;
+        }
+    </script>
+</body>
+</html>

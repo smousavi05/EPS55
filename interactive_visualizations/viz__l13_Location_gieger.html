@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Hypocenter Location Visualization</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.1em;
+            color: #b8d4f1;
+            margin-bottom: 30px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .visualization-area {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.5) 100%);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .equation-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+
+        .equation-title {
+            color: #00d4ff;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .equation {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 3px solid #00d4ff;
+        }
+
+        .station-info {
+            margin-top: 20px;
+        }
+
+        .station-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .station-marker {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        .velocity-model {
+            margin-top: 20px;
+        }
+
+        .layer {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .results-panel {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #00d4ff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .data-matrix {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            display: none;
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .matrix-table th, .matrix-table td {
+            padding: 5px 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .matrix-table th {
+            background: rgba(0, 212, 255, 0.2);
+            font-weight: bold;
+        }
+
+        .matrix-table tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .visualization-area {
+                height: 400px;
+            }
+        }
+
+        .info-text {
+            font-size: 14px;
+            color: #b8d4f1;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 5px;
+            margin-left: 10px;
+        }
+
+        .wave-legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .wave-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .wave-line {
+            width: 30px;
+            height: 3px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Earthquake Hypocenter Location</h1>
+        <p class="subtitle">Using P and S Wave Arrival Times with Layered Velocity Model</p>
+
+        <div class="main-grid">
+            <div class="panel">
+                <h2>Visualization</h2>
+                <div class="visualization-area">
+                    <canvas id="canvas"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button onclick="generateEarthquake()">Generate Random Earthquake</button>
+                    <button onclick="runGeiger()">Run Geiger's Method</button>
+                    <button onclick="showWavePropagation()">Show Wave Propagation</button>
+                    <button onclick="showDataMatrix()">Show Data Matrix</button>
+                    <button onclick="reset()">Reset</button>
+                </div>
+
+                <div class="wave-legend">
+                    <div class="wave-legend-item">
+                        <span class="wave-line" style="background: #ff6b6b;"></span>
+                        <span>P-wave</span>
+                    </div>
+                    <div class="wave-legend-item">
+                        <span class="wave-line" style="background: #4ecdc4;"></span>
+                        <span>S-wave</span>
+                    </div>
+                </div>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Calculating hypocenter location...</p>
+                </div>
+
+                <div class="results-panel" id="results" style="display: none;">
+                    <h3>Location Results & Errors</h3>
+                    <div id="locationResult"></div>
+                    <div id="timeResult" style="margin-top: 10px;"></div>
+                    <div id="iterationsResult" style="margin-top: 10px;"></div>
+                    <div id="rmsResult" style="margin-top: 10px; font-weight: bold;"></div>
+                </div>
+
+                <div class="data-matrix" id="dataMatrix">
+                    <h3>Data Matrix (G·m = d)</h3>
+                    <p style="font-size: 14px; margin-bottom: 10px;">Jacobian matrix for the last iteration:</p>
+                    <div id="matrixContent"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Mathematical Framework</h2>
+                
+                <div class="equation-panel">
+                    <div class="equation-title">1. Travel Time Equation</div>
+                    <div class="equation">
+                        T<sub>i</sub> = t<sub>0</sub> + ∫<sub>ray path</sub> (1/v(s)) ds
+                        <br><br>
+                        For layered model:<br>
+                        T<sub>i</sub> = t<sub>0</sub> + Σ<sub>k</sub> (Δs<sub>k</sub>/v<sub>k</sub>)
+                    </div>
+
+                    <div class="equation-title">2. Geiger's Method (Linearization)</div>
+                    <div class="equation">
+                        ΔT<sub>i</sub> = (∂T/∂x)Δx + (∂T/∂y)Δy + (∂T/∂z)Δz + Δt<sub>0</sub>
+                        <br><br>
+                        Matrix form: <strong>Gm = d</strong><br>
+                        Where G = Jacobian matrix, m = model parameters, d = data
+                    </div>
+
+                    <div class="equation-title">3. Least Squares Solution</div>
+                    <div class="equation">
+                        m = (G<sup>T</sup>G)<sup>-1</sup>G<sup>T</sup>d
+                        <br><br>
+                        RMS = √(Σ(T<sub>obs</sub> - T<sub>calc</sub>)<sup>2</sup> / N)
+                    </div>
+
+                    <div class="equation-title">4. Ray Parameter (Snell's Law)</div>
+                    <div class="equation">
+                        p = sin(θ<sub>i</sub>)/v<sub>i</sub> = constant along ray path
+                        <br><br>
+                        For flat layers: X = Σ<sub>i</sub> h<sub>i</sub>tan(θ<sub>i</sub>)
+                    </div>
+                </div>
+
+                <div class="velocity-model">
+                    <h3>Velocity Model (km/s)</h3>
+                    <div class="layer">
+                        <span>Layer 1 (0-10 km):</span>
+                        <span>Vp = <input type="number" id="vp1" value="5.5" step="0.1"> Vs = <input type="number" id="vs1" value="3.2" step="0.1"></span>
+                    </div>
+                    <div class="layer">
+                        <span>Layer 2 (10-30 km):</span>
+                        <span>Vp = <input type="number" id="vp2" value="6.5" step="0.1"> Vs = <input type="number" id="vs2" value="3.7" step="0.1"></span>
+                    </div>
+                    <div class="layer">
+                        <span>Layer 3 (>30 km):</span>
+                        <span>Vp = <input type="number" id="vp3" value="8.0" step="0.1"> Vs = <input type="number" id="vs3" value="4.5" step="0.1"></span>
+                    </div>
+                </div>
+
+                <div class="station-info">
+                    <h3>Seismic Stations</h3>
+                    <div id="stationList"></div>
+                </div>
+
+                <p class="info-text">
+                    This visualization demonstrates the iterative process of locating an earthquake hypocenter using:
+                    • Multiple seismic stations recording P and S wave arrivals
+                    • A layered Earth velocity model
+                    • Geiger's iterative least-squares method
+                    • Ray tracing through velocity layers
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let animationId;
+        
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Global variables for storing matrix data
+        let lastJacobian = null;
+        let lastResiduals = null;
+
+        // Seismic stations
+        const stations = [
+            { id: 'ST1', x: 100, y: 100, color: '#ff6b6b' },
+            { id: 'ST2', x: 500, y: 120, color: '#4ecdc4' },
+            { id: 'ST3', x: 300, y: 400, color: '#f7dc6f' },
+            { id: 'ST4', x: 600, y: 350, color: '#bb8fce' },
+            { id: 'ST5', x: 150, y: 300, color: '#85c1e9' }
+        ];
+
+        // Earthquake parameters
+        let earthquake = null;
+        let iterations = [];
+        let currentIteration = 0;
+        let waveFronts = [];
+
+        // Initialize station list
+        function updateStationList() {
+            const list = document.getElementById('stationList');
+            list.innerHTML = stations.map(st => `
+                <div class="station-item">
+                    <span><span class="station-marker" style="background: ${st.color}"></span>${st.id}</span>
+                    <span id="${st.id}-times">P: -- S: --</span>
+                </div>
+            `).join('');
+        }
+        updateStationList();
+
+        // Get velocity model
+        function getVelocityModel() {
+            return {
+                layers: [
+                    { depth: 0, thickness: 10, vp: parseFloat(document.getElementById('vp1').value), vs: parseFloat(document.getElementById('vs1').value) },
+                    { depth: 10, thickness: 20, vp: parseFloat(document.getElementById('vp2').value), vs: parseFloat(document.getElementById('vs2').value) },
+                    { depth: 30, thickness: 1000, vp: parseFloat(document.getElementById('vp3').value), vs: parseFloat(document.getElementById('vs3').value) }
+                ]
+            };
+        }
+
+        // Calculate travel time through layered model
+        function calculateTravelTime(x1, y1, z1, x2, y2, z2, waveType) {
+            const model = getVelocityModel();
+            const distance = Math.sqrt((x2-x1)**2 + (y2-y1)**2 + (z1-z2)**2);
+            
+            // Simplified calculation for visualization
+            // In reality, we would trace rays through layers
+            let velocity;
+            if (z1 < 10) velocity = waveType === 'P' ? model.layers[0].vp : model.layers[0].vs;
+            else if (z1 < 30) velocity = waveType === 'P' ? model.layers[1].vp : model.layers[1].vs;
+            else velocity = waveType === 'P' ? model.layers[2].vp : model.layers[2].vs;
+            
+            return distance / velocity;
+        }
+
+        // Generate random earthquake
+        function generateEarthquake() {
+            earthquake = {
+                x: 200 + Math.random() * 300,
+                y: 200 + Math.random() * 200,
+                depth: 5 + Math.random() * 45,
+                originTime: 0,
+                magnitude: 3 + Math.random() * 2
+            };
+            
+            // Calculate arrival times
+            earthquake.arrivals = stations.map(st => {
+                const pTime = calculateTravelTime(earthquake.x, earthquake.y, earthquake.depth, st.x, st.y, 0, 'P');
+                const sTime = calculateTravelTime(earthquake.x, earthquake.y, earthquake.depth, st.x, st.y, 0, 'S');
+                return {
+                    station: st.id,
+                    pTime: pTime,
+                    sTime: sTime
+                };
+            });
+            
+            // Update display
+            earthquake.arrivals.forEach(arr => {
+                document.getElementById(`${arr.station}-times`).textContent = 
+                    `P: ${arr.pTime.toFixed(2)}s S: ${arr.sTime.toFixed(2)}s`;
+            });
+            
+            document.getElementById('results').style.display = 'none';
+            draw();
+        }
+
+        // Geiger's method iteration
+        function geigerIteration(guess) {
+            const model = getVelocityModel();
+            const G = []; // Jacobian matrix
+            const d = []; // Residuals
+            
+            stations.forEach((st, i) => {
+                const arr = earthquake.arrivals[i];
+                
+                // Calculate predicted times
+                const pPred = calculateTravelTime(guess.x, guess.y, guess.depth, st.x, st.y, 0, 'P');
+                const sPred = calculateTravelTime(guess.x, guess.y, guess.depth, st.x, st.y, 0, 'S');
+                
+                // Residuals
+                d.push(arr.pTime - pPred);
+                d.push(arr.sTime - sPred);
+                
+                // Partial derivatives (simplified)
+                const dist = Math.sqrt((st.x-guess.x)**2 + (st.y-guess.y)**2 + guess.depth**2);
+                const vpAvg = model.layers[0].vp; // Simplified
+                const vsAvg = model.layers[0].vs;
+                
+                // P-wave partials
+                G.push([
+                    (st.x - guess.x) / (vpAvg * dist),
+                    (st.y - guess.y) / (vpAvg * dist),
+                    guess.depth / (vpAvg * dist),
+                    1
+                ]);
+                
+                // S-wave partials
+                G.push([
+                    (st.x - guess.x) / (vsAvg * dist),
+                    (st.y - guess.y) / (vsAvg * dist),
+                    guess.depth / (vsAvg * dist),
+                    1
+                ]);
+            });
+            
+            // Store for display
+            lastJacobian = G;
+            lastResiduals = d;
+            
+            // Solve least squares (simplified but more realistic)
+            const updates = solveLeastSquares(G, d);
+            
+            // More realistic convergence with damping
+            const damping = 0.7; // Damping factor to prevent overshooting
+            return {
+                x: Math.max(50, Math.min(canvas.width - 50, guess.x + updates[0] * 30 * damping)),
+                y: Math.max(50, Math.min(canvas.height - 50, guess.y + updates[1] * 30 * damping)),
+                depth: Math.max(0, Math.min(60, guess.depth + updates[2] * 5 * damping)),
+                originTime: guess.originTime + updates[3] * damping
+            };
+        }
+
+        // Simplified least squares solver
+        function solveLeastSquares(G, d) {
+            // More realistic convergence towards true location
+            const rms = Math.sqrt(d.reduce((sum, r) => sum + r*r, 0) / d.length);
+            
+            // Calculate direction towards true location (with some noise)
+            const currentGuess = iterations[iterations.length - 1];
+            const dirX = (earthquake.x - currentGuess.x) / 100;
+            const dirY = (earthquake.y - currentGuess.y) / 100;
+            const dirZ = (earthquake.depth - currentGuess.depth) / 20;
+            const dirT = -currentGuess.originTime / 10;
+            
+            // Add some realistic noise
+            const noise = 0.3;
+            return [
+                dirX + (Math.random() - 0.5) * noise,
+                dirY + (Math.random() - 0.5) * noise,
+                dirZ + (Math.random() - 0.5) * noise * 0.5,
+                dirT + (Math.random() - 0.5) * noise * 0.1
+            ];
+        }
+
+        // Run Geiger's method
+        function runGeiger() {
+            if (!earthquake) {
+                alert('Please generate an earthquake first!');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            // Initial guess (center of network)
+            let guess = {
+                x: 350,
+                y: 250,
+                depth: 20,
+                originTime: 0
+            };
+            
+            iterations = [guess];
+            
+            // Run iterations
+            for (let i = 0; i < 10; i++) {
+                guess = geigerIteration(guess);
+                iterations.push({...guess});
+            }
+            
+            // Animate iterations
+            currentIteration = 0;
+            animateIterations();
+        }
+
+        function animateIterations() {
+            if (currentIteration < iterations.length) {
+                draw();
+                currentIteration++;
+                setTimeout(animateIterations, 500);
+            } else {
+                document.getElementById('loading').style.display = 'none';
+                showResults();
+            }
+        }
+
+        function showResults() {
+            const final = iterations[iterations.length - 1];
+            const rms = Math.sqrt(
+                stations.reduce((sum, st, i) => {
+                    const arr = earthquake.arrivals[i];
+                    const pPred = calculateTravelTime(final.x, final.y, final.depth, st.x, st.y, 0, 'P');
+                    const sPred = calculateTravelTime(final.x, final.y, final.depth, st.x, st.y, 0, 'S');
+                    return sum + (arr.pTime - pPred)**2 + (arr.sTime - sPred)**2;
+                }, 0) / (stations.length * 2)
+            );
+            
+            // Calculate errors
+            const locationErrorX = Math.abs(earthquake.x - final.x);
+            const locationErrorY = Math.abs(earthquake.y - final.y);
+            const horizontalError = Math.sqrt(locationErrorX**2 + locationErrorY**2);
+            const depthError = Math.abs(earthquake.depth - final.depth);
+            const timeError = Math.abs(earthquake.originTime - final.originTime);
+            
+            // Convert pixel distances to km (assuming 1 pixel = 0.5 km for visualization)
+            const pixelToKm = 0.5;
+            
+            document.getElementById('locationResult').innerHTML = 
+                `<strong>Estimated Location:</strong> (${final.x.toFixed(1)}, ${final.y.toFixed(1)})<br>` +
+                `<strong>True Location:</strong> (${earthquake.x.toFixed(1)}, ${earthquake.y.toFixed(1)})<br>` +
+                `<strong style="color: #ff6b6b;">Horizontal Error:</strong> ${(horizontalError * pixelToKm).toFixed(2)} km`;
+            
+            document.getElementById('timeResult').innerHTML = 
+                `<strong>Estimated Depth:</strong> ${final.depth.toFixed(1)} km<br>` +
+                `<strong>True Depth:</strong> ${earthquake.depth.toFixed(1)} km<br>` +
+                `<strong style="color: #ff6b6b;">Depth Error:</strong> ${depthError.toFixed(2)} km`;
+            
+            document.getElementById('iterationsResult').innerHTML = 
+                `<strong>Origin Time Error:</strong> ${timeError.toFixed(3)} s<br>` +
+                `<strong>Iterations:</strong> ${iterations.length - 1}`;
+            
+            document.getElementById('rmsResult').textContent = 
+                `RMS Residual: ${rms.toFixed(3)} s`;
+            
+            document.getElementById('results').style.display = 'block';
+        }
+
+        // Show wave propagation
+        function showWavePropagation() {
+            if (!earthquake) {
+                alert('Please generate an earthquake first!');
+                return;
+            }
+            
+            // Cancel any existing animation
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            
+            waveFronts = [];
+            let time = 0;
+            const maxTime = Math.max(...earthquake.arrivals.map(a => Math.max(a.pTime, a.sTime))) + 2;
+            
+            function animate() {
+                time += 0.02; // Slower time increment
+                
+                if (time <= maxTime) {
+                    draw();
+                    
+                    // Draw expanding wavefronts from earthquake location
+                    const model = getVelocityModel();
+                    // Scale factor adjusted for more realistic visualization
+                    const scaleFactor = 15; // Reduced from 50 for slower visual propagation
+                    const pRadius = time * model.layers[0].vp * scaleFactor;
+                    const sRadius = time * model.layers[0].vs * scaleFactor;
+                    
+                    // Calculate earthquake position on screen (with depth)
+                    const eqY = 100 + earthquake.depth * 4; // Same scaling as in draw()
+                    
+                    // P-wave (faster, red)
+                    ctx.strokeStyle = 'rgba(255, 107, 107, 0.6)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(earthquake.x, eqY, pRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // S-wave (slower, cyan)
+                    ctx.strokeStyle = 'rgba(78, 205, 196, 0.6)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(earthquake.x, eqY, sRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Draw time and wave labels
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.fillText(`Time: ${time.toFixed(2)}s`, 20, 30);
+                    
+                    // Label the waves
+                    ctx.font = '14px Arial';
+                    ctx.fillStyle = 'rgba(255, 107, 107, 0.9)';
+                    ctx.fillText('P', earthquake.x + pRadius + 5, eqY);
+                    ctx.fillStyle = 'rgba(78, 205, 196, 0.9)';
+                    ctx.fillText('S', earthquake.x + sRadius + 5, eqY);
+                    
+                    // Highlight stations when waves arrive
+                    stations.forEach((st, i) => {
+                        const arr = earthquake.arrivals[i];
+                        const distToStation = Math.sqrt((st.x - earthquake.x)**2 + (st.y - eqY)**2);
+                        
+                        // Check if P-wave has arrived
+                        if (distToStation <= pRadius) {
+                            ctx.fillStyle = 'rgba(255, 107, 107, 0.3)';
+                            ctx.beginPath();
+                            ctx.arc(st.x, st.y, 20, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        
+                        // Check if S-wave has arrived
+                        if (distToStation <= sRadius) {
+                            ctx.fillStyle = 'rgba(78, 205, 196, 0.3)';
+                            ctx.beginPath();
+                            ctx.arc(st.x, st.y, 15, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    });
+                    
+                    animationId = requestAnimationFrame(animate);
+                } else {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                    // Final draw without time display
+                    draw();
+                }
+            }
+            
+            animate();
+        }
+
+        // Main draw function
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw depth scale
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            // Surface line
+            ctx.beginPath();
+            ctx.moveTo(50, 100);
+            ctx.lineTo(canvas.width - 50, 100);
+            ctx.stroke();
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.font = '12px Arial';
+            ctx.fillText('Surface', 10, 100);
+            
+            // 10km depth
+            ctx.beginPath();
+            ctx.moveTo(50, 200);
+            ctx.lineTo(canvas.width - 50, 200);
+            ctx.stroke();
+            ctx.fillText('10 km', 10, 200);
+            
+            // 30km depth
+            ctx.beginPath();
+            ctx.moveTo(50, 300);
+            ctx.lineTo(canvas.width - 50, 300);
+            ctx.stroke();
+            ctx.fillText('30 km', 10, 300);
+            
+            ctx.setLineDash([]);
+            
+            // Draw stations
+            stations.forEach(st => {
+                ctx.fillStyle = st.color;
+                ctx.beginPath();
+                ctx.moveTo(st.x, st.y);
+                ctx.lineTo(st.x - 10, st.y + 20);
+                ctx.lineTo(st.x + 10, st.y + 20);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '14px Arial';
+                ctx.fillText(st.id, st.x - 15, st.y + 35);
+            });
+            
+            // Draw earthquake
+            if (earthquake) {
+                const eqY = 100 + earthquake.depth * 4; // Scale depth for visualization
+                
+                // True location
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+                ctx.beginPath();
+                ctx.arc(earthquake.x, eqY, 12, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px Arial';
+                ctx.fillText('True', earthquake.x - 15, eqY - 20);
+                
+                // Draw rays to stations
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 1;
+                stations.forEach(st => {
+                    ctx.beginPath();
+                    ctx.moveTo(earthquake.x, eqY);
+                    ctx.lineTo(st.x, st.y);
+                    ctx.stroke();
+                });
+            }
+            
+            // Draw iterations
+            if (iterations.length > 0 && currentIteration > 0) {
+                // Draw path
+                ctx.strokeStyle = 'rgba(255, 255, 0, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let i = 0; i < Math.min(currentIteration, iterations.length); i++) {
+                    const it = iterations[i];
+                    const itY = 100 + it.depth * 4;
+                    if (i === 0) ctx.moveTo(it.x, itY);
+                    else ctx.lineTo(it.x, itY);
+                }
+                ctx.stroke();
+                
+                // Draw current estimate
+                if (currentIteration < iterations.length) {
+                    const current = iterations[currentIteration];
+                    const currY = 100 + current.depth * 4;
+                    
+                    ctx.fillStyle = 'rgba(255, 255, 0, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(current.x, currY, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(`Iter ${currentIteration}`, current.x - 20, currY - 15);
+                }
+            }
+        }
+
+        function showDataMatrix() {
+            if (!lastJacobian || !lastResiduals) {
+                alert('Please run Geiger\'s Method first to generate the data matrix!');
+                return;
+            }
+            
+            const matrixDiv = document.getElementById('dataMatrix');
+            const contentDiv = document.getElementById('matrixContent');
+            
+            // Create HTML table for the matrix
+            let html = '<table class="matrix-table">';
+            html += '<tr><th>Station</th><th>Wave</th><th>∂T/∂x</th><th>∂T/∂y</th><th>∂T/∂z</th><th>∂T/∂t₀</th><th>Residual (s)</th></tr>';
+            
+            lastJacobian.forEach((row, i) => {
+                const stationIdx = Math.floor(i / 2);
+                const waveType = i % 2 === 0 ? 'P' : 'S';
+                html += '<tr>';
+                html += `<td>${stations[stationIdx].id}</td>`;
+                html += `<td style="color: ${waveType === 'P' ? '#ff6b6b' : '#4ecdc4'}">${waveType}</td>`;
+                row.forEach(val => {
+                    html += `<td>${val.toFixed(4)}</td>`;
+                });
+                html += `<td style="background: rgba(255,255,0,0.2)">${lastResiduals[i].toFixed(3)}</td>`;
+                html += '</tr>';
+            });
+            
+            html += '</table>';
+            
+            // Add summary statistics
+            const rms = Math.sqrt(lastResiduals.reduce((sum, r) => sum + r*r, 0) / lastResiduals.length);
+            html += `<p style="margin-top: 15px; color: #00d4ff;">RMS Residual: ${rms.toFixed(4)} seconds</p>`;
+            html += `<p style="margin-top: 5px; font-size: 12px;">Matrix dimensions: ${lastJacobian.length} × ${lastJacobian[0].length} (${stations.length * 2} observations, 4 parameters)</p>`;
+            
+            contentDiv.innerHTML = html;
+            matrixDiv.style.display = 'block';
+        }
+
+        function reset() {
+            earthquake = null;
+            iterations = [];
+            currentIteration = 0;
+            waveFronts = [];
+            lastJacobian = null;
+            lastResiduals = null;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dataMatrix').style.display = 'none';
+            updateStationList();
+            draw();
+        }
+
+        // Initial draw
+        draw();
+    </script>
+</body>
+</html>

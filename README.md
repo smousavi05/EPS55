@@ -65,6 +65,7 @@ Compare different scenarios - weak vs. strong materials under various stress con
 Understand the physics - why normal stress increases shear resistance
 
 ---------------------------------------------------------
+
 ## Lecture 6: Earthquake Cycle
 
 <table>
@@ -172,4 +173,33 @@ Understand the physics - why normal stress increases shear resistance
     </td>
   </tr>
 </table>
+
 ---------------------------------------------------------
+
+## Lecture 7: Seismic Waves
+
+<table>
+  <tr align="center">
+    <th>Seismic Waves Speed!</th>
+    <th>Seismic Waves Simulator!</th>
+    <th>Seismic Wave Propagation!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l08_seismic_phase_racing.html">
+        <img src="interactive_visualizations/viz__l08_seismic_phase_racing.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l08_seismic_wave_simulator.html">
+        <img src="interactive_visualizations/viz__l08_seismic_wave_simulator.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l08_waves_propagation.html">
+        <img src="interactive_visualizations/viz__l08_waves_propagation.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>

@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seismic Waves Through Layered Earth</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header p {
+            color: #a8b2d1;
+            font-size: 1.1rem;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .visualization-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: fadeInLeft 0.8s ease-out;
+        }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: fadeInRight 0.8s ease-out;
+        }
+        
+        canvas {
+            width: 100%;
+            border-radius: 15px;
+            background: #000;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .controls h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+        
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #a8b2d1;
+            font-size: 0.9rem;
+        }
+        
+        button {
+            width: 100%;
+            padding: 0.8rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 0.5rem;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            margin-top: 0.5rem;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #764ba2;
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .layer-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .layer-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+        
+        .layer-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+        }
+        
+        .wave-legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .wave-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .wave-info h4 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .p-wave-color {
+            color: #ff6b6b;
+        }
+        
+        .s-wave-color {
+            color: #4ecdc4;
+        }
+        
+        .info-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.8s ease-out;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .info-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .info-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .info-card h4 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-panel {
+                order: -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Seismic Wave Propagation Through Layered Earth</h1>
+            <p>Visualizing how P and S waves travel through different rock layers with varying velocities</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="visualization-panel">
+                <canvas id="seismicCanvas" width="800" height="600"></canvas>
+            </div>
+            
+            <div class="control-panel">
+                <div class="controls">
+                    <h3>Simulation Controls</h3>
+                    
+                    <div class="control-group">
+                        <button id="startBtn">Start Simulation</button>
+                        <button id="resetBtn">Reset</button>
+                        <button id="pauseBtn">Pause</button>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Source Depth: <span id="depthValue">50</span> m</label>
+                        <input type="range" class="slider" id="depthSlider" min="10" max="200" value="50">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label>Animation Speed: <span id="speedValue">1</span>x</label>
+                        <input type="range" class="slider" id="speedSlider" min="0.1" max="3" step="0.1" value="1">
+                    </div>
+                    
+                    <div class="layer-info">
+                        <h4>Rock Layers</h4>
+                        <div id="layerList"></div>
+                    </div>
+                    
+                    <div class="wave-legend">
+                        <div class="wave-info">
+                            <h4 class="p-wave-color">P-Waves</h4>
+                            <p>Compressional<br>Faster</p>
+                        </div>
+                        <div class="wave-info">
+                            <h4 class="s-wave-color">S-Waves</h4>
+                            <p>Shear<br>Slower</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <h3>Understanding Seismic Wave Complexity</h3>
+            <div class="info-grid">
+                <div class="info-card">
+                    <h4>Refraction</h4>
+                    <p>Waves bend when entering layers with different velocities, following Snell's Law</p>
+                </div>
+                <div class="info-card">
+                    <h4>Reflection</h4>
+                    <p>Part of the wave energy reflects at layer boundaries, creating multiple arrivals</p>
+                </div>
+                <div class="info-card">
+                    <h4>Mode Conversion</h4>
+                    <p>P-waves can convert to S-waves (and vice versa) at interfaces</p>
+                </div>
+                <div class="info-card">
+                    <h4>Critical Angles</h4>
+                    <p>At certain angles, waves travel along layer boundaries as head waves</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('seismicCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Layer definitions with realistic velocities (m/s)
+        const layers = [
+            { name: 'Soil', color: '#8B4513', vp: 500, vs: 200, depth: 0, thickness: 50 },
+            { name: 'Sedimentary', color: '#D2691E', vp: 2000, vs: 1000, depth: 50, thickness: 100 },
+            { name: 'Limestone', color: '#F0E68C', vp: 4000, vs: 2300, depth: 150, thickness: 150 },
+            { name: 'Sandstone', color: '#DEB887', vp: 3500, vs: 2000, depth: 300, thickness: 100 },
+            { name: 'Granite', color: '#696969', vp: 5500, vs: 3200, depth: 400, thickness: 200 }
+        ];
+        
+        // Wave arrays
+        let pWaves = [];
+        let sWaves = [];
+        let waveFronts = [];
+        let isRunning = false;
+        let isPaused = false;
+        let animationId = null;
+        let time = 0;
+        
+        // Controls
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const depthSlider = document.getElementById('depthSlider');
+        const speedSlider = document.getElementById('speedSlider');
+        const depthValue = document.getElementById('depthValue');
+        const speedValue = document.getElementById('speedValue');
+        
+        // Update layer list display
+        function updateLayerList() {
+            const layerList = document.getElementById('layerList');
+            layerList.innerHTML = layers.map(layer => `
+                <div class="layer-item">
+                    <span><span class="layer-color" style="background: ${layer.color}"></span>${layer.name}</span>
+                    <span>Vp: ${layer.vp} m/s</span>
+                </div>
+            `).join('');
+        }
+        
+        // Convert depth to canvas Y coordinate
+        function depthToY(depth) {
+            return (depth / 600) * canvas.height;
+        }
+        
+        // Convert Y coordinate to depth
+        function yToDepth(y) {
+            return (y / canvas.height) * 600;
+        }
+        
+        // Get layer at specific depth
+        function getLayerAtDepth(depth) {
+            for (let layer of layers) {
+                if (depth >= layer.depth && depth < layer.depth + layer.thickness) {
+                    return layer;
+                }
+            }
+            return layers[layers.length - 1];
+        }
+        
+        // Calculate Snell's law for refraction
+        function calculateRefraction(angle, v1, v2) {
+            const sinTheta2 = (v2 / v1) * Math.sin(angle);
+            if (Math.abs(sinTheta2) > 1) {
+                // Total internal reflection
+                return null;
+            }
+            return Math.asin(sinTheta2);
+        }
+        
+        // Wave class
+        class Wave {
+            constructor(x, y, angle, type, velocity, amplitude = 1) {
+                this.x = x;
+                this.y = y;
+                this.angle = angle;
+                this.type = type;
+                this.velocity = velocity;
+                this.amplitude = amplitude;
+                this.path = [{x: this.x, y: this.y}];
+                this.reflected = false;
+                this.transmitted = false;
+            }
+            
+            update(dt) {
+                const depth = yToDepth(this.y);
+                const currentLayer = getLayerAtDepth(depth);
+                const velocity = this.type === 'P' ? currentLayer.vp : currentLayer.vs;
+                
+                // Update position
+                const dx = velocity * dt * Math.sin(this.angle) * speedSlider.value;
+                const dy = velocity * dt * Math.cos(this.angle) * speedSlider.value;
+                
+                this.x += dx;
+                this.y += dy;
+                
+                // Check boundaries
+                if (this.x < 0 || this.x > canvas.width) {
+                    this.angle = -this.angle;
+                    this.x = Math.max(0, Math.min(canvas.width, this.x));
+                }
+                
+                // Check layer boundaries
+                const newDepth = yToDepth(this.y);
+                const newLayer = getLayerAtDepth(newDepth);
+                
+                if (currentLayer !== newLayer && !this.transmitted) {
+                    this.handleLayerBoundary(currentLayer, newLayer);
+                    this.transmitted = true;
+                } else if (currentLayer === newLayer) {
+                    this.transmitted = false;
+                }
+                
+                // Add to path
+                this.path.push({x: this.x, y: this.y});
+                if (this.path.length > 200) {
+                    this.path.shift();
+                }
+                
+                // Amplitude decay
+                this.amplitude *= 0.998;
+            }
+            
+            handleLayerBoundary(layer1, layer2) {
+                const v1 = this.type === 'P' ? layer1.vp : layer1.vs;
+                const v2 = this.type === 'P' ? layer2.vp : layer2.vs;
+                
+                // Calculate refraction
+                const refractedAngle = calculateRefraction(this.angle, v1, v2);
+                
+                if (refractedAngle !== null) {
+                    // Refraction
+                    this.angle = refractedAngle;
+                    
+                    // Create reflected wave with reduced amplitude
+                    if (!this.reflected && Math.random() > 0.5) {
+                        const reflectedWave = new Wave(
+                            this.x, this.y, -this.angle, this.type, 
+                            v1, this.amplitude * 0.3
+                        );
+                        if (this.type === 'P') pWaves.push(reflectedWave);
+                        else sWaves.push(reflectedWave);
+                        this.reflected = true;
+                    }
+                    
+                    // Mode conversion chance
+                    if (Math.random() > 0.8) {
+                        const convertedType = this.type === 'P' ? 'S' : 'P';
+                        const convertedVelocity = convertedType === 'P' ? layer2.vp : layer2.vs;
+                        const convertedWave = new Wave(
+                            this.x, this.y, this.angle * 0.8, convertedType,
+                            convertedVelocity, this.amplitude * 0.2
+                        );
+                        if (convertedType === 'P') pWaves.push(convertedWave);
+                        else sWaves.push(convertedWave);
+                    }
+                } else {
+                    // Total internal reflection
+                    this.angle = -this.angle;
+                    this.y = depthToY(layer1.depth + layer1.thickness - 1);
+                }
+            }
+            
+            draw() {
+                if (this.path.length < 2) return;
+                
+                ctx.strokeStyle = this.type === 'P' ? 
+                    `rgba(255, 107, 107, ${this.amplitude})` : 
+                    `rgba(78, 205, 196, ${this.amplitude})`;
+                ctx.lineWidth = 2 * this.amplitude;
+                
+                ctx.beginPath();
+                ctx.moveTo(this.path[0].x, this.path[0].y);
+                
+                for (let i = 1; i < this.path.length; i++) {
+                    ctx.lineTo(this.path[i].x, this.path[i].y);
+                }
+                
+                ctx.stroke();
+                
+                // Draw wave front
+                ctx.fillStyle = this.type === 'P' ? '#ff6b6b' : '#4ecdc4';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 5 * this.amplitude, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Wave front visualization
+        class WaveFront {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.radius = 0;
+                this.maxRadius = 300;
+                this.opacity = 1;
+            }
+            
+            update(dt) {
+                const depth = yToDepth(this.y);
+                const layer = getLayerAtDepth(depth);
+                const velocity = this.type === 'P' ? layer.vp : layer.vs;
+                
+                this.radius += velocity * dt * speedSlider.value * 0.1;
+                this.opacity = 1 - (this.radius / this.maxRadius);
+            }
+            
+            draw() {
+                if (this.opacity <= 0) return;
+                
+                ctx.strokeStyle = this.type === 'P' ? 
+                    `rgba(255, 107, 107, ${this.opacity * 0.3})` : 
+                    `rgba(78, 205, 196, ${this.opacity * 0.3})`;
+                ctx.lineWidth = 2;
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        
+        // Initialize earthquake source
+        function createEarthquake() {
+            const sourceX = canvas.width / 2;
+            const sourceY = depthToY(parseInt(depthSlider.value));
+            
+            // Create multiple rays at different angles
+            const numRays = 12;
+            for (let i = 0; i < numRays; i++) {
+                const angle = (i / numRays) * Math.PI * 2;
+                
+                // P-waves
+                pWaves.push(new Wave(sourceX, sourceY, angle, 'P', 5500));
+                
+                // S-waves (slightly delayed)
+                setTimeout(() => {
+                    sWaves.push(new Wave(sourceX, sourceY, angle, 'S', 3200));
+                }, 100);
+            }
+            
+            // Create wave fronts
+            waveFronts.push(new WaveFront(sourceX, sourceY, 'P'));
+            setTimeout(() => {
+                waveFronts.push(new WaveFront(sourceX, sourceY, 'S'));
+            }, 100);
+        }
+        
+        // Draw layers
+        function drawLayers() {
+            layers.forEach(layer => {
+                ctx.fillStyle = layer.color;
+                ctx.fillRect(0, depthToY(layer.depth), canvas.width, 
+                    depthToY(layer.thickness));
+                
+                // Layer label
+                ctx.fillStyle = '#fff';
+                ctx.font = '14px Arial';
+                ctx.fillText(layer.name, 10, depthToY(layer.depth) + 20);
+                
+                // Velocity info
+                ctx.font = '12px Arial';
+                ctx.fillText(`Vp: ${layer.vp} m/s`, 10, depthToY(layer.depth) + 35);
+                ctx.fillText(`Vs: ${layer.vs} m/s`, 10, depthToY(layer.depth) + 50);
+            });
+            
+            // Draw layer boundaries
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            layers.forEach(layer => {
+                ctx.beginPath();
+                ctx.moveTo(0, depthToY(layer.depth));
+                ctx.lineTo(canvas.width, depthToY(layer.depth));
+                ctx.stroke();
+            });
+            
+            ctx.setLineDash([]);
+        }
+        
+        // Draw source
+        function drawSource() {
+            const sourceX = canvas.width / 2;
+            const sourceY = depthToY(parseInt(depthSlider.value));
+            
+            // Star burst effect
+            ctx.fillStyle = '#ffeb3b';
+            ctx.strokeStyle = '#ffeb3b';
+            ctx.lineWidth = 2;
+            
+            const numPoints = 8;
+            const innerRadius = 10;
+            const outerRadius = 20;
+            
+            ctx.beginPath();
+            for (let i = 0; i < numPoints * 2; i++) {
+                const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                const angle = (i / (numPoints * 2)) * Math.PI * 2 - Math.PI / 2;
+                const x = sourceX + Math.cos(angle) * radius;
+                const y = sourceY + Math.sin(angle) * radius;
+                
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            
+            // Source label
+            ctx.fillStyle = '#fff';
+            ctx.font = '12px Arial';
+            ctx.fillText('Source', sourceX + 25, sourceY + 5);
+        }
+        
+        // Animation loop
+        function animate() {
+            if (!isRunning || isPaused) return;
+            
+            // Clear canvas
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw layers
+            drawLayers();
+            
+            // Draw source
+            drawSource();
+            
+            // Update and draw wave fronts
+            waveFronts = waveFronts.filter(front => {
+                front.update(0.016);
+                front.draw();
+                return front.opacity > 0;
+            });
+            
+            // Update and draw waves
+            pWaves = pWaves.filter(wave => {
+                wave.update(0.016);
+                wave.draw();
+                return wave.amplitude > 0.01 && wave.y < canvas.height && wave.y > 0;
+            });
+            
+            sWaves = sWaves.filter(wave => {
+                wave.update(0.016);
+                wave.draw();
+                return wave.amplitude > 0.01 && wave.y < canvas.height && wave.y > 0;
+            });
+            
+            // Time display
+            ctx.fillStyle = '#fff';
+            ctx.font = '16px Arial';
+            ctx.fillText(`Time: ${(time * speedSlider.value).toFixed(2)} s`, canvas.width - 120, 30);
+            
+            time += 0.016;
+            
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // Event listeners
+        startBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                reset();
+                createEarthquake();
+                isRunning = true;
+                isPaused = false;
+                animate();
+                startBtn.textContent = 'Restart';
+            } else {
+                reset();
+                createEarthquake();
+            }
+        });
+        
+        resetBtn.addEventListener('click', reset);
+        
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+            if (!isPaused && isRunning) {
+                animate();
+            }
+        });
+        
+        depthSlider.addEventListener('input', (e) => {
+            depthValue.textContent = e.target.value;
+            if (!isRunning) {
+                drawInitialState();
+            }
+        });
+        
+        speedSlider.addEventListener('input', (e) => {
+            speedValue.textContent = e.target.value;
+        });
+        
+        function reset() {
+            isRunning = false;
+            isPaused = false;
+            pWaves = [];
+            sWaves = [];
+            waveFronts = [];
+            time = 0;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            startBtn.textContent = 'Start Simulation';
+            pauseBtn.textContent = 'Pause';
+            drawInitialState();
+        }
+        
+        function drawInitialState() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawLayers();
+            drawSource();
+        }
+        
+        // Initialize
+        updateLayerList();
+        drawInitialState();
+    </script>
+</body>
+</html>

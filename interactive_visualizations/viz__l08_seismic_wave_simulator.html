@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Seismic Wave Simulator</title>
+    
+    <style>
+        :root {
+            --primary-color: #0077b6;
+            --secondary-color: #00b4d8;
+            --light-grey: #f8f9fa;
+            --dark-grey: #343a40;
+            --accent-color: #ffc300;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--light-grey);
+            color: var(--dark-grey);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: var(--primary-color);
+        }
+        .simulator-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        .controls {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .control-group legend {
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .button-group button {
+            padding: 10px;
+            border: 2px solid var(--secondary-color);
+            border-radius: 5px;
+            background-color: white;
+            color: var(--secondary-color);
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .button-group button.active, .button-group button:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        .button-group button:disabled {
+            background-color: #e9ecef;
+            border-color: #ced4da;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+        select, input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ced4da;
+        }
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #wave-canvas {
+            border: 3px solid var(--dark-grey);
+            background-color: #ffffff;
+        }
+        #status-display {
+            margin-top: 10px;
+            font-weight: bold;
+            color: var(--accent-color);
+            background-color: var(--dark-grey);
+            padding: 5px 15px;
+            border-radius: 15px;
+            min-height: 20px;
+            text-align: center;
+            visibility: hidden; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Interactive Seismic Wave Simulator 🌊</h1>
+    <div class="simulator-container">
+        <div class="controls">
+            <div class="control-group">
+                <legend>1. Select Wave Type</legend>
+                <div class="button-group" id="wave-type-selector">
+                    <button data-wave="P" class="active">P-wave</button>
+                    <button data-wave="S">S-wave</button>
+                    <button data-wave="Love">Love</button>
+                    <button data-wave="Rayleigh">Rayleigh</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <legend>2. Select Medium</legend>
+                <select id="medium-selector">
+                    <option value="solid">Solid Crust</option>
+                    <option value="liquid">Liquid Water</option>
+                    <option value="surface">Surface Layer</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <legend>3. Adjust Speed</legend>
+                <input type="range" id="speed-slider" min="1" max="10" value="3">
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="wave-canvas"></canvas>
+            <div id="status-display"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. SETUP AND CONFIGURATION ---
+        const canvas = document.getElementById('wave-canvas');
+        const ctx = canvas.getContext('2d');
+        const statusDisplay = document.getElementById('status-display');
+
+        // Controls
+        const waveSelector = document.getElementById('wave-type-selector');
+        const mediumSelector = document.getElementById('medium-selector');
+        const speedSlider = document.getElementById('speed-slider');
+        
+        // Canvas and Grid parameters
+        const CANVAS_WIDTH = 800;
+        const CANVAS_HEIGHT = 400;
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
+        
+        const PARTICLE_SIZE = 4;
+        const GRID_SPACING = 20;
+        const COLS = Math.floor(CANVAS_WIDTH / GRID_SPACING);
+        const ROWS = Math.floor(CANVAS_HEIGHT / GRID_SPACING);
+
+        let particleGrid = [];
+        let animationFrameId;
+        let time = 0;
+
+        // State variables
+        let currentWaveType = 'P';
+        let currentMedium = 'solid';
+        let waveSpeed = 3;
+
+        // --- 2. PARTICLE & ANIMATION LOGIC ---
+
+        /**
+         * Creates the grid of particles with their original positions.
+         */
+        function initializeParticles() {
+            particleGrid = [];
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    particleGrid.push({
+                        originalX: x * GRID_SPACING + GRID_SPACING / 2,
+                        originalY: y * GRID_SPACING + GRID_SPACING / 2,
+                        x: x * GRID_SPACING + GRID_SPACING / 2,
+                        y: y * GRID_SPACING + GRID_SPACING / 2,
+                    });
+                }
+            }
+        }
+
+        /**
+         * The main animation loop, called for each frame.
+         */
+        function animate() {
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            time += 0.02 * waveSpeed;
+
+            particleGrid.forEach(p => {
+                updateParticle(p);
+                drawParticle(p);
+            });
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        /**
+         * Calculates the new position of a particle based on the current wave.
+         * @param {object} p - The particle object.
+         */
+        function updateParticle(p) {
+            const amplitude = 10;
+            const wavelength = 200;
+            const k = (2 * Math.PI) / wavelength; // Wavenumber
+            const phase = k * p.originalX - time;
+            
+            // Reset position before calculating displacement
+            p.x = p.originalX;
+            p.y = p.originalY;
+
+            // Amplitude decay for surface waves
+            const depthDecay = Math.exp(-p.originalY / (wavelength * 0.5));
+
+            switch (currentWaveType) {
+                case 'P':
+                    p.x += amplitude * Math.cos(phase);
+                    break;
+                case 'S':
+                    p.y += amplitude * Math.sin(phase);
+                    break;
+                case 'Love':
+                    // Love waves are S-waves trapped at the surface (side-to-side)
+                    // We simulate this as vertical motion with depth decay
+                    p.y += amplitude * depthDecay * Math.sin(phase);
+                    break;
+                case 'Rayleigh':
+                    // Retrograde elliptical motion with depth decay
+                    p.x += amplitude * 0.8 * depthDecay * Math.cos(phase);
+                    p.y += amplitude * 1.2 * depthDecay * Math.sin(phase);
+                    break;
+            }
+        }
+        
+        /**
+         * Draws a single particle on the canvas.
+         * @param {object} p - The particle object.
+         */
+        function drawParticle(p) {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, PARTICLE_SIZE / 2, 0, 2 * Math.PI);
+            ctx.fillStyle = `rgba(0, 119, 182, ${0.5 + p.originalY / CANVAS_HEIGHT})`;
+            ctx.fill();
+        }
+
+        // --- 3. EVENT HANDLERS & STATE MANAGEMENT ---
+
+        /**
+         * Stops the current animation and starts a new one.
+         */
+        function restartAnimation() {
+            cancelAnimationFrame(animationFrameId);
+            time = 0;
+            statusDisplay.style.visibility = 'hidden'; // Hide message on restart
+            animate();
+        }
+        
+        /**
+         * Handles logic for medium changes, enabling/disabling waves.
+         */
+        function handleMediumChange() {
+            currentMedium = mediumSelector.value;
+            const sWaveButton = waveSelector.querySelector('[data-wave="S"]');
+            const loveWaveButton = waveSelector.querySelector('[data-wave="Love"]');
+
+            const isLiquid = currentMedium === 'liquid';
+            sWaveButton.disabled = isLiquid;
+            loveWaveButton.disabled = isLiquid;
+            
+            if (isLiquid && (currentWaveType === 'S' || currentWaveType === 'Love')) {
+                cancelAnimationFrame(animationFrameId);
+                ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); // Clear canvas
+                statusDisplay.textContent = `${currentWaveType}-waves cannot travel through liquid.`;
+                statusDisplay.style.visibility = 'visible';
+            } else {
+                restartAnimation();
+            }
+        }
+
+        waveSelector.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                // Update active button style
+                waveSelector.querySelector('.active').classList.remove('active');
+                e.target.classList.add('active');
+                
+                currentWaveType = e.target.dataset.wave;
+                handleMediumChange(); // Re-check medium constraints on wave change
+            }
+        });
+
+        mediumSelector.addEventListener('change', handleMediumChange);
+
+        speedSlider.addEventListener('input', (e) => {
+            waveSpeed = parseFloat(e.target.value);
+        });
+
+
+        // --- 4. INITIALIZATION ---
+        initializeParticles();
+        animate();
+
+    </script>
+</body>
+</html>

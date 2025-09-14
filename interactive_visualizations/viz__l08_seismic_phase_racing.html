@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Great Seismic Wave Race</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 1200px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        .race-track {
+            position: relative;
+            height: 600px;
+            background: linear-gradient(to right, #e8f5e9 0%, #ffebee 100%);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 3px solid #333;
+        }
+        .lane {
+            position: absolute;
+            width: 100%;
+            height: 120px;
+            border-bottom: 2px dashed #ccc;
+            display: flex;
+            align-items: center;
+        }
+        .lane-label {
+            position: absolute;
+            left: 10px;
+            font-weight: bold;
+            color: #333;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: 2px solid #333;
+            z-index: 10;
+        }
+        .wave {
+            position: absolute;
+            animation: race 8s ease-out infinite;
+            filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.3));
+        }
+        .finish-line {
+            position: absolute;
+            right: 100px;
+            top: 0;
+            bottom: 0;
+            width: 10px;
+            background: repeating-linear-gradient(
+                to bottom,
+                #000,
+                #000 10px,
+                #fff 10px,
+                #fff 20px
+            );
+            z-index: 5;
+        }
+        .finish-label {
+            position: absolute;
+            right: 50px;
+            top: -30px;
+            background: #ffeb3b;
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            border: 2px solid #333;
+            transform: rotate(-5deg);
+        }
+        .epicenter {
+            position: absolute;
+            left: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 60px;
+            animation: shake 0.5s ease-in-out infinite;
+        }
+        .speed-indicator {
+            position: absolute;
+            right: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        /* P-Wave - Fast but harmless */
+        .p-wave {
+            left: 50px;
+            font-size: 50px;
+            animation-delay: 0s;
+        }
+        
+        /* S-Wave - Slower but dangerous */
+        .s-wave {
+            left: 50px;
+            font-size: 70px;
+            animation-delay: 1.5s;
+        }
+        
+        /* Love Wave - Even slower, very dangerous */
+        .love-wave {
+            left: 50px;
+            font-size: 80px;
+            animation-delay: 3s;
+        }
+        
+        /* Rayleigh Wave - Slowest and most destructive */
+        .rayleigh-wave {
+            left: 50px;
+            font-size: 90px;
+            animation-delay: 3.5s;
+        }
+        
+        @keyframes race {
+            0% {
+                left: 50px;
+                transform: rotate(0deg);
+            }
+            100% {
+                left: calc(100% - 150px);
+                transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateY(-50%) rotate(-5deg); }
+            50% { transform: translateY(-50%) rotate(5deg); }
+        }
+        
+        .legend {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        
+        .legend-item {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .legend-emoji {
+            font-size: 40px;
+        }
+        
+        .legend-text {
+            flex: 1;
+        }
+        
+        .legend-text h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .legend-text p {
+            margin: 5px 0 0 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .announcement {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+            color: #d32f2f;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏁 The Great Seismic Wave Race! 🏁</h1>
+        <p class="subtitle">"First to arrive, but last you'd want at your party!"</p>
+        
+        <div class="race-track">
+            <div class="finish-line"></div>
+            <div class="finish-label">FINISH<br>(Your House)</div>
+            <div class="epicenter">💥</div>
+            
+            <!-- Lane 1: P-Wave -->
+            <div class="lane" style="top: 60px;">
+                <div class="lane-label">LANE 1: Body Waves</div>
+                <div class="wave p-wave">🏃</div>
+                <div class="speed-indicator" style="top: 80px;">~6.5 km/s</div>
+            </div>
+            
+            <!-- Lane 2: S-Wave -->
+            <div class="lane" style="top: 180px;">
+                <div class="lane-label">LANE 2: Body Waves</div>
+                <div class="wave s-wave">🦖</div>
+                <div class="speed-indicator" style="top: 200px;">~3.5 km/s</div>
+            </div>
+            
+            <!-- Lane 3: Love Wave -->
+            <div class="lane" style="top: 300px;">
+                <div class="lane-label">LANE 3: Surface Waves</div>
+                <div class="wave love-wave">🐉</div>
+                <div class="speed-indicator" style="top: 320px;">~3.0 km/s</div>
+            </div>
+            
+            <!-- Lane 4: Rayleigh Wave -->
+            <div class="lane" style="top: 420px;">
+                <div class="lane-label">LANE 4: Surface Waves</div>
+                <div class="wave rayleigh-wave">🌊</div>
+                <div class="speed-indicator" style="top: 440px;">~2.8 km/s</div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-emoji">🏃</div>
+                <div class="legend-text">
+                    <h3>P-Wave (Primary)</h3>
+                    <p>"The nervous messenger" - Arrives first, just makes things jiggle. Like that friend who shows up early but only brings chips.</p>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-emoji">🦖</div>
+                <div class="legend-text">
+                    <h3>S-Wave (Secondary)</h3>
+                    <p>"The party crasher" - Shows up second, starts breaking things. Side-to-side motion that makes buildings dance (badly).</p>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-emoji">🐉</div>
+                <div class="legend-text">
+                    <h3>Love Wave</h3>
+                    <p>"The horizontal hurricane" - Despite the name, shows no love. Makes the ground wiggle side-to-side like a snake.</p>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-emoji">🌊</div>
+                <div class="legend-text">
+                    <h3>Rayleigh Wave</h3>
+                    <p>"The ground tsunami" - Last to arrive, worst house guest. Rolls the ground like ocean waves. Brings ALL the damage.</p>
+                </div>
+            </div>
+        </div>
+        
+        <p class="announcement">
+            ⚠️ SPOILER ALERT: The tortoise wins this race... at destroying everything! ⚠️
+        </p>
+    </div>
+</body>
+</html>

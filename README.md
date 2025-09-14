@@ -176,7 +176,7 @@ Understand the physics - why normal stress increases shear resistance
 
 ---------------------------------------------------------
 
-## Lecture 7: Seismic Waves
+## Lecture 8: Seismic Waves
 
 <table>
   <tr align="center">
@@ -199,6 +199,36 @@ Understand the physics - why normal stress increases shear resistance
     <td>
       <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l08_waves_propagation.html">
         <img src="interactive_visualizations/viz__l08_waves_propagation.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
+
+---------------------------------------------------------
+
+## Lecture 9: Sensors
+
+<table>
+  <tr align="center">
+    <th>Das Basics!</th>
+    <th>Seismic Waves Simulator!</th>
+    <th>GPS and InSAR!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l09_das.html">
+        <img src="interactive_visualizations/viz__l09_das.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l09_das_simulation.html">
+        <img src="interactive_visualizations/viz__l09_das_simulation.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l09_gps_vs_insarhtml">
+        <img src="interactive_visualizations/viz__l09_gps_vs_insar.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
   </tr>

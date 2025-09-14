@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Earthquake Recurrence Models</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #2c3e50;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 2em;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: #fff;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5em;
+            margin-top: 0;
+        }
+        .main-content { display: grid; grid-template-columns: 1fr; gap: 2em; }
+        #animation-container { border: 1px solid #ccc; border-radius: 8px; background-color: #fdfdfd; }
+        .controls { padding: 1.5em; background: #f9f9f9; border-radius: 8px; }
+        .model-selection { display: flex; justify-content: space-around; margin-bottom: 1em; flex-wrap: wrap; }
+        .model-selection label { font-weight: bold; cursor: pointer; }
+        .buttons { display: flex; gap: 1em; justify-content: center; margin-top: 1em; }
+        .buttons button {
+            padding: 10px 20px; font-size: 1em; border-radius: 5px; border: none; cursor: pointer;
+            background-color: #3498db; color: white; transition: background-color 0.3s;
+        }
+        .buttons button#stop-btn { background-color: #e74c3c; }
+        .buttons button:hover { opacity: 0.8; }
+        .status {
+            padding: 1em; border-radius: 8px; text-align: center; font-size: 1.2em; font-weight: bold;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .status-sticking { background-color: #eaf2f8; color: #2874a6; }
+        .status-slipping { background-color: #fdedec; color: #c0392b; }
+        .status-creeping { background-color: #e8f5e9; color: #2e7d32; }
+        .interpretation { margin-top: 1em; padding: 1em; border-left: 5px solid #f1c40f; background-color: #fef9e7; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Interactive Recurrence Models with Rate-and-State Friction</h1>
+    <div class="main-content">
+        <div>
+            <h2>Animation</h2>
+            <div id="animation-container">
+                <svg id="animation-svg" viewBox="0 0 600 150"></svg>
+            </div>
+            <div id="status-box" class="status">Select a model and press Start</div>
+        </div>
+
+        <div class="controls">
+            <h2>Model Selection</h2>
+            <div class="model-selection">
+                <label><input type="radio" name="model" value="time-predictable" checked> Time-Predictable</label>
+                <label><input type="radio" name="model" value="slip-predictable"> Slip-Predictable</label>
+                <label><input type="radio" name="model" value="creep"> Aseismic Creep</label>
+            </div>
+            <div class="interpretation">
+                <h3 id="interp-title">Time-Predictable Model</h3>
+                <p id="interp-text">The fault always breaks at the same stress level, but the stress drop varies. A larger preceding earthquake (bigger stress drop) means a longer wait time until the next one.</p>
+            </div>
+            <div class="buttons">
+                <button id="start-btn">Start</button>
+                <button id="stop-btn">Stop</button>
+                <button id="reset-btn">Reset</button>
+            </div>
+        </div>
+
+        <div>
+            <h2>Stress vs. Time (Cumulative)</h2>
+            <canvas id="stress-plot"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Get references to HTML elements ---
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const statusBox = document.getElementById('status-box');
+    const animationSvg = document.getElementById('animation-svg');
+    const plotCtx = document.getElementById('stress-plot').getContext('2d');
+    const modelRadios = document.querySelectorAll('input[name="model"]');
+    const interpTitle = document.getElementById('interp-title');
+    const interpText = document.getElementById('interp-text');
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const driverPlate = document.createElementNS(svgNS, 'rect');
+    const block = document.createElementNS(svgNS, 'rect');
+    const surface = document.createElementNS(svgNS, 'line');
+    const spring = document.createElementNS(svgNS, 'path');
+    
+    driverPlate.setAttribute('y', '62.5');
+    driverPlate.setAttribute('width', '20');
+    driverPlate.setAttribute('height', '50');
+    driverPlate.setAttribute('fill', '#2c3e50');
+
+    block.setAttribute('y', '75');
+    block.setAttribute('width', '50');
+    block.setAttribute('height', '25');
+    block.setAttribute('fill', '#3498db');
+
+    surface.setAttribute('x1', '0');
+    surface.setAttribute('y1', '100');
+    surface.setAttribute('x2', '600');
+    surface.setAttribute('y2', '100');
+    surface.setAttribute('stroke', '#333');
+    surface.setAttribute('stroke-width', '2');
+
+    spring.setAttribute('stroke', '#555');
+    spring.setAttribute('stroke-width', '2');
+    spring.setAttribute('fill', 'none');
+
+    animationSvg.append(surface, driverPlate, block, spring);
+
+    const stressChart = new Chart(plotCtx, {
+        type: 'line',
+        data: { labels: [], datasets: [
+            { label: 'Stress (Spring Force)', data: [], borderColor: '#c0392b', borderWidth: 2.5, pointRadius: 0 },
+            { label: 'Failure Threshold', data: [], borderColor: '#27ae60', borderDash: [5, 5], borderWidth: 2, pointRadius: 0 },
+            { label: 'Residual Stress', data: [], borderColor: '#2980b9', borderDash: [5, 5], borderWidth: 2, pointRadius: 0 }
+        ]},
+        options: {
+            scales: { x: { title: { display: true, text: 'Time' } }, y: { title: { display: true, text: 'Stress' }, beginAtZero: true } },
+            animation: { duration: 0 }
+        }
+    });
+
+    let state = {};
+    let params = { Vp: 1.0, k: 0.5 };
+    let animationFrameId;
+
+    const interpretations = {
+        'time-predictable': {
+            title: 'Time-Predictable Model',
+            text: 'The fault always breaks at the same stress level (constant failure threshold), but the stress drop varies. A larger preceding earthquake (bigger stress drop) means a longer wait time until the next one.'
+        },
+        'slip-predictable': {
+            title: 'Slip-Predictable Model',
+            text: 'Stress always drops to the same baseline level (constant residual stress), but the fault strength varies. A stronger fault (higher failure threshold) leads to a larger, more energetic slip event.'
+        },
+        'creep': {
+            title: 'Aseismic Creep (Velocity-Strengthening)',
+            text: 'The fault friction is velocity-strengthening. It slides smoothly and continuously without building up significant stress, resulting in no earthquakes.'
+        }
+    };
+
+    function updateInterpretation(modelType) {
+        interpTitle.textContent = interpretations[modelType].title;
+        interpText.textContent = interpretations[modelType].text;
+    }
+    
+    function resetSimulation() {
+        const modelType = document.querySelector('input[name="model"]:checked').value;
+        state = {
+            isRunning: false, time: 0, 
+            blockPos: 100, driverPos: 150, // Blue on left, black on right
+            mode: 'sticking', modelType: modelType,
+            failureThreshold: 150, residualStress: 60,
+        };
+        
+        if (modelType === 'creep') {
+            state.mode = 'creeping';
+            state.blockPos = state.driverPos - 50 - 10; // Start with small constant stretch
+        }
+        
+        stressChart.data.labels = [];
+        stressChart.data.datasets.forEach(ds => ds.data = []);
+        stressChart.update();
+        updateInterpretation(modelType);
+        draw();
+    }
+
+    function draw() {
+        driverPlate.setAttribute('x', state.driverPos);
+        block.setAttribute('x', state.blockPos);
+        const startX = state.blockPos + 50;
+        const endX = state.driverPos;
+        const y = 87.5;
+        const segments = 10;
+        const dx = (endX - startX) / segments;
+        let pathData = `M ${startX},${y}`;
+        for (let i = 0; i < segments; i++) {
+            pathData += ` L ${startX + (i + 0.5) * dx},${y + ((i % 2 === 0) ? -7.5 : 7.5)}`;
+        }
+        pathData += ` L ${endX},${y}`;
+        spring.setAttribute('d', pathData);
+    }
+
+    function simulationStep() {
+        const dt = 0.1;
+        state.time += dt;
+        state.driverPos += params.Vp * dt;
+        
+        let springForce = (state.driverPos - (state.blockPos + 50)) * params.k;
+        
+        switch(state.modelType) {
+            case 'creep':
+                state.mode = 'creeping';
+                state.blockPos += params.Vp * dt;
+                springForce = (state.driverPos - (state.blockPos + 50)) * params.k;
+                break;
+            case 'time-predictable':
+                state.failureThreshold = 150;
+                if (state.mode === 'sticking' && springForce > state.failureThreshold) {
+                    state.mode = 'slipping';
+                    state.residualStress = 40 + Math.random() * 40;
+                }
+                break;
+            case 'slip-predictable':
+                state.residualStress = 60;
+                if (state.mode === 'sticking' && springForce > state.failureThreshold) {
+                    state.mode = 'slipping';
+                }
+                break;
+        }
+
+        if (state.mode === 'slipping') {
+            const slipSpeed = 20;
+            state.blockPos += slipSpeed * dt;
+            springForce = (state.driverPos - (state.blockPos + 50)) * params.k;
+            if (springForce < state.residualStress) {
+                state.mode = 'sticking';
+                if (state.modelType === 'slip-predictable') {
+                    state.failureThreshold = 120 + Math.random() * 60;
+                }
+            }
+        }
+        
+        statusBox.className = 'status status-' + state.mode;
+        statusBox.textContent = state.mode.charAt(0).toUpperCase() + state.mode.slice(1) + '...';
+        
+        stressChart.data.labels.push(state.time.toFixed(1));
+        stressChart.data.datasets[0].data.push(springForce > 0 ? springForce : 0);
+        stressChart.data.datasets[1].data.push(state.mode === 'creep' ? null : state.failureThreshold);
+        stressChart.data.datasets[2].data.push(state.mode === 'creep' ? null : state.residualStress);
+    }
+
+    function animationLoop() {
+        if (!state.isRunning) return;
+        
+        for (let i = 0; i < 5; i++) {
+            simulationStep();
+        }
+        
+        draw();
+        stressChart.update();
+        
+        animationFrameId = requestAnimationFrame(animationLoop);
+    }
+    
+    startBtn.addEventListener('click', () => { if (!state.isRunning) { state.isRunning = true; animationLoop(); } });
+    stopBtn.addEventListener('click', () => { state.isRunning = false; cancelAnimationFrame(animationFrameId); });
+    resetBtn.addEventListener('click', () => {
+        state.isRunning = false;
+        cancelAnimationFrame(animationFrameId);
+        resetSimulation();
+    });
+    modelRadios.forEach(radio => radio.addEventListener('change', () => {
+        state.isRunning = false;
+        cancelAnimationFrame(animationFrameId);
+        resetSimulation();
+    }));
+
+    resetSimulation();
+});
+</script>
+
+</body>
+</html>

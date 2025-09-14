@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cumulative High-Speed Spring-Block Model</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #2c3e50;
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 2em;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: #fff;
+            padding: 2em;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 0.5em;
+            margin-top: 0;
+        }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2em;
+        }
+        #animation-container {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #fdfdfd;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5em;
+            padding: 1em;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .slider-group label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.5em;
+        }
+        .slider-group input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .buttons {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 1em;
+            justify-content: center;
+        }
+        .buttons button {
+            padding: 10px 20px;
+            font-size: 1em;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            background-color: #3498db;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .buttons button#stop-btn { background-color: #e74c3c; }
+        .buttons button:hover { opacity: 0.8; }
+        .status {
+            padding: 1em;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .status-sticking { background-color: #eaf2f8; color: #2874a6; }
+        .status-slipping { background-color: #fdedec; color: #c0392b; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Interactive Spring-Block Earthquake Model</h1>
+    <div class="main-content">
+        <div>
+            <h2>Animation</h2>
+            <div id="animation-container">
+                <svg id="animation-svg" viewBox="0 0 600 150"></svg>
+            </div>
+            <div id="status-box" class="status status-sticking">Sticking (Stress Loading...)</div>
+        </div>
+
+        <div>
+            <h2>Model Parameters</h2>
+            <div class="controls">
+                <div class="slider-group">
+                    <label>Plate Velocity (Vₚ): <span id="vp-val">1.0</span></label>
+                    <input type="range" id="vp-slider" min="0.5" max="5" step="0.1" value="1.0">
+                </div>
+                <div class="slider-group">
+                    <label>Spring Stiffness (k): <span id="k-val">50</span></label>
+                    <input type="range" id="k-slider" min="10" max="100" step="5" value="50">
+                </div>
+                <div class="slider-group">
+                    <label>Static Friction (μₛ): <span id="mus-val">150</span></label>
+                    <input type="range" id="mus-slider" min="50" max="250" step="10" value="150">
+                </div>
+                <div class="slider-group">
+                    <label>Kinetic Friction (μₖ): <span id="muk-val">100</span></label>
+                    <input type="range" id="muk-slider" min="40" max="240" step="10" value="100">
+                </div>
+                <div class="buttons">
+                    <button id="start-btn">Start</button>
+                    <button id="stop-btn">Stop</button>
+                    <button id="reset-btn">Reset</button>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <h2>Spring Force vs. Time</h2>
+            <canvas id="force-plot"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const vpSlider = document.getElementById('vp-slider');
+    const kSlider = document.getElementById('k-slider');
+    const musSlider = document.getElementById('mus-slider');
+    const mukSlider = document.getElementById('muk-slider');
+    const vpVal = document.getElementById('vp-val');
+    const kVal = document.getElementById('k-val');
+    const musVal = document.getElementById('mus-val');
+    const mukVal = document.getElementById('muk-val');
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const statusBox = document.getElementById('status-box');
+    const animationSvg = document.getElementById('animation-svg');
+    const plotCtx = document.getElementById('force-plot').getContext('2d');
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const driverPlate = document.createElementNS(svgNS, 'rect');
+    const block = document.createElementNS(svgNS, 'rect');
+    const surface = document.createElementNS(svgNS, 'line');
+    const spring = document.createElementNS(svgNS, 'path');
+    
+    driverPlate.setAttribute('y', '62.5');
+    driverPlate.setAttribute('width', '20');
+    driverPlate.setAttribute('height', '50');
+    driverPlate.setAttribute('fill', '#2c3e50');
+
+    block.setAttribute('y', '75');
+    block.setAttribute('width', '50');
+    block.setAttribute('height', '25');
+    block.setAttribute('fill', '#3498db');
+
+    surface.setAttribute('x1', '0');
+    surface.setAttribute('y1', '100');
+    surface.setAttribute('x2', '600');
+    surface.setAttribute('y2', '100');
+    surface.setAttribute('stroke', '#333');
+    surface.setAttribute('stroke-width', '2');
+
+    spring.setAttribute('stroke', '#555');
+    spring.setAttribute('stroke-width', '2');
+    spring.setAttribute('fill', 'none');
+
+    animationSvg.append(surface, driverPlate, block, spring);
+
+    const forceChart = new Chart(plotCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Spring Force', data: [], borderColor: '#c0392b', borderWidth: 2, pointRadius: 0
+            }, {
+                label: 'Static Friction Threshold', data: [], borderColor: '#27ae60', borderDash: [5, 5], borderWidth: 1.5, pointRadius: 0
+            }]
+        },
+        options: {
+            scales: { x: { title: { display: true, text: 'Time' } }, y: { title: { display: true, text: 'Force' }, beginAtZero: true } },
+            animation: { duration: 0 }
+        }
+    });
+
+    let state = { isRunning: false, time: 0, driverPos: 0, blockPos: 0, mode: 'sticking' };
+    let params = {};
+    let animationFrameId;
+
+    function updateParams() {
+        params = {
+            Vp: parseFloat(vpSlider.value),
+            k: parseFloat(kSlider.value) / 100,
+            mus: parseFloat(musSlider.value),
+            muk: parseFloat(mukSlider.value)
+        };
+        if (params.muk > params.mus) {
+            mukSlider.value = params.mus;
+            params.muk = params.mus;
+        }
+        vpVal.textContent = params.Vp.toFixed(1);
+        kVal.textContent = (params.k * 100).toFixed(0);
+        musVal.textContent = params.mus.toFixed(0);
+        mukVal.textContent = params.muk.toFixed(0);
+    }
+    
+    function resetSimulation() {
+        state.time = 0;
+        state.blockPos = 100;
+        state.driverPos = 150;
+        state.mode = 'sticking';
+        forceChart.data.labels = [];
+        forceChart.data.datasets[0].data = [];
+        forceChart.data.datasets[1].data = [];
+        forceChart.update();
+        draw();
+    }
+
+    function draw() {
+        driverPlate.setAttribute('x', state.driverPos);
+        block.setAttribute('x', state.blockPos);
+        
+        const startX = state.blockPos + 50; 
+        const endX = state.driverPos;        
+        const y = 87.5;
+        const segments = 10;
+        const dx = (endX - startX) / segments;
+        let pathData = `M ${startX},${y}`;
+        for (let i = 0; i < segments; i++) {
+            const yOffset = (i % 2 === 0) ? -7.5 : 7.5;
+            pathData += ` L ${startX + (i + 0.5) * dx},${y + yOffset}`;
+        }
+        pathData += ` L ${endX},${y}`;
+        spring.setAttribute('d', pathData);
+    }
+
+    function simulationStep() {
+        const dt = 0.1;
+        state.time += dt;
+        
+        state.driverPos += params.Vp * dt;
+
+        const springExtension = state.driverPos - (state.blockPos + 50);
+        const springForce = springExtension * params.k;
+
+        if (state.mode === 'sticking') {
+            if (springForce > params.mus) {
+                state.mode = 'slipping';
+            }
+        }
+
+        if (state.mode === 'slipping') {
+            const slipSpeed = 20; 
+            state.blockPos += slipSpeed * dt;
+            const newSpringForce = (state.driverPos - (state.blockPos + 50)) * params.k;
+            if (newSpringForce < params.muk) {
+                state.mode = 'sticking';
+            }
+        }
+        
+        statusBox.className = 'status status-' + (state.mode === 'sticking' ? 'sticking' : 'slipping');
+        statusBox.textContent = state.mode === 'sticking' ? 'Sticking (Stress Loading...)' : 'Slipping (Earthquake!)';
+        
+        forceChart.data.labels.push(state.time.toFixed(1));
+        forceChart.data.datasets[0].data.push(springForce > 0 ? springForce : 0);
+        forceChart.data.datasets[1].data.push(params.mus);
+    }
+    
+    function animationLoop() {
+        if (!state.isRunning) return;
+        
+        for (let i = 0; i < 5; i++) {
+            simulationStep();
+        }
+        
+        draw();
+        forceChart.update();
+        
+        animationFrameId = requestAnimationFrame(animationLoop);
+    }
+    
+    startBtn.addEventListener('click', () => { if (!state.isRunning) { state.isRunning = true; animationLoop(); } });
+    stopBtn.addEventListener('click', () => { state.isRunning = false; cancelAnimationFrame(animationFrameId); });
+    resetBtn.addEventListener('click', () => {
+        state.isRunning = false;
+        cancelAnimationFrame(animationFrameId);
+        resetSimulation();
+    });
+
+    [vpSlider, kSlider, musSlider, mukSlider].forEach(slider => slider.addEventListener('input', updateParams));
+
+    updateParams();
+    resetSimulation();
+});
+</script>
+
+</body>
+</html>

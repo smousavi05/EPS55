@@ -289,3 +289,85 @@ Understand the physics - why normal stress increases shear resistance
     </td>
   </tr>
 </table>
+
+---------------------------------------------------------
+
+## Lecture 12: Earthquake Signal Detection
+
+<table>
+  <tr align="center">
+    <th>Amplitude Thresholding Method!</th>
+    <th>STA/LTA Method!</th>
+    <th>Cross-Correlation Basics!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/viz__l12_detection_amplitude-threshold.html">
+        <img src="interactive_visualizations/viz__l12_detection_amplitude-threshold.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l12_detection_sta-lta.html">
+        <img src="interactive_visualizations/viz__l12_detection_sta-lta.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l12_detection_cross-correlation.html">
+        <img src="interactive_visualizations/viz__l12_detection_cross-correlation.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr align="center">
+    <th>Template Matching Method!</th>
+    <th>Template Matching vs Similarity Search!</th>
+    <th>FAST Method!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/viz__l12_detection_template_matched.html">
+        <img src="interactive_visualizations/viz__l12_detection_template_matched.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l12_templateMatching_vs_similaritySearch.html">
+        <img src="interactive_visualizations/viz__l12_templateMatching_vs_similaritySearch.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l12_detection_fast.html">
+        <img src="interactive_visualizations/viz__l12_detection_fast.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
+
+<table>
+  <tr align="center">
+    <th>Neural Network Detectors - Basics!</th>
+    <th>Neural Network Detectors - !</th>
+    <th>Method Comparison!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/viz__l12_detection_ANN_a.html">
+        <img src="interactive_visualizations/viz__l12_detection_ANN_a.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l12_detection_ANN_b.html">
+        <img src="interactive_visualizations/viz__l12_detection_ANN_b.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l12_templateMatching_vs_similaritySearch.html">
+        <img src="interactive_visualizations/viz__l12_templateMatching_vs_similaritySearch.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>

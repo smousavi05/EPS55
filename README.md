@@ -371,3 +371,47 @@ Understand the physics - why normal stress increases shear resistance
     </td>
   </tr>
 </table>
+
+---------------------------------------------------------
+
+## Lecture 13: Earthquake Location
+
+<table>
+  <tr align="center">
+    <th>Triangulation Method!</th>
+    <th>Basics of Inverse Problems!</th>
+    <th>Gieger Method!</th>
+    <th>Compare Location Methods!</th>
+    <th>Relative Relocation!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l13_location_triangulation.html">
+        <img src="interactive_visualizations/viz__l13_location_triangulation.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l13_location_inverse-problems.html">
+        <img src="interactive_visualizations/viz__l13_location_inverse-problems.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l13_Location_gieger..html">
+        <img src="interactive_visualizations/viz__l13_Location_gieger..png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l13_earthquake_location_methods.html">
+        <img src="interactive_visualizations/viz__l13_earthquake_location_methods.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l13_location_relative_relocation.html">
+        <img src="interactive_visualizations/viz__l13_location_relative_relocation.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
+
+---------------------------------------------------------

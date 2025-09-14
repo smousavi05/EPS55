@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAS Technology Simulator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #1a535c;
+        }
+        .simulator-container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 20px;
+            width: 100%;
+            max-width: 1000px;
+            box-sizing: border-box;
+        }
+        #das-canvas {
+            width: 100%;
+            background-color: #eaf2f8;
+            border-radius: 5px;
+            border: 1px solid #d0dce5;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .controls button {
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: white;
+        }
+        #send-pulse-btn { background-color: #2980b9; }
+        #send-pulse-btn:hover { background-color: #2471a3; }
+        #trigger-wave-btn { background-color: #27ae60; }
+        #trigger-wave-btn:hover { background-color: #229954; }
+        #reset-btn { background-color: #c0392b; }
+        #reset-btn:hover { background-color: #a93226; }
+        #status-panel {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 5px solid #1a535c;
+            font-size: 1.1em;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>How DAS Technology Works 🔊</h1>
+    <div class="simulator-container">
+        <canvas id="das-canvas" width="1000" height="300"></canvas>
+        <div id="status-panel">
+            <strong>Step 1:</strong> Click "Send Laser Pulse" to see how light travels and reflects inside the fiber.
+        </div>
+        <div class="controls">
+            <button id="send-pulse-btn">Send Laser Pulse</button>
+            <button id="trigger-wave-btn">Trigger Seismic Wave</button>
+            <button id="reset-btn">Reset</button>
+        </div>
+    </div>
+
+<script>
+// --- 1. SETUP & CONFIGURATION ---
+const canvas = document.getElementById('das-canvas');
+const ctx = canvas.getContext('2d');
+const statusPanel = document.getElementById('status-panel');
+const sendPulseBtn = document.getElementById('send-pulse-btn');
+const triggerWaveBtn = document.getElementById('trigger-wave-btn');
+const resetBtn = document.getElementById('reset-btn');
+
+const interrogatorWidth = 80;
+const fiberY = canvas.height / 2;
+const fiberLength = canvas.width - interrogatorWidth;
+
+// --- State Variables ---
+let pulses = [];
+let backscatters = [];
+let imperfections = [];
+let seismicWave = null;
+let virtualSensors = [];
+let animationFrameId;
+
+// --- 2. INITIALIZATION ---
+function setup() {
+    pulses = [];
+    backscatters = [];
+    imperfections = [];
+    seismicWave = null;
+    virtualSensors = [];
+
+    // Create imperfections (Rayleigh scattering sites)
+    for (let i = 0; i < fiberLength / 20; i++) {
+        imperfections.push({
+            x: interrogatorWidth + i * 20 + (Math.random() - 0.5) * 5,
+            y: fiberY + (Math.random() - 0.5) * 2
+        });
+    }
+    // Create virtual sensor channels
+    for (let i = 0; i < fiberLength / 10; i++) { // 10m channel length
+        virtualSensors.push({
+            x: interrogatorWidth + i * 10,
+            strain: 0,
+            activationTime: 0
+        });
+    }
+    statusPanel.innerHTML = '<strong>Step 1:</strong> Click "Send Laser Pulse" to see how light travels and reflects inside the fiber.';
+    if(animationFrameId) cancelAnimationFrame(animationFrameId);
+    animate();
+}
+
+// --- 3. ANIMATION LOOP & DRAWING ---
+function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    updateState();
+
+    drawSeismicWave(); // Draw wave first so fiber deforms over it
+    drawInterrogator();
+    drawFiber();
+    drawImperfections();
+    drawVirtualSensors();
+    drawPulses();
+    drawBackscatters();
+    
+    animationFrameId = requestAnimationFrame(animate);
+}
+
+function updateState() {
+    // Move light pulses forward
+    pulses.forEach((pulse, index) => {
+        pulse.x += 5;
+        if (pulse.x > canvas.width) pulses.splice(index, 1);
+
+        // Generate backscatter at imperfections
+        imperfections.forEach(imp => {
+            if (Math.abs(pulse.x - imp.x) < 3) {
+                const strain = getStrainAt(imp.x);
+                backscatters.push({
+                    x: imp.x,
+                    isPhaseShifted: Math.abs(strain) > 0.01 // Detect if fiber is strained
+                });
+            }
+        });
+    });
+
+    // Move backscattered light back
+    backscatters.forEach((bs, index) => {
+        bs.x -= 5;
+        if (bs.x < interrogatorWidth) {
+            // Interrogator "processes" the backscatter
+            const sensorIndex = Math.floor((bs.x - interrogatorWidth) / 10);
+            if (virtualSensors[sensorIndex] && bs.isPhaseShifted) {
+                virtualSensors[sensorIndex].strain = 1;
+                virtualSensors[sensorIndex].activationTime = Date.now();
+            }
+            backscatters.splice(index, 1);
+        }
+    });
+
+    // Move seismic wave
+    if (seismicWave) {
+        seismicWave.x += seismicWave.speed;
+        if (seismicWave.x > canvas.width + 200) seismicWave = null;
+    }
+
+    // Fade out virtual sensor activation
+    virtualSensors.forEach(sensor => {
+        if (sensor.strain > 0 && (Date.now() - sensor.activationTime > 500)) {
+            sensor.strain *= 0.95;
+        }
+    });
+}
+
+function getStrainAt(x) {
+    if (!seismicWave) return 0;
+    const distance = x - seismicWave.x;
+    if (Math.abs(distance) < seismicWave.wavelength / 2) {
+        return seismicWave.amplitude * Math.cos(distance * (2 * Math.PI) / seismicWave.wavelength);
+    }
+    return 0;
+}
+
+// --- Drawing Functions ---
+function drawInterrogator() {
+    ctx.fillStyle = '#34495e';
+    ctx.fillRect(0, fiberY - 40, interrogatorWidth, 80);
+    ctx.fillStyle = 'white';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Interrogator', interrogatorWidth / 2, fiberY + 5);
+}
+
+function drawFiber() {
+    ctx.beginPath();
+    ctx.moveTo(interrogatorWidth, fiberY);
+    for (let x = interrogatorWidth; x < canvas.width; x++) {
+        const strain = getStrainAt(x);
+        ctx.lineTo(x, fiberY + strain);
+    }
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(interrogatorWidth, fiberY);
+    for (let x = interrogatorWidth; x < canvas.width; x++) {
+         const strain = getStrainAt(x);
+        ctx.lineTo(x, fiberY + strain);
+    }
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
+function drawImperfections() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    imperfections.forEach(imp => {
+        const strain = getStrainAt(imp.x);
+        ctx.beginPath();
+        ctx.arc(imp.x, imp.y + strain, 1, 0, 2 * Math.PI);
+        ctx.fill();
+    });
+}
+
+function drawPulses() {
+    pulses.forEach(pulse => {
+        const strain = getStrainAt(pulse.x);
+        ctx.beginPath();
+        ctx.arc(pulse.x, fiberY + strain, 10, 0, 2 * Math.PI);
+        const gradient = ctx.createRadialGradient(pulse.x, fiberY + strain, 1, pulse.x, fiberY + strain, 10);
+        gradient.addColorStop(0, 'rgba(255, 255, 0, 1)');
+        gradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+    });
+}
+
+function drawBackscatters() {
+    backscatters.forEach(bs => {
+        const strain = getStrainAt(bs.x);
+        ctx.fillStyle = bs.isPhaseShifted ? 'rgba(255, 50, 50, 0.7)' : 'rgba(50, 150, 255, 0.6)';
+        ctx.beginPath();
+        ctx.arc(bs.x, fiberY + strain, 3, 0, 2 * Math.PI);
+        ctx.fill();
+    });
+}
+
+function drawSeismicWave() {
+    if (!seismicWave) return;
+    const gradient = ctx.createLinearGradient(0, canvas.height, 0, fiberY);
+    gradient.addColorStop(0, 'rgba(39, 174, 96, 0.3)');
+    gradient.addColorStop(1, 'rgba(39, 174, 96, 0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height);
+    for (let x = 0; x < canvas.width; x++) {
+        const strain = getStrainAt(x) * 5; // Amplify for visualization
+        ctx.lineTo(x, fiberY + 50 + strain);
+    }
+    ctx.lineTo(canvas.width, canvas.height);
+    ctx.closePath();
+    ctx.fill();
+}
+
+function drawVirtualSensors() {
+    ctx.textAlign = 'center';
+    virtualSensors.forEach((sensor, index) => {
+        if (sensor.strain > 0.1) {
+            ctx.fillStyle = `rgba(231, 76, 60, ${sensor.strain})`;
+            ctx.fillRect(sensor.x, fiberY - 25, 10, 10);
+            if(index % 10 === 0){ // Don't draw every label to avoid clutter
+                ctx.fillStyle = '#333';
+                ctx.fillText(`Ch. ${index}`, sensor.x + 5, fiberY - 35);
+            }
+        }
+    });
+}
+
+// --- 4. EVENT LISTENERS ---
+sendPulseBtn.addEventListener('click', () => {
+    if (pulses.length < 5) { // Limit number of pulses on screen
+        pulses.push({ x: interrogatorWidth });
+        statusPanel.innerHTML = '<strong>Light pulse sent!</strong> Faint echoes (backscatter) return from natural imperfections in the fiber.';
+        if(seismicWave) {
+             statusPanel.innerHTML += ' Echoes from the strained section are phase-shifted (shown in red).';
+        }
+    }
+});
+
+triggerWaveBtn.addEventListener('click', () => {
+    if (!seismicWave) {
+        seismicWave = { x: -200, speed: 2, amplitude: 15, wavelength: 400 };
+        statusPanel.innerHTML = '<strong>Seismic wave triggered!</strong> The wave is deforming the fiber. Send another pulse to see how it is detected.';
+    }
+});
+
+resetBtn.addEventListener('click', setup);
+
+// --- 5. INITIALIZATION CALL ---
+setup();
+
+</script>
+</body>
+</html>

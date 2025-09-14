@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAS Technology: Fiber Optic Seismic Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9fafb;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .control-card {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .control-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 8px 16px;
+            margin: 4px 0;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .slider-container {
+            margin: 16px 0;
+        }
+
+        .slider-container label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e7eb;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .status-value {
+            font-weight: 600;
+        }
+
+        .status-active { color: #059669; }
+        .status-idle { color: #6b7280; }
+
+        .fiber-section {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+        }
+
+        .fiber-section h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .cross-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .main-simulation {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+        }
+
+        .simulation-area {
+            border: 1px solid #d1d5db;
+            background: #f9fafb;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .data-display {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .data-card {
+            background: #f3f4f6;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .data-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .data-value {
+            font-size: 1.2rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        .seismogram-section {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+        }
+
+        .explanation-section {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .explanation-section h3 {
+            color: #1e40af;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .explanation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .explanation-item h4 {
+            color: #1e40af;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .explanation-item p {
+            color: #1e3a8a;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .advantages-box {
+            background: white;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .advantages-box h4 {
+            color: #1e40af;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .advantages-box ul {
+            color: #1e3a8a;
+            font-size: 14px;
+            padding-left: 16px;
+        }
+
+        .advantages-box li {
+            margin: 4px 0;
+        }
+
+        .pulse {
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { opacity: 0.3; }
+            to { opacity: 1; }
+        }
+
+        .wave-animation {
+            animation: wave 2s linear infinite;
+        }
+
+        @keyframes wave {
+            from { transform: translateX(-50px); }
+            to { transform: translateX(850px); }
+        }
+
+        .backscatter {
+            animation: backscatter 1s ease-out;
+        }
+
+        @keyframes backscatter {
+            from { 
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            to { 
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .fiber-deform {
+            animation: deform 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes deform {
+            from { transform: translateY(0); }
+            to { transform: translateY(3px); }
+        }
+
+        .legend-box {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+        }
+
+        .legend-circle {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-line {
+            width: 16px;
+            height: 2px;
+        }
+
+        .info-text {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .control-panel {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-display {
+                grid-template-columns: 1fr;
+            }
+            
+            .explanation-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>DAS Technology: Fiber Optic Seismic Detection</h1>
+            <p>Interactive animation showing how Distributed Acoustic Sensing transforms fiber optic cables into seismic sensor arrays</p>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <!-- Playback Controls -->
+            <div class="control-card">
+                <h3>▶️ Controls</h3>
+                <button id="playBtn" class="btn btn-primary">
+                    ▶️ Start
+                </button>
+                <button id="resetBtn" class="btn btn-secondary">
+                    🔄 Reset
+                </button>
+                <div class="slider-container">
+                    <label for="speedSlider">Speed: <span id="speedValue">1</span>x</label>
+                    <input type="range" id="speedSlider" class="slider" min="0.5" max="3" step="0.5" value="1">
+                </div>
+            </div>
+
+            <!-- Display Options -->
+            <div class="control-card">
+                <h3>👁️ Display</h3>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="showCrossSection" checked>
+                    <label for="showCrossSection">Fiber Cross-Section</label>
+                </div>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="showBackscatter" checked>
+                    <label for="showBackscatter">Backscatter Events</label>
+                </div>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="showSeismicWave">
+                    <label for="showSeismicWave">Seismic Wave</label>
+                </div>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="showVirtualSensors">
+                    <label for="showVirtualSensors">Virtual Sensors</label>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="control-card">
+                <h3>📊 Status</h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span>System:</span>
+                        <span id="systemStatus" class="status-value status-idle">Idle</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Fiber Length:</span>
+                        <span class="status-value">80m</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Sensors:</span>
+                        <span class="status-value">40</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Resolution:</span>
+                        <span class="status-value">2.0m</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Concepts -->
+            <div class="control-card">
+                <h3>🔑 Key Concepts</h3>
+                <div style="font-size: 12px; line-height: 1.4;">
+                    <div style="margin-bottom: 8px;">
+                        <span style="font-weight: 600; color: #3b82f6;">Rayleigh Backscattering:</span>
+                        <p>Microscopic imperfections scatter light back to interrogator</p>
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <span style="font-weight: 600; color: #10b981;">Phase Analysis:</span>
+                        <p>Changes in optical path length reveal strain</p>
+                    </div>
+                    <div>
+                        <span style="font-weight: 600; color: #dc2626;">Virtual Sensors:</span>
+                        <p>Each fiber segment acts as independent seismometer</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fiber Cross-Section -->
+        <div id="crossSectionDiv" class="fiber-section">
+            <h3>Fiber Optic Cable Cross-Section</h3>
+            <div class="cross-section">
+                <svg width="300" height="150" viewBox="0 0 300 150">
+                    <!-- Outer jacket -->
+                    <circle cx="150" cy="75" r="60" fill="#2d3748" stroke="#4a5568" stroke-width="2" />
+                    <text x="210" y="80" font-size="12" fill="#666">Outer Jacket</text>
+                    
+                    <!-- Cladding -->
+                    <circle cx="150" cy="75" r="40" fill="#e2e8f0" stroke="#cbd5e0" stroke-width="2" />
+                    <text x="210" y="100" font-size="12" fill="#666">Cladding</text>
+                    
+                    <!-- Core -->
+                    <circle cx="150" cy="75" r="15" fill="#3182ce" stroke="#2b77cb" stroke-width="2" />
+                    <text x="210" y="120" font-size="12" fill="#666">Core (Light Path)</text>
+                    
+                    <!-- Light ray illustration -->
+                    <line x1="135" y1="75" x2="165" y2="75" stroke="#fbbf24" stroke-width="3" class="pulse" />
+                    
+                    <!-- Arrows showing total internal reflection -->
+                    <path d="M 140 65 L 150 75 L 140 85" stroke="#f59e0b" stroke-width="2" fill="none" />
+                    <path d="M 160 85 L 150 75 L 160 65" stroke="#f59e0b" stroke-width="2" fill="none" />
+                    
+                    <text x="50" y="30" font-size="14" font-weight="bold" fill="#1f2937">
+                        Total Internal Reflection
+                    </text>
+                </svg>
+            </div>
+            <p class="info-text">
+                Light travels through the core via total internal reflection. Microscopic imperfections 
+                in the glass cause tiny amounts of light to scatter back (Rayleigh backscattering).
+            </p>
+        </div>
+
+        <!-- Main DAS System -->
+        <div class="main-simulation">
+            <h3>DAS System Operation</h3>
+            <div class="simulation-area">
+                <svg id="mainSvg" width="900" height="300" viewBox="0 0 900 300">
+                    <!-- Interrogator Unit -->
+                    <g>
+                        <rect x="20" y="120" width="80" height="60" fill="#1f2937" stroke="#374151" stroke-width="2" rx="4" />
+                        <text x="60" y="135" text-anchor="middle" font-size="10" fill="white" font-weight="bold">DAS</text>
+                        <text x="60" y="148" text-anchor="middle" font-size="10" fill="white">Interrogator</text>
+                        <text x="60" y="165" text-anchor="middle" font-size="8" fill="#d1d5db">Laser + Detector</text>
+                        
+                        <!-- Laser pulse indicator -->
+                        <circle id="laserIndicator" cx="85" cy="150" r="3" fill="#fbbf24" class="pulse" />
+                    </g>
+
+                    <!-- Main fiber line -->
+                    <line id="fiberLine" x1="100" y1="150" x2="900" y2="150" stroke="#2563eb" stroke-width="4" />
+                    
+                    <!-- Fiber cladding -->
+                    <line x1="100" y1="150" x2="900" y2="150" stroke="#93c5fd" stroke-width="8" opacity="0.3" />
+
+                    <!-- Imperfections along fiber -->
+                    <g id="imperfections"></g>
+
+                    <!-- Light pulses -->
+                    <g id="lightPulses"></g>
+
+                    <!-- Backscatter events -->
+                    <g id="backscatterEvents"></g>
+
+                    <!-- Seismic wave -->
+                    <g id="seismicWave" style="display: none;">
+                        <line id="waveFront" x1="100" y1="50" x2="100" y2="250" stroke="#dc2626" stroke-width="3" opacity="0.7" stroke-dasharray="5,5" />
+                        <path id="waveAmplitude" d="M 50 100 Q 100 80 150 100" stroke="#dc2626" stroke-width="2" fill="none" opacity="0.5" />
+                        <text id="waveLabel" x="110" y="70" font-size="12" fill="#dc2626" font-weight="bold">Seismic Wave</text>
+                    </g>
+
+                    <!-- Virtual sensor segments -->
+                    <g id="virtualSensors" style="display: none;"></g>
+
+                    <!-- Labels -->
+                    <text x="60" y="200" text-anchor="middle" font-size="12" font-weight="bold" fill="#374151">Interrogator</text>
+                    <text x="500" y="200" text-anchor="middle" font-size="12" font-weight="bold" fill="#374151">Fiber Optic Cable (80m)</text>
+                    
+                    <!-- Legend -->
+                    <g class="legend-box" transform="translate(600, 50)">
+                        <rect x="0" y="0" width="150" height="100" fill="white" stroke="#d1d5db" stroke-width="1" rx="4" />
+                        <text x="10" y="15" font-size="12" font-weight="bold" fill="#374151">Legend:</text>
+                        
+                        <circle cx="20" cy="30" r="3" fill="#fbbf24" />
+                        <text x="30" y="35" font-size="10" fill="#374151">Outgoing pulse</text>
+                        
+                        <circle cx="20" cy="45" r="3" fill="#10b981" />
+                        <text x="30" y="50" font-size="10" fill="#374151">Backscatter</text>
+                        
+                        <circle cx="20" cy="60" r="2" fill="#ef4444" />
+                        <text x="30" y="65" font-size="10" fill="#374151">Imperfection</text>
+                        
+                        <line x1="15" y1="75" x2="25" y2="75" stroke="#dc2626" stroke-width="2" />
+                        <text x="30" y="80" font-size="10" fill="#374151">Seismic wave</text>
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Real-time data display -->
+            <div class="data-display">
+                <div class="data-card">
+                    <h4>Pulse Rate</h4>
+                    <p id="pulseRate" class="data-value">0 Hz</p>
+                </div>
+                <div class="data-card">
+                    <h4>Backscatter Events</h4>
+                    <p id="backscatterCount" class="data-value">0</p>
+                </div>
+                <div class="data-card">
+                    <h4>Active Sensors</h4>
+                    <p id="activeSensors" class="data-value">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Seismogram -->
+        <div class="seismogram-section">
+            <h3>Virtual Seismometer Array Output</h3>
+            <svg id="seismogramSvg" width="800" height="200">
+                <!-- Grid lines -->
+                <g id="seismogramGrid"></g>
+                <!-- Sensor traces -->
+                <g id="sensorTraces"></g>
+                <!-- Labels -->
+                <text x="25" y="105" font-size="12" text-anchor="middle" fill="#666">0</text>
+                <text x="400" y="190" font-size="12" text-anchor="middle" fill="#666">Distance along fiber</text>
+                <text x="25" y="15" font-size="10" text-anchor="middle" fill="#666" transform="rotate(-90, 25, 15)">Amplitude</text>
+            </svg>
+            <p class="info-text">
+                Each vertical line represents a virtual seismometer. Red indicates active detection of seismic waves.
+                DAS can create thousands of these virtual sensors along a single fiber.
+            </p>
+        </div>
+
+        <!-- Technical Explanation -->
+        <div class="explanation-section">
+            <h3>How DAS Technology Works</h3>
+            <div class="explanation-grid">
+                <div class="explanation-item">
+                    <h4>1. Light Pulse Transmission:</h4>
+                    <p>The DAS interrogator sends coherent laser pulses down the fiber optic cable at high frequency (typically kHz rates).</p>
+                    
+                    <h4>2. Rayleigh Backscattering:</h4>
+                    <p>Microscopic imperfections in the glass fiber scatter tiny amounts of light back toward the interrogator continuously along the fiber length.</p>
+                </div>
+                <div class="explanation-item">
+                    <h4>3. Phase Analysis:</h4>
+                    <p>When seismic waves deform the fiber (stretching or compressing), they change the optical path length, creating detectable phase shifts in the backscattered light.</p>
+                    
+                    <h4>4. Virtual Sensor Array:</h4>
+                    <p>By analyzing backscatter from different fiber segments, the system creates thousands of virtual seismometers along a single cable, providing unprecedented spatial resolution.</p>
+                </div>
+            </div>
+            
+            <div class="advantages-box">
+                <h4>Advantages of DAS:</h4>
+                <ul>
+                    <li><strong>High Spatial Resolution:</strong> Meter-scale sensor spacing over kilometers</li>
+                    <li><strong>Cost Effective:</strong> Single fiber cable replaces thousands of traditional seismometers</li>
+                    <li><strong>Real-time Monitoring:</strong> Continuous data acquisition at high sampling rates</li>
+                    <li><strong>Harsh Environment:</strong> Fibers can operate in extreme conditions</li>
+                    <li><strong>Infrastructure Integration:</strong> Can use existing telecommunication cables</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Animation state
+        let isPlaying = false;
+        let animationId = null;
+        let time = 0;
+        let speed = 1;
+        
+        // Data arrays
+        let lightPulses = [];
+        let backscatterEvents = [];
+        let wavePosition = 0;
+        
+        // Constants
+        const fiberLength = 800;
+        const fiberSegments = 40;
+        const segmentLength = fiberLength / fiberSegments;
+        const lightSpeed = 2;
+        const pulseFrequency = 0.1;
+
+        // DOM elements
+        const playBtn = document.getElementById('playBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        const systemStatus = document.getElementById('systemStatus');
+        const pulseRate = document.getElementById('pulseRate');
+        const backscatterCount = document.getElementById('backscatterCount');
+        const activeSensors = document.getElementById('activeSensors');
+        
+        // Checkboxes
+        const showCrossSection = document.getElementById('showCrossSection');
+        const showBackscatter = document.getElementById('showBackscatter');
+        const showSeismicWave = document.getElementById('showSeismicWave');
+        const showVirtualSensors = document.getElementById('showVirtualSensors');
+        
+        // SVG elements
+        const mainSvg = document.getElementById('mainSvg');
+        const lightPulsesGroup = document.getElementById('lightPulses');
+        const backscatterGroup = document.getElementById('backscatterEvents');
+        const seismicWaveGroup = document.getElementById('seismicWave');
+        const virtualSensorsGroup = document.getElementById('virtualSensors');
+        const imperfectionsGroup = document.getElementById('imperfections');
+
+        // Initialize imperfections
+        function initializeImperfections() {
+            imperfectionsGroup.innerHTML = '';
+            for (let i = 0; i < 20; i++) {
+                const x = 100 + (i + 1) * (fiberLength / 20);
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', x);
+                circle.setAttribute('cy', 150);
+                circle.setAttribute('r', 2);
+                circle.setAttribute('fill', '#ef4444');
+                circle.setAttribute('opacity', 0.6);
+                imperfectionsGroup.appendChild(circle);
+            }
+        }
+
+        // Initialize seismogram grid
+        function initializeSeismogram() {
+            const grid = document.getElementById('seismogramGrid');
+            grid.innerHTML = '';
+            
+            // Grid lines
+            for (let i = 0; i <= 10; i++) {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', 50);
+                line.setAttribute('y1', 20 + i * 16);
+                line.setAttribute('x2', 750);
+                line.setAttribute('y2', 20 + i * 16);
+                line.setAttribute('stroke', '#f0f0f0');
+                line.setAttribute('stroke-width', 1);
+                grid.appendChild(line);
+            }
+        }
+
+        // Animation function
+        function animate() {
+            time += speed * 0.02;
+            
+            // Add new light pulses
+            if (Math.random() < pulseFrequency && isPlaying) {
+                lightPulses.push({
+                    id: Date.now(),
+                    position: 0,
+                    returning: false,
+                    intensity: 1
+                });
+            }
+            
+            // Update light pulse positions
+            lightPulses = lightPulses.map(pulse => {
+                if (!pulse.returning) {
+                    const newPos = pulse.position + lightSpeed;
+                    if (newPos >= fiberLength) {
+                        return { ...pulse, position: fiberLength, returning: true };
+                    }
+                    return { ...pulse, position: newPos };
+                } else {
+                    const newPos = pulse.position - lightSpeed;
+                    return { ...pulse, position: Math.max(0, newPos) };
+                }
+            }).filter(pulse => pulse.position > 0 || !pulse.returning);
+            
+            // Generate backscatter events
+            if (showBackscatter.checked) {
+                lightPulses.forEach(pulse => {
+                    if (!pulse.returning && Math.random() < 0.05) {
+                        const scatterPosition = pulse.position;
+                        const phaseShift = showSeismicWave.checked ? getSeismicDeformation(scatterPosition) : 0;
+                        
+                        backscatterEvents.push({
+                            id: Date.now() + Math.random(),
+                            position: scatterPosition,
+                            phase: phaseShift,
+                            intensity: 0.3 + Math.random() * 0.3,
+                            createdAt: time
+                        });
+                    }
+                });
+            }
+            
+            // Update backscatter positions
+            backscatterEvents = backscatterEvents.map(scatter => ({
+                ...scatter,
+                position: Math.max(0, scatter.position - lightSpeed * 0.8)
+            })).filter(scatter => scatter.position > 0 || (time - scatter.createdAt) < 2);
+            
+            // Update seismic wave position
+            if (showSeismicWave.checked) {
+                wavePosition = (time * 30) % (fiberLength + 200);
+            }
+            
+            // Update display
+            updateDisplay();
+            updateSeismogram();
+            updateDataDisplay();
+            
+            if (isPlaying) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+
+        // Get seismic deformation
+        function getSeismicDeformation(position) {
+            if (!showSeismicWave.checked) return 0;
+            const distance = Math.abs(position - wavePosition);
+            
+            if (distance < 50) {
+                const amplitude = Math.exp(-distance / 20);
+                return amplitude * Math.sin(time * 10) * 0.1;
+            }
+            return 0;
+        }
+
+        // Update main display
+        function updateDisplay() {
+            // Clear previous elements
+            lightPulsesGroup.innerHTML = '';
+            backscatterGroup.innerHTML = '';
+            
+            // Draw light pulses
+            lightPulses.forEach(pulse => {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', 100 + pulse.position);
+                circle.setAttribute('cy', 150);
+                circle.setAttribute('r', 4);
+                circle.setAttribute('fill', pulse.returning ? '#10b981' : '#fbbf24');
+                circle.setAttribute('opacity', pulse.intensity);
+                circle.classList.add('pulse');
+                lightPulsesGroup.appendChild(circle);
+            });
+            
+            // Draw backscatter events
+            if (showBackscatter.checked) {
+                backscatterEvents.forEach(scatter => {
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', 100 + scatter.position);
+                    circle.setAttribute('cy', 150);
+                    circle.setAttribute('r', 3);
+                    circle.setAttribute('fill', '#10b981');
+                    circle.setAttribute('opacity', scatter.intensity);
+                    backscatterGroup.appendChild(circle);
+                    
+                    // Phase change indicator
+                    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    ring.setAttribute('cx', 100 + scatter.position);
+                    ring.setAttribute('cy', 150);
+                    ring.setAttribute('r', 8);
+                    ring.setAttribute('fill', 'none');
+                    ring.setAttribute('stroke', scatter.phase > 0.05 ? '#ef4444' : '#10b981');
+                    ring.setAttribute('stroke-width', 1);
+                    ring.setAttribute('opacity', 0.5);
+                    backscatterGroup.appendChild(ring);
+                });
+            }
+            
+            // Update seismic wave
+            if (showSeismicWave.checked) {
+                const waveFront = document.getElementById('waveFront');
+                const waveAmplitude = document.getElementById('waveAmplitude');
+                const waveLabel = document.getElementById('waveLabel');
+                
+                waveFront.setAttribute('x1', 100 + wavePosition);
+                waveFront.setAttribute('x2', 100 + wavePosition);
+                
+                const waveX = 100 + wavePosition;
+                waveAmplitude.setAttribute('d', `M ${waveX - 50} 100 Q ${waveX} 80 ${waveX + 50} 100`);
+                waveLabel.setAttribute('x', waveX + 10);
+                
+                seismicWaveGroup.style.display = 'block';
+            } else {
+                seismicWaveGroup.style.display = 'none';
+            }
+            
+            // Update virtual sensors
+            if (showVirtualSensors.checked) {
+                virtualSensorsGroup.innerHTML = '';
+                for (let i = 0; i < fiberSegments; i++) {
+                    const x = 100 + i * segmentLength;
+                    const isActive = showSeismicWave.checked && Math.abs(x - (100 + wavePosition)) < 30;
+                    
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', x);
+                    rect.setAttribute('y', 135);
+                    rect.setAttribute('width', segmentLength);
+                    rect.setAttribute('height', 30);
+                    rect.setAttribute('fill', isActive ? '#fbbf24' : '#e5e7eb');
+                    rect.setAttribute('opacity', 0.3);
+                    rect.setAttribute('stroke', isActive ? '#f59e0b' : '#d1d5db');
+                    rect.setAttribute('stroke-width', 1);
+                    virtualSensorsGroup.appendChild(rect);
+                }
+                virtualSensorsGroup.style.display = 'block';
+            } else {
+                virtualSensorsGroup.style.display = 'none';
+            }
+        }
+
+        // Update seismogram
+        function updateSeismogram() {
+            const traces = document.getElementById('sensorTraces');
+            traces.innerHTML = '';
+            
+            for (let i = 0; i < fiberSegments; i++) {
+                const position = i * segmentLength;
+                const amplitude = showSeismicWave.checked ? 
+                    Math.exp(-Math.abs(position - wavePosition) / 30) * Math.sin(time * 10) * 20 : 0;
+                
+                const x = 50 + (i / fiberSegments) * 700;
+                const y = 100 + amplitude;
+                const isActive = Math.abs(amplitude) > 1;
+                
+                // Baseline
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x);
+                line.setAttribute('y1', 100);
+                line.setAttribute('x2', x);
+                line.setAttribute('y2', y);
+                line.setAttribute('stroke', isActive ? '#dc2626' : '#cbd5e0');
+                line.setAttribute('stroke-width', 2);
+                traces.appendChild(line);
+                
+                // Sensor marker
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', x);
+                circle.setAttribute('cy', 100);
+                circle.setAttribute('r', 2);
+                circle.setAttribute('fill', isActive ? '#dc2626' : '#9ca3af');
+                traces.appendChild(circle);
+            }
+        }
+
+        // Update data display
+        function updateDataDisplay() {
+            pulseRate.textContent = (lightPulses.length * 10).toFixed(0) + ' Hz';
+            backscatterCount.textContent = backscatterEvents.length;
+            
+            if (showVirtualSensors.checked && showSeismicWave.checked) {
+                let activeCount = 0;
+                for (let i = 0; i < fiberSegments; i++) {
+                    const x = 100 + i * segmentLength;
+                    if (Math.abs(x - (100 + wavePosition)) < 30) {
+                        activeCount++;
+                    }
+                }
+                activeSensors.textContent = activeCount;
+            } else {
+                activeSensors.textContent = '0';
+            }
+        }
+
+        // Event listeners
+        playBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            playBtn.innerHTML = isPlaying ? '⏸️ Pause' : '▶️ Start';
+            systemStatus.textContent = isPlaying ? 'Active' : 'Idle';
+            systemStatus.className = isPlaying ? 'status-value status-active' : 'status-value status-idle';
+            
+            if (isPlaying) {
+                animate();
+            } else {
+                cancelAnimationFrame(animationId);
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            isPlaying = false;
+            playBtn.innerHTML = '▶️ Start';
+            systemStatus.textContent = 'Idle';
+            systemStatus.className = 'status-value status-idle';
+            time = 0;
+            lightPulses = [];
+            backscatterEvents = [];
+            wavePosition = 0;
+            cancelAnimationFrame(animationId);
+            updateDisplay();
+            updateSeismogram();
+            updateDataDisplay();
+        });
+
+        speedSlider.addEventListener('input', (e) => {
+            speed = parseFloat(e.target.value);
+            speedValue.textContent = speed;
+        });
+
+        showCrossSection.addEventListener('change', (e) => {
+            document.getElementById('crossSectionDiv').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Initialize
+        initializeImperfections();
+        initializeSeismogram();
+        updateDisplay();
+        updateSeismogram();
+        updateDataDisplay();
+    </script>
+</body>
+</html>

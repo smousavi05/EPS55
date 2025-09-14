@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS & InSAR Deformation Dashboard</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            margin: 10px 0;
+            color: #333;
+        }
+        #map-container {
+            flex-grow: 1;
+            position: relative;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .leaflet-popup-content {
+            width: 320px !important;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .controls label {
+            font-weight: bold;
+        }
+        #comparison-slider {
+            width: 200px;
+        }
+        #insar-tooltip {
+            position: absolute;
+            background: black;
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 2000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>GPS & InSAR Deformation Dashboard 🛰️</h1>
+    <div id="map-container">
+        <div id="map"></div>
+        <div id="insar-tooltip"></div>
+        <div class="controls">
+            <label for="comparison-slider">GPS</label>
+            <input type="range" id="comparison-slider" min="0" max="1" step="0.01" value="1.0">
+            <label for="comparison-slider">InSAR</label>
+        </div>
+    </div>
+
+<script>
+// --- 1. SIMULATED DATA ---
+const sanAndreasFault = {
+    "type": "LineString",
+    "coordinates": [ [-122.0, 37.5], [-121.5, 37.0], [-121.0, 36.5], [-120.5, 36.0], [-119.8, 35.5], [-119.0, 35.0] ]
+};
+
+const gpsStations = [
+    { name: "PKD1", lat: 37.2, lon: -121.7, h_vel: 35, v_vel: 1.2 },
+    { name: "SBRB", lat: 36.8, lon: -121.2, h_vel: 34, v_vel: 0.8 },
+    { name: "CHDL", lat: 36.2, lon: -120.7, h_vel: 36, v_vel: -0.5 },
+    { name: "CARH", lat: 35.7, lon: -120.0, h_vel: 33, v_vel: 1.5 },
+    { name: "BLD2", lat: 37.4, lon: -122.3, h_vel: -10, v_vel: 2.0 },
+    { name: "OAK3", lat: 36.5, lon: -121.9, h_vel: -12, v_vel: 1.1 }
+];
+
+const epicenter = { lat: 36.7, lon: -121.3 };
+
+function generateTimeSeries(h_vel, v_vel) {
+    const data = { labels: [], h_data: [], v_data: [] };
+    for (let year = 2020; year <= 2025; year += 0.25) {
+        data.labels.push(year.toFixed(2));
+        const time_elapsed = year - 2020;
+        const noise = (Math.random() - 0.5) * 5;
+        data.h_data.push(h_vel * time_elapsed + noise);
+        data.v_data.push(v_vel * time_elapsed + noise/3);
+    }
+    return data;
+}
+
+// --- 2. MAP INITIALIZATION ---
+const map = L.map('map').setView([36.5, -121], 8);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+const insarTooltip = document.getElementById('insar-tooltip');
+
+// --- 3. LAYER CREATION ---
+
+const faultLayer = L.geoJSON(sanAndreasFault, {
+    style: { color: "#e74c3c", weight: 3 }
+}).addTo(map);
+
+const gpsMarkers = L.layerGroup();
+gpsStations.forEach(s => {
+    const marker = L.circleMarker([s.lat, s.lon], {
+        radius: 6,
+        color: "#2980b9",
+        fillColor: "#3498db",
+        fillOpacity: 1
+    }).addTo(gpsMarkers);
+    
+    marker.bindPopup(`<b>Station: ${s.name}</b><br><canvas id="chart-${s.name}" width="300" height="200"></canvas>`);
+    
+    marker.on('popupopen', () => {
+        const timeSeriesData = generateTimeSeries(s.h_vel, s.v_vel);
+        const ctx = document.getElementById(`chart-${s.name}`).getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timeSeriesData.labels,
+                datasets: [
+                    { label: 'Horizontal (mm)', data: timeSeriesData.h_data, borderColor: 'rgba(231, 76, 60, 1)', tension: 0.1 },
+                    { label: 'Vertical (mm)', data: timeSeriesData.v_data, borderColor: 'rgba(52, 152, 219, 1)', tension: 0.1 }
+                ]
+            },
+            options: { scales: { x: { title: { display: true, text: 'Year' } }, y: { title: { display: true, text: 'Displacement (mm)' } } } }
+        });
+    });
+});
+
+const velocityVectors = L.layerGroup();
+gpsStations.forEach(s => {
+    const start = L.latLng(s.lat, s.lon);
+    const end = L.latLng(s.lat, s.lon + s.h_vel * 0.001); 
+    // --- FIX: Replaced the buggy arrowhead implementation with a simple polyline.
+    L.polyline([start, end], { color: 'black', weight: 2.5 }).addTo(velocityVectors);
+});
+
+function createInSARLayer(type) {
+    const canvasLayer = L.DomUtil.create('canvas', 'leaflet-overlay-pane');
+    const ctx = canvasLayer.getContext('2d');
+    const layer = L.imageOverlay(canvasLayer.toDataURL(), [[0,0],[0,0]], { opacity: 0.7 });
+
+    function draw() {
+        const bounds = map.getBounds();
+        const topLeft = map.latLngToLayerPoint(bounds.getNorthWest());
+        const canvasSize = map.getSize();
+        canvasLayer.width = canvasSize.x;
+        canvasLayer.height = canvasSize.y;
+        L.DomUtil.setPosition(canvasLayer, topLeft);
+        
+        ctx.clearRect(0, 0, canvasSize.x, canvasSize.y);
+
+        if (type === 'coseismic') {
+            const centerPt = map.latLngToLayerPoint(epicenter);
+            const maxFringes = 15;
+            const fringeSpacing = 15;
+            const colors = ['#ff0000', '#ff8800', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff'];
+            for (let i = maxFringes; i > 0; i--) {
+                ctx.beginPath();
+                ctx.arc(centerPt.x - topLeft.x, centerPt.y - topLeft.y, i * fringeSpacing, 0, 2 * Math.PI);
+                ctx.strokeStyle = colors[i % colors.length];
+                ctx.lineWidth = fringeSpacing / 1.5;
+                ctx.stroke();
+            }
+        } else { // Interseismic
+            const faultStart = map.latLngToLayerPoint(L.latLng(sanAndreasFault.coordinates[0][1], sanAndreasFault.coordinates[0][0]));
+            const gradient = ctx.createLinearGradient(faultStart.x - topLeft.x - 200, 0, faultStart.x - topLeft.x + 200, 0);
+            gradient.addColorStop(0, 'rgba(0, 0, 255, 0.6)');
+            gradient.addColorStop(0.5, 'rgba(0, 255, 0, 0)');
+            gradient.addColorStop(1, 'rgba(255, 0, 0, 0.6)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvasSize.x, canvasSize.y);
+        }
+        
+        layer.setUrl(canvasLayer.toDataURL());
+        layer.setBounds(bounds);
+    }
+    
+    map.on('moveend', draw);
+    draw();
+    return layer;
+}
+
+const coseismicInsar = createInSARLayer('coseismic');
+const interseismicInsar = createInSARLayer('interseismic');
+
+// --- 4. CONTROLS AND INTERACTIVITY ---
+
+const baseLayers = {};
+const overlays = {
+    "Fault Lines": faultLayer,
+    "GPS Stations": gpsMarkers,
+    "GPS Velocity Vectors": velocityVectors,
+    "InSAR (Coseismic)": coseismicInsar,
+    "InSAR (Interseismic)": interseismicInsar,
+};
+L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
+
+// --- FIX: The script was breaking before this line was reached. It now executes correctly.
+map.addLayer(gpsMarkers);
+
+// --- FIX: This helper function correctly sets opacity for layer groups, fixing the slider.
+function setLayerGroupOpacity(layerGroup, opacity) {
+    layerGroup.eachLayer(layer => {
+        if (layer.setStyle) { // For vector layers like circleMarker and polylines
+            // Preserve color when changing opacity
+            const originalStyle = layer.options;
+            layer.setStyle({ 
+                color: originalStyle.color,
+                fillColor: originalStyle.fillColor,
+                opacity: opacity, 
+                fillOpacity: opacity * 0.8 // Make fill slightly more transparent
+            });
+        }
+    });
+}
+
+const slider = document.getElementById('comparison-slider');
+const insarLayers = [coseismicInsar, interseismicInsar];
+const gpsLayers = [gpsMarkers, velocityVectors];
+slider.addEventListener('input', (e) => {
+    const insarOpacity = parseFloat(e.target.value);
+    const gpsOpacity = 1 - insarOpacity;
+    insarLayers.forEach(layer => layer.setOpacity(insarOpacity));
+    gpsLayers.forEach(layer => setLayerGroupOpacity(layer, gpsOpacity));
+});
+// Set initial state from slider
+slider.dispatchEvent(new Event('input'));
+
+
+map.on('mousemove', (e) => {
+    if (map.hasLayer(coseismicInsar) && coseismicInsar.options.opacity > 0.1) {
+        const dist = e.latlng.distanceTo(epicenter);
+        // ~1.4 cm per fringe (half a wavelength for C-band radar)
+        const displacement = Math.round(dist / 2000) * 1.4; 
+        insarTooltip.style.display = 'block';
+        insarTooltip.style.left = `${e.containerPoint.x + 10}px`;
+        insarTooltip.style.top = `${e.containerPoint.y + 10}px`;
+        insarTooltip.innerHTML = `~${displacement.toFixed(1)} cm displacement`;
+    } else {
+        insarTooltip.style.display = 'none';
+    }
+});
+</script>
+</body>
+</html>

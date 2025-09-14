@@ -54,4 +54,14 @@ Understand the physics - why normal stress increases shear resistance
   <img src="interactive_visualizations/viz__l06_earthquake_cycle.png" alt="Interactive Figure Preview" width="500">
 </a>
 
+#### Interactive Spring-Block Earthquake Model!
+<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_spring_block_model.html">
+  <img src="interactive_visualizations/viz__l06_spring_block_model.png" alt="Interactive Figure Preview" width="500">
+</a>
+
+#### Interactive Recurrence Models with Rate-and-State Friction!
+<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l06_timepredictable_slippredictable.html">
+  <img src="interactive_visualizations/viz__l06_timepredictable_slippredictable.png" alt="Interactive Figure Preview" width="500">
+</a>
+
 ---------------------------------------------------------

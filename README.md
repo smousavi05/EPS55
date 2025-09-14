@@ -4,15 +4,28 @@
 
 ### Click on each image to see the live interactive version:
 
-### Earth's Timeline with Human Population Explosion
-<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l01_earth_human_timeline.html">
-  <img src="interactive_visualizations/viz__l01_earth_human_timeline.png" alt="Interactive Figure Preview" width="200">
-</a>
+---------------------------------------------------------
+## Lecture 1: Eearthquake Impacts
 
-### Earthquake Timeline: Magnitude vs. Human Impact
-<a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l01_earthquake-death.html">
-  <img src="interactive_visualizations/viz__l01_earthquake-death.png" alt="Interactive Figure Preview" width="200">
-</a>
+<table>
+  <tr align="center">
+    <th>Earth's Timeline with Human Population Explosion</th>
+    <th>Earthquake Timeline: Magnitude vs. Human Impact</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l01_earth_human_timeline.html">
+        <img src="interactive_visualizations/viz__l01_earth_human_timeline.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l01_earthquake-death.html">
+        <img src="interactive_visualizations/viz__l01_earthquake-death.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
 
 ---------------------------------------------------------
 ## Lecture 2: Geological Faults

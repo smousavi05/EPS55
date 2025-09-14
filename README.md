@@ -397,8 +397,8 @@ Understand the physics - why normal stress increases shear resistance
       </a>
     </td>
     <td>
-      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l13_Location_gieger..html">
-        <img src="interactive_visualizations/viz__l13_Location_gieger..png" alt="Interactive Figure Preview" width="200">
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l13_Location_gieger.html">
+        <img src="interactive_visualizations/viz__l13_Location_gieger.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
     <td>
@@ -409,6 +409,50 @@ Understand the physics - why normal stress increases shear resistance
     <td>
       <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l13_location_relative_relocation.html">
         <img src="interactive_visualizations/viz__l13_location_relative_relocation.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+  </tr>
+</table>
+
+---------------------------------------------------------
+
+---------------------------------------------------------
+
+## Lecture 14: Magnitude Estimation
+
+<table>
+  <tr align="center">
+    <th>Cumulative Seismic Moment!</th>
+    <th>Magnitude Saturation!</th>
+    <th>Interactive Magnitude Scale Comparison!</th>
+    <th>Earthquake Magnitude Scales Comparison!</th>
+    <th>Seismic Moment Calculator!</th>
+  </tr>
+  
+  <tr align="center">
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l14_general_cumulative-seismic-moment.html">
+        <img src="interactive_visualizations/viz__l14_general_cumulative-seismic-moment.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l14_magnitude_saturation.html">
+        <img src="interactive_visualizations/viz__l14_magnitude_saturation.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l14_magnitude_scale_comparison.html">
+        <img src="interactive_visualizations/viz__l14_magnitude_scale_comparison.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l14_magnitude_scales-comparison2.html">
+        <img src="interactive_visualizations/viz__l14_magnitude_scales-comparison2.png" alt="Interactive Figure Preview" width="200">
+      </a>
+    </td>
+    <td>
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l14_seismic_moment_calculator.html">
+        <img src="interactive_visualizations/viz__l14_seismic_moment_calculator.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
   </tr>

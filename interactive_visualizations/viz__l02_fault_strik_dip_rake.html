@@ -57,7 +57,7 @@
         </div>
         <div class="slider-group">
             <label>Dip: <span id="dipValue">60</span>°</label>
-            <input type="range" id="dipSlider" min="0" max="90" value="60">
+            <input type="range" id="dipSlider" min="0" max="90" value="30">
         </div>
         <div class="slider-group">
             <label>Rake: <span id="rakeValue">90</span>°</label>
@@ -205,7 +205,7 @@
 
         function updateSystem() {
             const strike = parseFloat(strikeSlider.value);
-            const dip = 90 - sliderDipValue;
+            const dip = parseFloat(dipSlider.value);
             const rake = parseFloat(rakeSlider.value);
 
             strikeValue.textContent = strike;

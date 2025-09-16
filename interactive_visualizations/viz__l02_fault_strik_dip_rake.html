@@ -53,11 +53,11 @@
     <div id="ui">
         <div class="slider-group">
             <label>Strike: <span id="strikeValue">45</span>°</label>
-            <input type="range" id="strikeSlider" min="0" max="360" value="45">
+            <input type="range" id="strikeSlider" min="0" max="360" value="30">
         </div>
         <div class="slider-group">
             <label>Dip: <span id="dipValue">60</span>°</label>
-            <input type="range" id="dipSlider" min="0" max="90" value="30">
+            <input type="range" id="dipSlider" min="0" max="90" value="45">
         </div>
         <div class="slider-group">
             <label>Rake: <span id="rakeValue">90</span>°</label>
@@ -205,8 +205,7 @@
 
         function updateSystem() {
             const strike = parseFloat(strikeSlider.value);
-            const dip_slider_value = parseFloat(dipSlider.value); // This is 0-90
-            const dip = 90 - dip_slider_value;
+            const dip = parseFloat(dipSlider.value);
             const rake = parseFloat(rakeSlider.value);
 
             strikeValue.textContent = strike;
@@ -218,7 +217,7 @@
             faultSystem.rotation.y = -strike * THREE.MathUtils.DEG2RAD;
 
             // 2. Apply DIP: Rotate the plane group around its local X-axis (which is the strike line).
-            faultPlaneGroup.rotation.x = dip * THREE.MathUtils.DEG2RAD;
+            faultPlaneGroup.rotation.x = (90 - dip) * THREE.MathUtils.DEG2RAD;
             
             // 3. Apply RAKE: Set the direction of the slip arrow.
             // Rake is an angle on the fault plane, measured from the strike line.

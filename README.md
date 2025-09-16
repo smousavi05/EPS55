@@ -273,7 +273,7 @@ Understand the physics - why normal stress increases shear resistance
   
   <tr align="center">
     <td>
-      <a href="https://smousavi05.github.io/EPS55/viz__l11_rayleigh-wave.html">
+      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l11_rayleigh-wave.html">
         <img src="interactive_visualizations/viz__l11_rayleigh-wave.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>

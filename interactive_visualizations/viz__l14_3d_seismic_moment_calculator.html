@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Seismic Moment Calculator</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f8; color: #1e2a3a; margin: 0; padding: 20px;
+        }
+        h1, h2 { text-align: center; }
+        .main-container {
+            display: flex; flex-wrap: wrap; gap: 20px; max-width: 1400px; margin: auto;
+        }
+        .controls-panel {
+            flex: 1; min-width: 400px; background: #ffffff; padding: 20px;
+            border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); align-self: flex-start;
+        }
+        .viewer-panel {
+            flex: 1.5; min-width: 600px; height: 500px;
+            background: #eaf2f8; border-radius: 10px;
+        }
+        .control-group { margin-bottom: 25px; }
+        .control-group legend {
+            font-size: 1.2em; font-weight: bold; color: #0077b6;
+            border-bottom: 2px solid #0077b6; margin-bottom: 10px; padding-bottom: 5px;
+        }
+        .param-slider { margin-bottom: 15px; }
+        .param-slider label { display: block; margin-bottom: 5px; }
+        .param-slider input { width: 100%; }
+        .results-box { background-color: #e9ecef; padding: 15px; border-radius: 5px; }
+        .result-item { margin-bottom: 10px; }
+        .result-item-label { font-weight: bold; }
+        #m0-value { font-size: 1.5em; color: #e63946; }
+        #mw-value { font-size: 2em; font-weight: bold; color: #e63946; }
+
+        .analogy-box { display: flex; align-items: center; gap: 15px; margin-top: 15px; }
+        .wrench-icon { font-size: 3em; animation: turn 4s linear infinite; }
+        @keyframes turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        .scale-bar-container { width: 100%; margin-top: 10px; }
+        .scale-bar-bg { width: 100%; height: 20px; background: linear-gradient(to right, #90be6d, #f9c74f, #f94144); border-radius: 10px; position: relative; }
+        #scale-marker {
+            position: absolute; top: -5px; width: 4px; height: 30px;
+            background-color: black; border-radius: 2px; transition: left 0.2s;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Interactive 3D Seismic Moment Calculator 🧊</h1>
+    <h2>Harvard EPS55</h2>
+    <div class="main-container">
+        <div class="controls-panel">
+            <div class="control-group">
+                <legend>1. Fault Parameters</legend>
+                <div class="param-slider">
+                    <label for="length-slider">Fault Length: <span id="length-value">50</span> km</label>
+                    <input type="range" id="length-slider" min="1" max="1000" value="50" step="1">
+                </div>
+                <div class="param-slider">
+                    <label for="width-slider">Fault Width (Depth): <span id="width-value">15</span> km</label>
+                    <input type="range" id="width-slider" min="1" max="50" value="15" step="1">
+                </div>
+                <div class="param-slider">
+                    <label for="slip-slider">Average Slip: <span id="slip-value">1.0</span> m</label>
+                    <input type="range" id="slip-slider" min="0.1" max="20" value="1.0" step="0.1">
+                </div>
+                <div class="param-slider">
+                    <label for="rigidity-select">Rock Type (Shear Modulus / Rigidity)</label>
+                    <select id="rigidity-select">
+                        <option value="10e9">Soft Sediment (~10 GPa)</option>
+                        <option value="30e9" selected>Average Crust (~30 GPa)</option>
+                        <option value="70e9">Crystalline Rock (~70 GPa)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="control-group">
+                <legend>2. Calculated Results</legend>
+                <div class="results-box">
+                    <div class="result-item">
+                        <span class="result-item-label">Seismic Moment (M₀):</span>
+                        <div id="m0-value">...</div>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-item-label">Moment Magnitude (Mw):</span>
+                        <div id="mw-value">...</div>
+                    </div>
+                </div>
+                 <div class="analogy-box">
+                    <div class="wrench-icon">🔧</div>
+                    <p>A "moment" is a turning force. Just as a wrench creates a moment to turn a bolt, an earthquake releases a seismic moment as rock bodies slide past each other.</p>
+                </div>
+            </div>
+             <div class="control-group">
+                <legend>3. Seismic Moment Scale</legend>
+                 <div class="scale-bar-container">
+                     <div class="scale-bar-bg">
+                         <div id="scale-marker"></div>
+                     </div>
+                     <div style="display:flex; justify-content: space-between; font-size: 0.8em;">
+                         <span>Smallest Felt</span>
+                         <span>Chile 1960 (Largest)</span>
+                     </div>
+                </div>
+            </div>
+        </div>
+        <div class="viewer-panel" id="viewer-container"></div>
+    </div>
+
+<script>
+// --- 1. SETUP 3D SCENE ---
+const container = document.getElementById('viewer-container');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+container.appendChild(renderer.domElement);
+
+// Lighting
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const light = new THREE.DirectionalLight(0xffffff, 0.8);
+light.position.set(5, 10, 7.5);
+scene.add(light);
+
+// 3D Objects
+const crustGroup = new THREE.Group();
+const crustMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc, transparent: true, opacity: 0.2 });
+const block1 = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 10), crustMaterial);
+const block2 = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 10), crustMaterial);
+block1.position.z = 5.01; // small gap for fault plane
+block2.position.z = -5.01;
+crustGroup.add(block1);
+crustGroup.add(block2);
+
+const faultPlane = new THREE.Mesh(new THREE.PlaneGeometry(10, 5), new THREE.MeshBasicMaterial({ color: 0xffa500, side: THREE.DoubleSide }));
+faultPlane.rotation.x = -Math.PI / 2;
+crustGroup.add(faultPlane);
+
+scene.add(crustGroup);
+crustGroup.rotation.x = -0.3;
+crustGroup.rotation.y = -0.5;
+
+camera.position.z = 15;
+
+// Animation Loop
+function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+}
+animate();
+
+// --- 2. GET CONTROLS & INITIAL STATE ---
+const sliders = {
+    length: document.getElementById('length-slider'),
+    width: document.getElementById('width-slider'),
+    slip: document.getElementById('slip-slider'),
+    rigidity: document.getElementById('rigidity-select')
+};
+
+const displays = {
+    length: document.getElementById('length-value'),
+    width: document.getElementById('width-value'),
+    slip: document.getElementById('slip-value'),
+    m0: document.getElementById('m0-value'),
+    mw: document.getElementById('mw-value'),
+    marker: document.getElementById('scale-marker')
+};
+
+// --- 3. CORE CALCULATION & UPDATE LOGIC ---
+function updateSimulation() {
+    // 1. Get values from controls
+    const length_km = parseFloat(sliders.length.value);
+    const width_km = parseFloat(sliders.width.value);
+    const slip_m = parseFloat(sliders.slip.value);
+    const rigidity_gpa = parseFloat(sliders.rigidity.value);
+
+    // Update labels
+    displays.length.textContent = `${length_km} km`;
+    displays.width.textContent = `${width_km} km`;
+    displays.slip.textContent = `${slip_m.toFixed(1)} m`;
+
+    // 2. Update 3D visualization
+    const scaleFactor = 10; // How big is the model relative to max slider values
+    faultPlane.scale.x = length_km / 1000 * scaleFactor;
+    faultPlane.scale.y = width_km / 50 * scaleFactor;
+    block2.position.x = slip_m / 20 * scaleFactor / 2; // scale slip for viz
+    block1.position.x = -slip_m / 20 * scaleFactor / 2;
+
+    // 3. Perform calculations
+    const area_m2 = (length_km * 1000) * (width_km * 1000);
+    const seismicMoment_Nm = rigidity_gpa * area_m2 * slip_m;
+    const momentMagnitude_Mw = (2 / 3) * (Math.log10(seismicMoment_Nm)) - 6.06;
+
+    // 4. Update displays
+    displays.m0.textContent = `${seismicMoment_Nm.toExponential(2)} N·m`;
+    displays.mw.textContent = `${momentMagnitude_Mw.toFixed(1)}`;
+    
+    // Update scale bar (logarithmic scale from Mw 3 to 10)
+    const minLogM0 = 13.5; // Approx for Mw 3
+    const maxLogM0 = 23;   // Approx for Mw 9.6
+    const logM0 = Math.log10(seismicMoment_Nm);
+    const percent = Math.max(0, Math.min(100, ((logM0 - minLogM0) / (maxLogM0 - minLogM0)) * 100));
+    displays.marker.style.left = `${percent}%`;
+}
+
+// --- 4. EVENT LISTENERS ---
+Object.values(sliders).forEach(slider => {
+    slider.addEventListener('input', updateSimulation);
+});
+
+// Handle window resizing
+window.addEventListener('resize', () => {
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+// --- 5. INITIALIZATION ---
+updateSimulation();
+
+</script>
+</body>
+</html>

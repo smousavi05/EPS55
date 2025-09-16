@@ -205,7 +205,8 @@
 
         function updateSystem() {
             const strike = parseFloat(strikeSlider.value);
-            const dip = parseFloat(dipSlider.value);
+            const dip_slider_value = parseFloat(dipSlider.value); // This is 0-90
+            const dip = 90 - dip_slider_value;
             const rake = parseFloat(rakeSlider.value);
 
             strikeValue.textContent = strike;

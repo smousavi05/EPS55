@@ -61,7 +61,7 @@
         </div>
         <div class="slider-group">
             <label>Rake: <span id="rakeValue">90</span>°</label>
-            <input type="range" id="rakeSlider" min="-90" max="90" value="90">
+            <input type="range" id="rakeSlider" min="-180" max="180" value="30">
         </div>
     </div>
 
@@ -222,7 +222,7 @@
             // 3. Apply RAKE: Set the direction of the slip arrow.
             // Rake is an angle on the fault plane, measured from the strike line.
             const rakeRad = rake * THREE.MathUtils.DEG2RAD;
-            const newDir = new THREE.Vector3(Math.cos(rakeRad), -Math.sin(rakeRad), 0).normalize();
+            const newDir = new THREE.Vector3(Math.cos(rakeRad), Math.sin(rakeRad), 0).normalize();
             rakeArrow.setDirection(newDir);
         }
 

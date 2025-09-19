@@ -70,7 +70,7 @@ Understand the physics - why normal stress increases shear resistance
 
 <table>
   <tr align="center">
-    <th>Coseismic Ground Displacement!</th>
+    <th>Interseismic/Coseismic Ground Displacement!</th>
     <th>Interseismic-Coseismic-Postseismic Phases!</th>
     <th>Interactive Spring-Block Earthquake Model!</th>
     <th>Interactive Recurrence Models with Rate-and-State Friction!</th>

@@ -3,656 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Coseismic Ground Displacement Calculator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <title>Fault Displacement Models</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
             padding: 20px;
         }
-
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            font-size: 1.2em;
-            color: #666;
-        }
-
-        .controls-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 40px;
+            grid-template-columns: 1fr 2fr;
+            grid-template-rows: auto auto;
+            gap: 20px;
+            max-width: 1600px;
+            margin: auto;
         }
-
-        .control-panel {
-            padding: 25px;
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
+        .panel {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-
-        .control-panel.parameters {
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-            border-color: #2196f3;
+        #controls {
+            grid-column: 1;
+            grid-row: 1;
+            height: fit-content;
         }
-
-        .control-panel.results {
-            background: linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%);
-            border-color: #4caf50;
+        #education {
+            grid-column: 1;
+            grid-row: 2;
         }
-
-        .control-panel h3 {
-            font-size: 1.4em;
-            margin-bottom: 20px;
-            font-weight: 600;
+        #plot-interseismic {
+            grid-column: 2;
+            grid-row: 1;
+            min-height: 400px;
         }
-
-        .parameters h3 {
-            color: #1976d2;
+        #plot-coseismic {
+            grid-column: 2;
+            grid-row: 2;
+            min-height: 400px;
         }
-
-        .results h3 {
-            color: #388e3c;
-        }
-
-        .slider-container {
+        .slider-group {
             margin-bottom: 25px;
         }
-
-        .slider-label {
+        label {
             display: block;
-            font-weight: 500;
+            font-weight: bold;
             margin-bottom: 8px;
-            color: #444;
         }
-
-        .slider {
-            width: 100%;
-            height: 8px;
-            border-radius: 4px;
-            background: #ddd;
-            outline: none;
-            margin-bottom: 5px;
-            cursor: pointer;
-        }
-
-        .slider::-webkit-slider-thumb {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #2196f3;
-            cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        }
-
-        .slider::-moz-range-thumb {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #2196f3;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-        }
-
-        .slider-range {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8em;
-            color: #666;
-        }
-
-        .result-box {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border-left: 4px solid #4caf50;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .result-label {
-            font-size: 0.9em;
-            color: #666;
-            margin-bottom: 5px;
-        }
-
-        .result-value {
-            font-size: 1.2em;
-            font-weight: 600;
-            color: #388e3c;
-        }
-
-        .section {
-            margin-bottom: 40px;
-        }
-
-        .section h3 {
-            font-size: 1.4em;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-
-        .fault-diagram {
-            background: #f8f9fa;
-            border: 2px solid #dee2e6;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .fault-svg {
-            width: 100%;
-            height: 300px;
-            cursor: crosshair;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            background: linear-gradient(to bottom, #87ceeb 0%, #deb887 30%);
-        }
-
-        .chart-container {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-
-        .chart-wrapper {
-            position: relative;
-            height: 400px;
+        input[type="range"] {
             width: 100%;
         }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-
-        .info-panel {
-            padding: 25px;
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-        }
-
-        .info-panel.concepts {
-            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-            border-color: #ff9800;
-        }
-
-        .info-panel.observations {
-            background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
-            border-color: #9c27b0;
-        }
-
-        .concepts h3 {
-            color: #f57c00;
-        }
-
-        .observations h3 {
-            color: #7b1fa2;
-        }
-
-        .info-list {
-            list-style: none;
-        }
-
-        .info-list li {
-            margin-bottom: 12px;
-            padding-left: 20px;
-            position: relative;
-        }
-
-        .info-list li::before {
-            content: "•";
-            position: absolute;
-            left: 0;
-            color: #ff9800;
+        span {
             font-weight: bold;
+            color: #005a9c;
         }
-
-        .observations .info-list li::before {
-            color: #9c27b0;
+        h2, h3 {
+            border-bottom: 2px solid #005a9c;
+            padding-bottom: 5px;
+            color: #333;
         }
-
-        .formula-panel {
-            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
-            border: 2px solid #9e9e9e;
-            border-radius: 10px;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .formula-panel h4 {
-            color: #424242;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-
-        .formula {
-            font-family: 'Courier New', monospace;
-            font-size: 1.4em;
-            color: #1976d2;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .formula-description {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        @media (max-width: 768px) {
-            .controls-grid,
-            .info-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-            
-            .container {
-                padding: 20px;
-            }
-            
-            .header h1 {
-                font-size: 2em;
-            }
-        }
-
-        .probe-indicator {
-            position: absolute;
-            background: #4caf50;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.8em;
-            font-weight: bold;
-            transform: translate(-50%, -100%);
-            margin-top: -10px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        code {
+            background-color: #eee;
+            padding: 2px 5px;
+            border-radius: 3px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Interactive Coseismic Ground Displacement Calculator</h1>
+        
+        <div id="controls" class="panel">
+            <h2>Controls</h2>
+            <p>These sliders control parameters for both models simultaneously.</p>
+            <div class="slider-group">
+                <label>Slip / Slip Rate (S): 
+                    <span id="slip-value">50</span>
+                </label>
+                <input type="range" id="slip-slider" min="1" max="100" value="50">
+            </div>
+            <div class="slider-group">
+                <label>Locking / Fault Depth (D): 
+                    <span id="depth-value">15</span> km
+                </label>
+                <input type="range" id="depth-slider" min="1" max="50" value="15">
+            </div>
+        </div>
+
+        <div id="education" class="panel">
             <h2>Harvard EPS55</h2>
-            <p>Explore how ground displacement varies with distance from a strike-slip fault during an earthquake</p>
+            
+            <h3>Key Concepts</h3>
+            <p>These models illustrate **Elastic Rebound Theory**. The ground slowly deforms (stores elastic strain) during the interseismic period, which is then suddenly released (coseismic displacement) during an earthquake.</p>
+            
+            <hr>
+            
+            <h3>Panel 1: Interseismic Loading</h3>
+            <p>This plot shows the *rate* of ground motion (velocity) during the long period *between* earthquakes, based on the 2D `arctan` model.</p>
+            <p><strong>Formula Used:</strong> <code>v(y) = (S / &pi;) * arctan(y / D)</code></p>
+            <ul>
+                <li><code>v(y)</code>: Velocity at distance <code>y</code> from the fault.</li>
+                <li><code>S</code>: Long-term slip rate (e.g., mm/yr).</li>
+                <li><code>D</code>: Locking depth of the fault.</li>
+                <li><code>y</code>: Perpendicular distance from the fault.</li>
+            </ul>
+            <p><strong>Key Observation:</strong> The ground is "locked" at the fault (velocity = 0), while the ground far away moves at the full plate velocity. A deeper locking depth (larger <code>D</code>) creates a wider, more gradual zone of strain accumulation.</p>
+            <p><strong>Real-World Measurement:</strong> Measured using **GPS** stations over many years.</p>
+
+            <hr>
+
+            <h3>Panel 2: Coseismic Displacement</h3>
+            <p>This plot shows the *permanent* ground displacement *during* an earthquake, based on a model that shows $1/r^2$ decay.</p>
+            <p><strong>Formula Used:</strong> <code>u(r) = S / (1 + (r / D)²)</code></p>
+            <ul>
+                <li><code>u(r)</code>: Displacement at distance <code>r</code> from the fault.</li>
+                <li><code>S</code>: Slip on the fault at $r=0$.</li>
+                <li><code>D</code>: A term related to the fault's depth/width.</li>
+                <li><code>r</code>: Distance from the fault (<code>r = |y|</code>).</li>
+            </ul>
+            <p><strong>Note:</strong> This simple function is an approximation of complex 3D models (like Okada), but it correctly shows that displacement is **maximum at the fault** and **decays rapidly** (like $1/r^2$ at large distances).</p>
+            <p><strong>Real-World Measurement:</strong> Measured using **GPS** and **InSAR** (satellite radar) immediately after an earthquake.</p>
         </div>
 
-        <div class="controls-grid">
-            <div class="control-panel parameters">
-                <h3>Fault Parameters</h3>
-                
-                <div class="slider-container">
-                    <label class="slider-label">Fault Slip (S): <span id="slip-value">5.0</span> meters</label>
-                    <input type="range" id="fault-slip" class="slider" min="1" max="20" step="0.5" value="5">
-                    <div class="slider-range">
-                        <span>1m</span>
-                        <span>20m</span>
-                    </div>
-                </div>
+        <div id="plot-interseismic" class="panel"></div>
+        <div id="plot-coseismic" class="panel"></div>
 
-                <div class="slider-container">
-                    <label class="slider-label">Locking Depth (D): <span id="depth-value">15</span> km</label>
-                    <input type="range" id="locking-depth" class="slider" min="5" max="30" step="1" value="15">
-                    <div class="slider-range">
-                        <span>5km</span>
-                        <span>30km</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="control-panel results">
-                <h3>Probe Results</h3>
-                
-                <div class="result-box">
-                    <div class="result-label">Distance from fault:</div>
-                    <div class="result-value" id="probe-distance">10.0 km</div>
-                </div>
-                
-                <div class="result-box">
-                    <div class="result-label">Ground displacement:</div>
-                    <div class="result-value" id="probe-displacement">0.796 m</div>
-                </div>
-                
-                <div class="result-box">
-                    <div class="result-label">Displacement ratio:</div>
-                    <div class="result-value" id="displacement-ratio">15.9% of fault slip</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h3>2D Fault Cross-Section (Click to place probe)</h3>
-            <div class="fault-diagram">
-                <svg id="fault-svg" class="fault-svg" viewBox="0 0 800 300">
-                    <!-- Ground surface -->
-                    <line x1="0" y1="50" x2="800" y2="50" stroke="#8B4513" stroke-width="3"/>
-                    <text x="10" y="45" fill="#8B4513" font-size="14" font-weight="bold">Ground Surface</text>
-                    
-                    <!-- Fault line -->
-                    <line id="fault-line" x1="100" y1="50" x2="100" y2="170" stroke="#FF0000" stroke-width="4"/>
-                    <text x="105" y="70" fill="#FF0000" font-size="14" font-weight="bold">Strike-slip Fault</text>
-                    
-                    <!-- Locking depth indicator -->
-                    <line id="depth-indicator" x1="95" y1="170" x2="105" y2="170" stroke="#FF0000" stroke-width="2"/>
-                    <text id="depth-label" x="110" y="175" fill="#FF0000" font-size="12">Locking Depth: 15 km</text>
-                    
-                    <!-- Distance markers -->
-                    <g id="distance-markers">
-                        <!-- Will be populated by JavaScript -->
-                    </g>
-                    
-                    <!-- Probe marker -->
-                    <circle id="probe-marker" cx="240" cy="50" r="8" fill="#4CAF50" stroke="#2E7D32" stroke-width="2"/>
-                    <line id="probe-line" x1="240" y1="50" x2="240" y2="20" stroke="#4CAF50" stroke-width="3"/>
-                    <text id="probe-label" x="240" y="15" fill="#4CAF50" font-size="12" font-weight="bold" text-anchor="middle">Probe</text>
-                    
-                    <!-- Underground indication -->
-                    <rect x="0" y="50" width="800" height="250" fill="#DEB887" opacity="0.3"/>
-                    <text x="400" y="280" fill="#8B4513" font-size="16" font-weight="bold" text-anchor="middle">Subsurface Rock</text>
-                </svg>
-            </div>
-        </div>
-
-        <div class="section">
-            <h3>Ground Displacement vs Distance</h3>
-            <div class="chart-container">
-                <div class="chart-wrapper">
-                    <canvas id="displacement-chart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="info-grid">
-            <div class="info-panel concepts">
-                <h3>Key Concepts</h3>
-                <ul class="info-list">
-                    <li><strong>Coseismic displacement:</strong> Ground deformation that occurs during an earthquake</li>
-                    <li><strong>Fault slip (S):</strong> The amount of movement along the fault plane</li>
-                    <li><strong>Locking depth (D):</strong> The depth to which the fault ruptures</li>
-                    <li><strong>Elastic deformation:</strong> Reversible deformation of Earth's crust around faults</li>
-                </ul>
-            </div>
-
-            <div class="info-panel observations">
-                <h3>Observations</h3>
-                <div class="info-list">
-                    <p><strong>Distance decay:</strong> Ground displacement decreases with distance from the fault, following an arctangent relationship.</p>
-                    <p><strong>Slip influence:</strong> Larger fault slip (S) increases displacement at all distances proportionally.</p>
-                    <p><strong>Depth effect:</strong> Shallower locking depths (D) create steeper displacement gradients, while deeper faults spread deformation over wider areas.</p>
-                    <p><strong>Asymptotic behavior:</strong> At large distances, displacement approaches S/2, representing half the total fault slip.</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="formula-panel">
-            <h4>Mathematical Model</h4>
-            <div class="formula">u(x) = (S/π) × arctan(x/D)</div>
-            <div class="formula-description">
-                Where u(x) is ground displacement, S is fault slip, D is locking depth, and x is distance from fault
-            </div>
-        </div>
     </div>
 
     <script>
-        // Global variables
-        let faultSlip = 5.0;
-        let lockingDepth = 15.0;
-        let probeDistance = 10.0;
-        let chart;
+        // Get DOM elements
+        const slipSlider = document.getElementById('slip-slider');
+        const depthSlider = document.getElementById('depth-slider');
+        const slipValue = document.getElementById('slip-value');
+        const depthValue = document.getElementById('depth-value');
 
-        // Calculate ground displacement using elastic dislocation model
-        function calculateDisplacement(distance, slip, depth) {
-            const depthMeters = depth * 1000; // convert km to meters
-            const distanceMeters = distance * 1000; // convert km to meters
-            return (slip / Math.PI) * Math.atan(distanceMeters / depthMeters);
+        // Generate a fixed array of distances
+        const Y_DISTANCES = [];
+        for (let y = -200; y <= 200; y += 1) {
+            Y_DISTANCES.push(y);
         }
 
-        // Generate data for the displacement plot
-        function generatePlotData() {
-            const data = [];
-            const labels = [];
-            for (let x = 0; x <= 50; x += 0.5) {
-                const displacement = calculateDisplacement(x, faultSlip, lockingDepth);
-                data.push(displacement);
-                labels.push(x);
+        /**
+         * Calculates displacements for both models
+         */
+        function calculateDisplacements(S_val, D_val) {
+            const interseismic_vals = [];
+            const coseismic_vals = [];
+            
+            const S = parseFloat(S_val);
+            const D = parseFloat(D_val);
+            const S_pi = S / Math.PI;
+
+            for (const y of Y_DISTANCES) {
+                // 1. Interseismic Model
+                const arctan_val = Math.atan(y / D);
+                interseismic_vals.push(S_pi * arctan_val);
+                
+                // 2. Coseismic Model
+                const r = Math.abs(y);
+                const r_d_sq = Math.pow(r / D, 2);
+                const coseismic_val = S / (1 + r_d_sq);
+                coseismic_vals.push(coseismic_val);
             }
-            return { data, labels };
+            
+            return { interseismic_vals, coseismic_vals };
         }
 
-        // Update all displays
-        function updateDisplay() {
-            // Update slider value displays
-            document.getElementById('slip-value').textContent = faultSlip.toFixed(1);
-            document.getElementById('depth-value').textContent = lockingDepth.toFixed(0);
-
-            // Update probe results
-            const probeDisplacement = calculateDisplacement(probeDistance, faultSlip, lockingDepth);
-            document.getElementById('probe-distance').textContent = probeDistance.toFixed(1) + ' km';
-            document.getElementById('probe-displacement').textContent = probeDisplacement.toFixed(3) + ' m';
-            document.getElementById('displacement-ratio').textContent = 
-                ((probeDisplacement / faultSlip) * 100).toFixed(1) + '% of fault slip';
-
-            // Update fault diagram
-            updateFaultDiagram();
-
-            // Update chart
-            updateChart();
+        /**
+         * Updates both Plotly charts
+         */
+        function updatePlots() {
+            // Get current values
+            const S = slipSlider.value;
+            const D = depthSlider.value;
+            
+            // Update labels
+            slipValue.textContent = S;
+            depthValue.textContent = D;
+            
+            // Get new data
+            const data = calculateDisplacements(S, D);
+            
+            // --- Plot 1: Interseismic ---
+            const trace_inter = {
+                x: Y_DISTANCES,
+                y: data.interseismic_vals,
+                mode: 'lines',
+                name: 'Interseismic Velocity',
+                line: { color: 'blue', width: 4 }
+            };
+            const layout_inter = {
+                title: 'Panel 1: Interseismic Loading (2D arctan Model)',
+                xaxis: { title: 'Distance from Fault (km)', zeroline: true },
+                yaxis: { title: 'Velocity (e.g., mm/yr)', zeroline: true },
+                margin: { l: 60, r: 30, t: 40, b: 50 }
+            };
+            Plotly.newPlot('plot-interseismic', [trace_inter], layout_inter);
+            
+            // --- Plot 2: Coseismic ---
+            const trace_co = {
+                x: Y_DISTANCES,
+                y: data.coseismic_vals,
+                mode: 'lines',
+                name: 'Coseismic Displacement',
+                line: { color: 'red', width: 4 }
+            };
+            const layout_co = {
+                title: 'Panel 2: Coseismic Displacement (1/r² Decay Model)',
+                xaxis: { title: 'Distance from Fault (km)', zeroline: true },
+                yaxis: { title: 'Displacement (e.g., mm)', zeroline: true, range: [0, S*1.1] },
+                margin: { l: 60, r: 30, t: 40, b: 50 }
+            };
+            Plotly.newPlot('plot-coseismic', [trace_co], layout_co);
         }
-
-        // Update fault diagram
-        function updateFaultDiagram() {
-            // Update fault line length based on locking depth
-            const faultEndY = 50 + (lockingDepth * 8);
-            document.getElementById('fault-line').setAttribute('y2', faultEndY);
-            
-            // Update depth indicator
-            document.getElementById('depth-indicator').setAttribute('y1', faultEndY);
-            document.getElementById('depth-indicator').setAttribute('y2', faultEndY);
-            document.getElementById('depth-label').setAttribute('y', faultEndY + 5);
-            document.getElementById('depth-label').textContent = `Locking Depth: ${lockingDepth} km`;
-
-            // Update probe position
-            const probeX = 100 + (probeDistance * 14);
-            document.getElementById('probe-marker').setAttribute('cx', probeX);
-            document.getElementById('probe-line').setAttribute('x1', probeX);
-            document.getElementById('probe-line').setAttribute('x2', probeX);
-            document.getElementById('probe-label').setAttribute('x', probeX);
-
-            // Update distance markers
-            const markersGroup = document.getElementById('distance-markers');
-            markersGroup.innerHTML = '';
-            [0, 10, 20, 30, 40, 50].forEach(dist => {
-                const x = 100 + (dist * 14);
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', x);
-                line.setAttribute('y1', 45);
-                line.setAttribute('x2', x);
-                line.setAttribute('y2', 55);
-                line.setAttribute('stroke', '#666');
-                line.setAttribute('stroke-width', '1');
-                
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', x);
-                text.setAttribute('y', 40);
-                text.setAttribute('fill', '#666');
-                text.setAttribute('font-size', '12');
-                text.setAttribute('text-anchor', 'middle');
-                text.textContent = `${dist}km`;
-                
-                markersGroup.appendChild(line);
-                markersGroup.appendChild(text);
-            });
-        }
-
-        // Initialize chart
-        function initChart() {
-            const ctx = document.getElementById('displacement-chart').getContext('2d');
-            const plotData = generatePlotData();
-            
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: plotData.labels,
-                    datasets: [{
-                        label: 'Ground Displacement',
-                        data: plotData.data,
-                        borderColor: '#2563eb',
-                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                        borderWidth: 3,
-                        fill: false,
-                        pointRadius: 0,
-                        pointHoverRadius: 6,
-                        tension: 0.1
-                    }, {
-                        label: 'Probe Position',
-                        data: [],
-                        borderColor: '#4CAF50',
-                        backgroundColor: '#4CAF50',
-                        borderWidth: 3,
-                        pointRadius: 8,
-                        pointHoverRadius: 10,
-                        showLine: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    if (context.datasetIndex === 0) {
-                                        return `Displacement: ${context.parsed.y.toFixed(3)} m`;
-                                    }
-                                    return `Probe: ${context.parsed.y.toFixed(3)} m`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Distance from Fault (km)',
-                                font: {
-                                    size: 14,
-                                    weight: 'bold'
-                                }
-                            },
-                            grid: {
-                                display: true,
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        },
-                        y: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: 'Ground Displacement (m)',
-                                font: {
-                                    size: 14,
-                                    weight: 'bold'
-                                }
-                            },
-                            grid: {
-                                display: true,
-                                color: 'rgba(0, 0, 0, 0.1)'
-                            }
-                        }
-                    },
-                    animation: {
-                        duration: 300
-                    }
-                }
-            });
-        }
-
-        // Update chart data
-        function updateChart() {
-            if (!chart) return;
-            
-            const plotData = generatePlotData();
-            chart.data.labels = plotData.labels;
-            chart.data.datasets[0].data = plotData.data;
-            
-            // Update probe point
-            const probeIndex = Math.round(probeDistance * 2); // Since we have 0.5 km steps
-            const probeDisplacement = calculateDisplacement(probeDistance, faultSlip, lockingDepth);
-            chart.data.datasets[1].data = [];
-            chart.data.datasets[1].data[probeIndex] = probeDisplacement;
-            
-            chart.update('none');
-        }
-
-        // Event listeners
-        document.getElementById('fault-slip').addEventListener('input', function(e) {
-            faultSlip = parseFloat(e.target.value);
-            updateDisplay();
-        });
-
-        document.getElementById('locking-depth').addEventListener('input', function(e) {
-            lockingDepth = parseFloat(e.target.value);
-            updateDisplay();
-        });
-
-        // Handle clicks on fault diagram
-        document.getElementById('fault-svg').addEventListener('click', function(e) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const width = rect.width;
-            const maxDistance = 50; // km
-            const clickedDistance = (x / width) * maxDistance;
-            probeDistance = Math.max(0, Math.min(maxDistance, clickedDistance));
-            updateDisplay();
-        });
-
-        // Initialize everything
-        document.addEventListener('DOMContentLoaded', function() {
-            initChart();
-            updateDisplay();
-        });
+        
+        // Add event listeners
+        slipSlider.addEventListener('input', updatePlots);
+        depthSlider.addEventListener('input', updatePlots);
+        
+        // Initial plot on page load
+        document.addEventListener('DOMContentLoaded', updatePlots);
     </script>
 </body>
 </html>

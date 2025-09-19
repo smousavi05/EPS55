@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fault Displacement Models</title>
+    <title>Harvard EPS55: Fault Displacement Models</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body {
@@ -15,7 +15,8 @@
         .container {
             display: grid;
             grid-template-columns: 1fr 2fr;
-            grid-template-rows: auto auto;
+            /* Changed to 4 rows */
+            grid-template-rows: auto auto auto auto; 
             gap: 20px;
             max-width: 1600px;
             margin: auto;
@@ -34,17 +35,29 @@
         }
         #education {
             grid-column: 1;
-            grid-row: 2;
+            /* Changed to span rows 2-4 */
+            grid-row: 2 / span 3;
         }
         #plot-interseismic {
             grid-column: 2;
             grid-row: 1;
-            min-height: 400px;
+            height: 400px;
+        }
+        /* New panel for Interseismic Education */
+        #education-inter {
+            grid-column: 2;
+            grid-row: 2;
         }
         #plot-coseismic {
             grid-column: 2;
-            grid-row: 2;
-            min-height: 400px;
+            /* Changed to row 3 */
+            grid-row: 3; 
+            height: 400px;
+        }
+        /* New panel for Coseismic Education */
+        #education-co {
+            grid-column: 2;
+            grid-row: 4;
         }
         .slider-group {
             margin-bottom: 25px;
@@ -94,42 +107,40 @@
         </div>
 
         <div id="education" class="panel">
-            <h2>Harvard EPS55</h2>
-            
+
             <h3>Key Concepts</h3>
             <p>These models illustrate **Elastic Rebound Theory**. The ground slowly deforms (stores elastic strain) during the interseismic period, which is then suddenly released (coseismic displacement) during an earthquake.</p>
-            
-            <hr>
-            
-            <h3>Panel 1: Interseismic Loading</h3>
-            <p>This plot shows the *rate* of ground motion (velocity) during the long period *between* earthquakes, based on the 2D `arctan` model.</p>
-            <p><strong>Formula Used:</strong> <code>v(y) = (S / &pi;) * arctan(y / D)</code></p>
-            <ul>
-                <li><code>v(y)</code>: Velocity at distance <code>y</code> from the fault.</li>
-                <li><code>S</code>: Long-term slip rate (e.g., mm/yr).</li>
-                <li><code>D</code>: Locking depth of the fault.</li>
-                <li><code>y</code>: Perpendicular distance from the fault.</li>
-            </ul>
-            <p><strong>Key Observation:</strong> The ground is "locked" at the fault (velocity = 0), while the ground far away moves at the full plate velocity. A deeper locking depth (larger <code>D</code>) creates a wider, more gradual zone of strain accumulation.</p>
-            <p><strong>Real-World Measurement:</strong> Measured using **GPS** stations over many years.</p>
-
-            <hr>
-
-            <h3>Panel 2: Coseismic Displacement</h3>
-            <p>This plot shows the *permanent* ground displacement *during* an earthquake, based on a model that shows $1/r^2$ decay.</p>
-            <p><strong>Formula Used:</strong> <code>u(r) = S / (1 + (r / D)²)</code></p>
-            <ul>
-                <li><code>u(r)</code>: Displacement at distance <code>r</code> from the fault.</li>
-                <li><code>S</code>: Slip on the fault at $r=0$.</li>
-                <li><code>D</code>: A term related to the fault's depth/width.</li>
-                <li><code>r</code>: Distance from the fault (<code>r = |y|</code>).</li>
-            </ul>
-            <p><strong>Note:</strong> This simple function is an approximation of complex 3D models (like Okada), but it correctly shows that displacement is **maximum at the fault** and **decays rapidly** (like $1/r^2$ at large distances).</p>
-            <p><strong>Real-World Measurement:</strong> Measured using **GPS** and **InSAR** (satellite radar) immediately after an earthquake.</p>
         </div>
 
         <div id="plot-interseismic" class="panel"></div>
+        
+        <div id="education-inter" class="panel">
+            <p>This plot shows the *rate* of ground motion (velocity) during the long period *between* earthquakes, based on the 2D `arctan` model.</p>
+            <p><strong>Formula Used:</strong> <code>v(x) = (s / &pi;) * arctan(x / d)</code></p>
+            <ul>
+                <li><code>v(x)</code>: Velocity at distance <code>y</code> from the fault.</li>
+                <li><code>s</code>: Long-term slip rate (e.g., mm/yr).</li>
+                <li><code>d</code>: Locking depth of the fault.</li>
+                <li><code>x</code>: Perpendicular distance from the fault.</li>
+            </ul>
+            <p><strong>Key Observation:</strong> The ground is "locked" at the fault (velocity = 0), while the ground far away moves at the full plate velocity. A deeper locking depth (larger <code>d</code>) creates a wider, more gradual zone of strain accumulation.</p>
+            <p><strong>Real-World Measurement:</strong> Measured using **GPS** stations over many years.</p>
+        </div>
+
         <div id="plot-coseismic" class="panel"></div>
+
+        <div id="education-co" class="panel">
+            <p>This plot shows the *permanent* ground displacement *during* an earthquake, based on a model that shows 1/x^2 decay.</p>
+            <p><strong>Formula Used:</strong> <code>u(x) = s / (1 + (x / d)²)</code></p>
+            <ul>
+                <li><code>u(x)</code>: Displacement at distance <code>x</code> from the fault.</li>
+                <li><code>s</code>: Slip on the fault at x=0.</li>
+                <li><code>d</code>: A term related to the fault's depth/width.</li>
+                <li><code>x</code>: Distance from the fault.</li>
+            </ul>
+            <p><strong>Note:</strong> This simple function is an approximation of complex 3D models (like Okada), but it correctly shows that displacement is **maximum at the fault** and **decays rapidly** (like 1/x^2 at large distances).</p>
+            <p><strong>Real-World Measurement:</strong> Measured using **GPS** and **InSAR** (satellite radar) immediately after an earthquake.</p>
+        </div>
 
     </div>
 
@@ -145,6 +156,13 @@
         for (let y = -200; y <= 200; y += 1) {
             Y_DISTANCES.push(y);
         }
+        
+        // Get max slip from slider to set fixed y-axes
+        const maxSliderS = parseFloat(slipSlider.max);
+        // Max for interseismic is S/2 (since S/pi * pi/2). Add 10% padding.
+        const max_inter_y = (maxSliderS / 2) * 1.1; 
+        // Max for coseismic is S. Add 10% padding.
+        const max_co_y = maxSliderS * 1.1;
 
         /**
          * Calculates displacements for both models
@@ -196,9 +214,13 @@
                 line: { color: 'blue', width: 4 }
             };
             const layout_inter = {
-                title: 'Panel 1: Interseismic Loading (2D arctan Model)',
+                title: 'Harvard EPS55 | Interseismic Loading (2D arctan Model)',
                 xaxis: { title: 'Distance from Fault (km)', zeroline: true },
-                yaxis: { title: 'Velocity (e.g., mm/yr)', zeroline: true },
+                yaxis: { 
+                    title: 'Velocity (e.g., mm/yr)', 
+                    zeroline: true,
+                    range: [-max_inter_y, max_inter_y] // Fixed range
+                },
                 margin: { l: 60, r: 30, t: 40, b: 50 }
             };
             Plotly.newPlot('plot-interseismic', [trace_inter], layout_inter);
@@ -212,9 +234,13 @@
                 line: { color: 'red', width: 4 }
             };
             const layout_co = {
-                title: 'Panel 2: Coseismic Displacement (1/r² Decay Model)',
+                title: 'Harvard EPS55 | Coseismic Displacement (1/x² Decay Model)',
                 xaxis: { title: 'Distance from Fault (km)', zeroline: true },
-                yaxis: { title: 'Displacement (e.g., mm)', zeroline: true, range: [0, S*1.1] },
+                yaxis: { 
+                    title: 'Displacement (e.g., mm)', 
+                    zeroline: true, 
+                    range: [0, max_co_y] // Fixed range
+                },
                 margin: { l: 60, r: 30, t: 40, b: 50 }
             };
             Plotly.newPlot('plot-coseismic', [trace_co], layout_co);

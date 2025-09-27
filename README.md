@@ -364,11 +364,6 @@ Understand the physics - why normal stress increases shear resistance
         <img src="interactive_visualizations/viz__l12_detection_ANN_b.png" alt="Interactive Figure Preview" width="200">
       </a>
     </td>
-    <td>
-      <a href="https://smousavi05.github.io/EPS55/interactive_visualizations/viz__l12_templateMatching_vs_similaritySearch.html">
-        <img src="interactive_visualizations/viz__l12_templateMatching_vs_similaritySearch.png" alt="Interactive Figure Preview" width="200">
-      </a>
-    </td>
   </tr>
 </table>
 

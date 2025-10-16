@@ -453,7 +453,6 @@ Understand the physics - why normal stress increases shear resistance
 
 <table>
   <tr align="center">
-    <th>Interactive 3D Seismic Moment Calculator!</th>
     <th>Interactive Magnitude Scale Simulator!</th>
   </tr>
   

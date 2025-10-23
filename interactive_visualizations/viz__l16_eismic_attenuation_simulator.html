@@ -374,7 +374,7 @@
                 // Data arrays
                 this.seismogramData = [];
                 this.timeData = [];
-                this.maxSeismogramLength = 500;
+                this.maxSeismogramLength = 1500;
                 
                 this.initializeCanvases();
                 this.bindEvents();
@@ -687,7 +687,7 @@
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 
-                const maxAmp = Math.max(Math.abs(...this.seismogramData)) || 1;
+                const maxAmp = Math.max(...this.seismogramData.map(val => Math.abs(val))) || 1;
                 const centerY = rect.height / 2;
                 
                 for (let i = 0; i < this.seismogramData.length; i++) {

@@ -384,7 +384,6 @@
                 this.codaDuration = 15;     // (sec) How long to record after arrival
                 this.maxSimTime = 0;         // (sec) The total time the sim will run
                 this.eventPeakAmplitude = 0;
-                document.getElementById('peak-amplitude-display').textContent = 'Peak Amp: 0.0';
                 
                 this.initializeCanvases();
                 this.bindEvents();
@@ -511,6 +510,7 @@
                 this.eventPeakAmplitude = 0;
                 this.drawWaveViewer();
                 this.drawSeismogram();
+                document.getElementById('peak-amplitude-display').textContent = 'Peak Amp: 0.0';
                 this.drawSpectrum();
             }
             

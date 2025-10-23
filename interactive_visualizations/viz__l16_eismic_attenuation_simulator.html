@@ -375,6 +375,10 @@
                 this.seismogramData = [];
                 this.timeData = [];
                 this.maxSeismogramLength = 1500;
+
+                this.arrivalAtReceiver = 0; // (sec) When the wave hits the receiver
+                this.codaDuration = 15;     // (sec) How long to record after arrival
+                this.maxSimTime = 0;         // (sec) The total time the sim will run
                 
                 this.initializeCanvases();
                 this.bindEvents();
@@ -477,6 +481,10 @@
             startSimulation() {
                 this.isRunning = true;
                 document.getElementById('start-simulation').textContent = 'Stop Simulation';
+                const totalDistance = 100; // km
+                this.arrivalAtReceiver = totalDistance / (this.waveSpeed / 1000);
+                this.maxSimTime = this.arrivalAtReceiver + this.codaDuration;
+                
                 this.animate();
             }
             
@@ -493,6 +501,7 @@
                 this.time = 0;
                 this.seismogramData = [];
                 this.timeData = [];
+                this.maxSimTime = 0;
                 this.drawWaveViewer();
                 this.drawSeismogram();
                 this.drawSpectrum();
@@ -508,6 +517,11 @@
                 if (!this.isRunning) return;
                 
                 this.time += 0.02 * this.speed;
+
+                if (this.maxSimTime > 0 && this.time > this.maxSimTime) {
+                    this.stopSimulation();
+                    return; // Exit the animate loop
+                }
                 
                 this.drawWaveViewer();
                 this.updateSeismogram();
@@ -628,7 +642,7 @@
                 
                 // Check if wave has reached receiver
                 if (waveDistance >= maxDistance) {
-                    const arrivalTime = this.time - (totalDistance / (this.waveSpeed / 1000));
+                    const arrivalTime = this.time - this.arrivalAtReceiver;
                     
                     if (arrivalTime > 0) {
                         // Calculate attenuated amplitude

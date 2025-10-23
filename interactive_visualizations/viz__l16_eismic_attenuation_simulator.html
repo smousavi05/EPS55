@@ -317,7 +317,11 @@
         
         <div class="charts-container">
             <div class="seismogram-container">
-                <h3>📊 Real-time Seismogram</h3>
+                <h3>📊 Real-time Seismogram
+                    <span id="peak-amplitude-display" style="float: right; font-size: 0.8em; color: #4ecdc4; font-weight: 300;">
+                        Peak Amp: 0.0
+                    </span>
+                </h3>
                 <canvas class="chart" id="seismogram-canvas"></canvas>
             </div>
             
@@ -380,6 +384,7 @@
                 this.codaDuration = 15;     // (sec) How long to record after arrival
                 this.maxSimTime = 0;         // (sec) The total time the sim will run
                 this.eventPeakAmplitude = 0;
+                document.getElementById('peak-amplitude-display').textContent = 'Peak Amp: 0.0';
                 
                 this.initializeCanvases();
                 this.bindEvents();
@@ -667,7 +672,8 @@
                         
                         amplitude = mainWave + coda;
                         if (Math.abs(amplitude) > this.eventPeakAmplitude) {
-                            this.eventPeakAmplitude = Math.abs(amplitude);
+s                         this.eventPeakAmplitude = Math.abs(amplitude);
+                            document.getElementById('peak-amplitude-display').textContent = `Peak Amp: ${this.eventPeakAmplitude.toFixed(4)}`;
                         }
                     }
                 }

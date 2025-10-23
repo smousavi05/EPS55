@@ -379,6 +379,7 @@
                 this.arrivalAtReceiver = 0; // (sec) When the wave hits the receiver
                 this.codaDuration = 15;     // (sec) How long to record after arrival
                 this.maxSimTime = 0;         // (sec) The total time the sim will run
+                this.eventPeakAmplitude = 0;
                 
                 this.initializeCanvases();
                 this.bindEvents();
@@ -502,6 +503,7 @@
                 this.seismogramData = [];
                 this.timeData = [];
                 this.maxSimTime = 0;
+                this.eventPeakAmplitude = 0;
                 this.drawWaveViewer();
                 this.drawSeismogram();
                 this.drawSpectrum();
@@ -664,6 +666,9 @@
                         }
                         
                         amplitude = mainWave + coda;
+                        if (Math.abs(amplitude) > this.eventPeakAmplitude) {
+                            this.eventPeakAmplitude = Math.abs(amplitude);
+                        }
                     }
                 }
                 
@@ -702,7 +707,7 @@
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 
-                const maxAmp = Math.max(...this.seismogramData.map(val => Math.abs(val))) || 1;
+                const maxAmp = this.eventPeakAmplitude || 1;
                 const centerY = rect.height / 2;
                 
                 for (let i = 0; i < this.seismogramData.length; i++) {

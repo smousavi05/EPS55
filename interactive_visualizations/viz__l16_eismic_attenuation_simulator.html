@@ -713,7 +713,7 @@
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 
-                const maxAmp = this.eventPeakAmplitude || 1;
+                const maxAmp = (this.eventPeakAmplitude > 0.00005) ? this.eventPeakAmplitude : 1;
                 const centerY = rect.height / 2;
                 
                 for (let i = 0; i < this.seismogramData.length; i++) {

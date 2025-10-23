@@ -672,7 +672,7 @@
                         
                         amplitude = mainWave + coda;
                         if (Math.abs(amplitude) > this.eventPeakAmplitude) {
-s                         this.eventPeakAmplitude = Math.abs(amplitude);
+                          this.eventPeakAmplitude = Math.abs(amplitude);
                             document.getElementById('peak-amplitude-display').textContent = `Peak Amp: ${this.eventPeakAmplitude.toFixed(4)}`;
                         }
                     }

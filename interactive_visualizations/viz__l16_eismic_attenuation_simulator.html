@@ -634,18 +634,19 @@
                         // Calculate attenuated amplitude
                         const geoAtten = this.calculateGeometricalSpreading(totalDistance);
                         const intrAtten = this.calculateIntrinsicAttenuation(totalDistance, this.frequency);
+                        const receivedBaseAmplitude = this.amplitude * geoAtten * intrAtten;
                         
                         // Main wave
                         const envelope = Math.exp(-arrivalTime * 2); // Decay envelope
-                        const mainWave = this.amplitude * geoAtten * intrAtten * envelope * 
-                                        Math.sin(2 * Math.PI * this.frequency * arrivalTime);
+                        const mainWave = receivedBaseAmplitude * envelope * 
+                                        Math.sin(2 * Math.PI * this.frequency * arrivalTime);
                         
                         // Add coda (scattered waves)
                         let coda = 0;
                         if (this.heterogeneity > 20 && arrivalTime > 0.5) {
                             const codaStrength = this.heterogeneity / 100;
-                            const codaDecay = Math.exp(-arrivalTime * 0.5);
-                            coda = codaStrength * codaDecay * (Math.random() - 0.5) * this.amplitude * 0.3;
+                            const codaDecay = Math.exp(-arrivalTime * 0.5);
+                            coda = receivedBaseAmplitude * (codaStrength * 0.3) * codaDecay * (Math.random() - 0.5) * 2;
                         }
                         
                         amplitude = mainWave + coda;
